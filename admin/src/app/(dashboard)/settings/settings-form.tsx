@@ -118,7 +118,18 @@ function PartnerBlock({ partner }: { partner: Partner }) {
         </label>
         {(["company", "name", "ico", "dic", "street", "psc", "city", "bank"] as const).map((k) => (
           <label key={k}>
-            {k === "company" ? "Firma" : k === "ico" ? "IČO" : k === "dic" ? "DIČ" : k === "bank" ? "Účet" : k}
+            {
+              {
+                company: "Firma",
+                name: "Jméno a příjmení",
+                ico: "IČO",
+                dic: "DIČ",
+                street: "Ulice a č.p.",
+                psc: "PSČ",
+                city: "Město",
+                bank: "Účet",
+              }[k]
+            }
             <input
               value={billing[k] || ""}
               onChange={(e) => setBilling({ ...billing, [k]: e.target.value })}
