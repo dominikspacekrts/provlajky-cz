@@ -10,7 +10,7 @@ import {
   updateOrderMoney,
   updateOrderStatus,
 } from "@/lib/actions/orders";
-import { ALL_STATUSES, computeOrderTotals, customerLabel, fmtMoney, isBanner, statusClass } from "@/lib/domain";
+import { ALL_STATUSES, computeOrderTotals, customerLabel, fmtMoney, isBanner, statusClass, statusLabel } from "@/lib/domain";
 import type { Invoice, Order, OrderItem, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
@@ -69,11 +69,16 @@ export default function OrderDetailClient({
                 ))}
               </select>
             </label>
-            <span className={`status-badge ${statusClass(order.status)}`}>{isPending ? "ukládám…" : " "}</span>
+            <span className={`status-badge ${statusClass(order.status)}`}>{statusLabel(order.status)}</span>
+            {isPending && (
+              <span className="muted" style={{ fontSize: 13 }}>
+                ukládám…
+              </span>
+            )}
+            <SupplierPaidToggle orderId={order.id} paid={order.supplier_paid} />
           </div>
         </div>
         <div className="header-actions">
-          <SupplierPaidToggle orderId={order.id} paid={order.supplier_paid} />
           <SendInvoiceButton order={order} items={items} existingInvoice={invoice} />
           <SendVisualButton order={order} items={items} />
           <SendSupplierButton order={order} items={items} />
