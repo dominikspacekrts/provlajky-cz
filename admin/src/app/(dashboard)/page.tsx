@@ -34,6 +34,12 @@ export default async function HomePage() {
       title: "Nastavení",
       sub: "Firma, SMTP, partneři, šablony",
     },
+    {
+      href: "/migrate",
+      icon: "📥",
+      title: "Migrace",
+      sub: "Import dat ze staré appky",
+    },
   ];
 
   return (
