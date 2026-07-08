@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Customer } from "@/lib/types";
+import type { Customer, Design } from "@/lib/types";
 
 export async function updateOrderStatus(orderId: string, status: string) {
   const supabase = await createClient();
@@ -105,6 +105,14 @@ export async function createOrder(customer: Customer) {
   if (error) throw new Error(error.message);
   revalidatePath("/orders");
   redirect(`/orders/${data.id}`);
+}
+
+export async function saveItemDesign(itemId: string, orderId: string, design: Design) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("order_items").update({ design }).eq("id", itemId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath(`/orders/${orderId}/design/${itemId}`);
 }
 
 export async function updateOrderCustomer(

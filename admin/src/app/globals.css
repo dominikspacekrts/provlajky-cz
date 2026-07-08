@@ -196,3 +196,22 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
   border-radius: 999px; padding: 4px 10px; font-size: 13px;
 }
 .chip .rm { border: none; background: none; color: #dc2626; cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+
+/* Design editor (Konva) */
+.toolbar {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 12px; padding: 12px; background: white; border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+.toolbar .spacer { flex: 1; }
+.swatches { display: inline-flex; gap: 4px; }
+.swatch {
+  width: 26px; height: 26px; border: 2px solid var(--color-border-input);
+  border-radius: 50%; cursor: pointer; padding: 0;
+}
+.swatch:hover { border-color: var(--color-primary); transform: scale(1.1); }
+.swatch.active { border-color: var(--color-primary); box-shadow: 0 0 0 2px #bfdbfe; }
+.stage-wrapper {
+  position: relative; background: white; border-radius: 8px; padding: 16px;
+  display: flex; justify-content: center; min-height: 300px; border: 1px solid var(--color-border);
+}

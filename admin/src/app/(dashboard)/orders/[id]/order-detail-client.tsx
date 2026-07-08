@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   addOrderItem,
@@ -238,6 +239,9 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
       <div className="item-spacer" />
       <div className="item-linetotal">{fmtMoney(lineTotal, currency)}</div>
       <div className="item-actions">
+        <Link href={`/orders/${orderId}/design/${item.id}`} className="btn">
+          {item.design ? "Upravit design" : "Přidat design"}
+        </Link>
         <button className="btn danger" onClick={() => startTransition(() => deleteOrderItem(item.id, orderId))}>
           Smazat
         </button>
