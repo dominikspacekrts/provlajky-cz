@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>PROVLAJKY – Editor</title>
+<link rel="stylesheet" href="style.css?v=106">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/konva@9.3.0/konva.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+<script src="https://unpkg.com/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+</head>
+<body>
+<header>
+  <h1>PROVLAJKY</h1>
+  <nav class="topnav">
+    <button class="nav-link" data-nav="home">Domů</button>
+    <button class="nav-link" data-nav="orders">Objednávky</button>
+    <button class="nav-link" data-nav="finance">Finance</button>
+  </nav>
+  <div class="breadcrumbs">
+    <span id="bc-order"></span>
+    <span id="bc-shape"></span>
+    <span id="bc-size"></span>
+  </div>
+</header>
+
+<main>
+  <!-- Home -->
+  <section id="step-home" class="step active">
+    <h2>Přehled</h2>
+    <div class="home-tiles">
+      <button class="home-tile" data-nav="orders">
+        <div class="tile-icon">📦</div>
+        <div class="tile-title">Objednávky</div>
+        <div class="tile-sub" id="tile-orders-sub">—</div>
+      </button>
+      <button class="home-tile" data-nav="finance">
+        <div class="tile-icon">💰</div>
+        <div class="tile-title">Finance</div>
+        <div class="tile-sub" id="tile-finance-sub">Faktury a statistika</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- Finance -->
+  <section id="step-finance" class="step">
+    <div class="row-between">
+      <h2>Finance</h2>
+      <div class="header-actions">
+        <button class="btn fin-tab active" data-fintab="invoices">Faktury</button>
+        <button class="btn fin-tab" data-fintab="stats">Statistika</button>
+        <button class="btn fin-tab" data-fintab="earnings">Výdělky</button>
+        <button id="open-declaration" class="btn">Prohlášení pro účetní</button>
+      </div>
+    </div>
+    <div id="fin-invoices" class="fin-panel">
+      <div id="invoices-list" class="orders-list"></div>
+      <p id="invoices-empty" class="muted">Zatím žádné faktury. Vygeneruj fakturu z objednávky.</p>
+    </div>
+    <div id="fin-stats" class="fin-panel hidden">
+      <div id="stats-content"></div>
+    </div>
+    <div id="fin-earnings" class="fin-panel hidden">
+      <div id="earnings-content"></div>
+    </div>
+  </section>
+
+  <!-- Orders list -->
+  <section id="step-orders" class="step">
+    <div class="row-between">
+      <h2>Objednávky</h2>
+      <div class="header-actions">
+        <button id="toggle-wc-config" class="btn">⚙ Napojení webu</button>
+        <button id="sync-wc" class="btn primary">⟳ Synchronizovat z webu</button>
+        <button id="new-order" class="btn">+ Ruční objednávka</button>
+      </div>
+    </div>
+
+    <div class="orders-toolbar">
+      <label class="inline-label">Filtr stavu:
+        <select id="status-filter">
+          <option value="">Všechny</option>
+        </select>
+      </label>
+      <span id="sync-info" class="muted"></span>
+    </div>
+
+    <div id="orders-list" class="orders-list"></div>
+    <p id="orders-empty" class="muted">Zatím žádné objednávky. Synchronizuj z webu nebo vytvoř ruční.</p>
+  </section>
+
+  <!-- Order detail -->
+  <section id="step-order" class="step">
+    <button class="back" data-back="orders">← Zpět na seznam</button>
+    <div class="row-between">
+      <div>
+        <h2 id="order-title">Objednávka</h2>
+        <div class="detail-meta-row">
+          <label class="inline-label">Číslo objednávky:
+            <input id="order-number" type="text" placeholder="např. 825">
+          </label>
+          <label class="inline-label">Stav:
+            <select id="order-status"></select>
+          </label>
+          <label class="inline-label">Fakturace:
+            <select id="order-destination">
+              <option value="cz">ČR (tuzemská)</option>
+              <option value="foreign">Zahraničí</option>
+            </select>
+          </label>
+          <label class="inline-label">Platba dodavateli:
+            <select id="order-supplier-paid">
+              <option value="">Nezaplaceno</option>
+              <option value="1">Zaplaceno</option>
+            </select>
+          </label>
+          <span id="order-status-info" class="ocr-status"></span>
+        </div>
+      </div>
+      <div>
+        <button id="generate-invoice" class="btn primary">Vygenerovat fakturu</button>
+        <button id="send-invoice" class="btn">✉ Odeslat fakturu zákazníkovi</button>
+        <button id="send-visual" class="btn">✉ Odeslat vizualizaci</button>
+        <button id="send-supplier" class="btn">✉ Objednat u dodavatele</button>
+        <button id="export-client-pdf" class="btn">Export PDF návrhu</button>
+        <button id="delete-order" class="btn danger">Smazat objednávku</button>
+      </div>
+    </div>
+
+    <h3>Zákazník</h3>
+    <div class="customer-picker-row">
+      <label class="inline-label">Vybrat z dřívějších zákazníků:
+        <select id="customer-picker"><option value="">— nový zákazník —</option></select>
+      </label>
+    </div>
+    <div class="two-col">
+      <div class="addr-block">
+        <h4>Fakturační adresa</h4>
+        <div class="form-col">
+          <label>Firma <input id="bill-company" type="text" placeholder="Neubox CZ s.r.o."></label>
+          <label>Jméno a příjmení <input id="bill-name" type="text" placeholder="Jaroslav Neuwirth"></label>
+          <label>Ulice a č.p. <input id="bill-street" type="text" placeholder="U Parku 2867/1"></label>
+          <div class="psc-row">
+            <label>PSČ <input id="bill-psc" type="text" placeholder="702 00"></label>
+            <label>Město <input id="bill-city" type="text" placeholder="Moravská Ostrava"></label>
+          </div>
+          <label class="cb-line"><input id="bill-iscompany" type="checkbox"> Nákup na firmu (vyplnit IČO)</label>
+          <div class="psc-row">
+            <label>IČO <input id="bill-ico" type="text" placeholder="25882201"></label>
+            <label>DIČ <input id="bill-dic" type="text" placeholder="CZ25882201"></label>
+          </div>
+          <label>E-mail <input id="bill-email" type="email" placeholder="info@neubox.cz"></label>
+          <label>Telefon <input id="bill-phone" type="tel" placeholder="+420 608 774 688"></label>
+        </div>
+      </div>
+      <div class="addr-block">
+        <h4>Doručovací adresa</h4>
+        <div class="form-col">
+          <label>Firma <input id="ship-company" type="text" placeholder="Neubox CZ s.r.o."></label>
+          <label>Jméno a příjmení <input id="ship-name" type="text" placeholder="Jaroslav Neuwirth"></label>
+          <label>Ulice a č.p. <input id="ship-street" type="text" placeholder="U Parku 2867/1"></label>
+          <div class="psc-row">
+            <label>PSČ <input id="ship-psc" type="text" placeholder="702 00"></label>
+            <label>Město <input id="ship-city" type="text" placeholder="Moravská Ostrava"></label>
+          </div>
+          <label>E-mail <input id="ship-email" type="email" placeholder=""></label>
+          <label>Telefon <input id="ship-phone" type="tel" placeholder="+420 608 774 688"></label>
+        </div>
+      </div>
+    </div>
+
+    <h3>Položky objednávky</h3>
+    <div class="form-col">
+      <div id="items-list" class="items-list"></div>
+      <div class="add-item-row">
+        <button id="add-item" class="btn">+ Plážová vlajka</button>
+        <button id="add-banner" class="btn">+ PVC banner</button>
+      </div>
+      <div id="order-totals" class="order-totals"></div>
+    </div>
+
+    <h3>Faktury od dodavatele (EUR)</h3>
+    <div class="form-col">
+      <div id="supplier-invoices-list" class="sup-inv-list"></div>
+      <div class="sup-inv-add">
+        <label class="inline-label">Soubor faktury:
+          <input id="sup-inv-file" type="file" accept="image/*,application/pdf,.pdf">
+        </label>
+        <label class="inline-label">Částka (EUR):
+          <input id="sup-inv-eur" type="number" min="0" step="0.01" placeholder="např. 250.00">
+        </label>
+        <label class="inline-label">Datum:
+          <input id="sup-inv-date" type="date">
+        </label>
+        <button id="sup-inv-add" class="btn primary">Vyčíst kurz a převézt</button>
+        <span id="sup-inv-status" class="ocr-status"></span>
+      </div>
+      <div id="supplier-cost-summary" class="sup-cost-summary"></div>
+    </div>
+  </section>
+
+  <!-- Shape (used only for standalone-edit fallback) -->
+  <section id="step-shape" class="step">
+    <button class="back" data-back="order">← Zpět</button>
+    <h2>Vyber tvar vlajky</h2>
+    <div class="grid">
+      <button class="card" data-shape="A">A</button>
+      <button class="card" data-shape="B">B</button>
+      <button class="card" data-shape="C">C</button>
+      <button class="card" data-shape="D">D</button>
+      <button class="card" data-shape="E">E</button>
+      <button class="card" data-shape="F">F</button>
+    </div>
+  </section>
+
+  <!-- Size -->
+  <section id="step-size" class="step">
+    <button class="back" data-back="shape">← Zpět</button>
+    <h2>Vyber velikost</h2>
+    <div class="grid">
+      <button class="card" data-size="S">S</button>
+      <button class="card" data-size="M">M</button>
+      <button class="card" data-size="L">L</button>
+      <button class="card" data-size="XL">XL</button>
+    </div>
+  </section>
+
+  <!-- Editor -->
+  <section id="step-editor" class="step">
+    <div class="toolbar">
+      <button class="back" data-back="order">← Zpět do objednávky</button>
+      <label class="btn">
+        Nahrát logo
+        <input type="file" id="logo-input" accept="image/*" hidden>
+      </label>
+      <button id="rotate-left" class="btn" disabled>⟲ -15°</button>
+      <button id="rotate-right" class="btn" disabled>⟳ +15°</button>
+      <button id="delete-logo" class="btn" disabled>Smazat logo</button>
+      <label class="btn" style="margin-left:8px;background:#eef2ff;border-color:#c7d2fe">
+        🎨 Hotová grafika
+        <input type="file" id="artwork-input" accept="image/*,application/pdf,.pdf" hidden>
+      </label>
+      <button id="delete-artwork" class="btn" disabled>Smazat grafiku</button>
+      <label class="btn" id="multi-artwork-toggle-wrap" style="display:none;background:#fef9c3;border-color:#fde68a">
+        <input type="checkbox" id="multi-artwork-toggle">
+        Různé grafiky pro kusy (<span id="multi-artwork-count"></span> ks)
+      </label>
+      <span class="spacer"></span>
+      <button id="save-design" class="btn primary">Uložit návrh</button>
+      <button id="clear-design" class="btn danger">Smazat návrh</button>
+      <button id="export-pdf" class="btn">Export PDF</button>
+      <button id="export-svg" class="btn">Export SVG</button>
+    </div>
+    <div class="toolbar">
+      <strong>Pozadí vlajky:</strong>
+      <input type="color" id="bg-color" value="#ffffff">
+      <input type="text" id="bg-hex" value="#ffffff" maxlength="7" placeholder="#RRGGBB">
+      <div class="swatches">
+        <button class="swatch" style="background:#ffffff" data-color="#ffffff"></button>
+        <button class="swatch" style="background:#000000" data-color="#000000"></button>
+        <button class="swatch" style="background:#e53935" data-color="#e53935"></button>
+        <button class="swatch" style="background:#1e88e5" data-color="#1e88e5"></button>
+        <button class="swatch" style="background:#43a047" data-color="#43a047"></button>
+        <button class="swatch" style="background:#fdd835" data-color="#fdd835"></button>
+        <button class="swatch" style="background:#fb8c00" data-color="#fb8c00"></button>
+        <button class="swatch" style="background:#8e24aa" data-color="#8e24aa"></button>
+      </div>
+      <button id="bg-reset" class="btn">Bez výplně</button>
+    </div>
+    <div class="toolbar" id="sleeve-color-row">
+      <strong>Barva rukávu na tyč:</strong>
+      <div class="swatches">
+        <button type="button" class="swatch" style="background:#ffffff" data-sleeve-color="white" title="Bílá"></button>
+        <button type="button" class="swatch" style="background:#000000" data-sleeve-color="black" title="Černá"></button>
+      </div>
+      <span class="muted" id="sleeve-color-label"></span>
+    </div>
+    <div id="stage-wrapper">
+      <div id="stage-container"></div>
+      <div id="loading">Načítám šablonu…</div>
+    </div>
+  </section>
+</main>
+
+<!-- Settings modal -->
+<div id="wc-modal" class="modal-overlay hidden">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3>Nastavení</h3>
+      <button id="wc-modal-close" class="modal-close">×</button>
+    </div>
+
+    <div class="settings-tabs">
+      <button class="btn set-tab active" data-settab="wc">Napojení webu</button>
+      <button class="btn set-tab" data-settab="costs">Náklady &amp; marže</button>
+      <button class="btn set-tab" data-settab="partners">Společníci</button>
+      <button class="btn set-tab" data-settab="mail">Maily</button>
+      <button class="btn set-tab" data-settab="export">Export dat</button>
+    </div>
+
+    <!-- WC connection -->
+    <div id="set-wc" class="set-panel">
+      <p class="muted">Klíč: WooCommerce → Nastavení → Pokročilé → REST API, oprávnění <strong>Čtení/Zápis</strong>.</p>
+      <div class="form-col">
+        <label>URL webu <input id="wc-url" type="url" placeholder="https://provlajky.cz"></label>
+        <label>Consumer key (ck_…) <input id="wc-key" type="text" placeholder="ck_xxxxxxxxxxxx"></label>
+        <label>Consumer secret (cs_…) <input id="wc-secret" type="password" placeholder="cs_xxxxxxxxxxxx"></label>
+        <div class="upload-row">
+          <button id="wc-save" class="btn primary">
+            <span class="btn-label">Uložit a otestovat</span>
+            <span class="spinner hidden"></span>
+          </button>
+          <span id="wc-status" class="ocr-status"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Costs / margins -->
+    <div id="set-costs" class="set-panel hidden">
+      <p class="muted">Náklad (nákupní cena) na jednu vlajku <strong>bez DPH</strong> podle velikosti. Marže = prodejní cena − náklad.</p>
+      <div class="cost-grid">
+        <label>S <span class="cost-input"><input id="cost-S" type="number" min="0" step="0.01"><span class="cur">Kč</span></span></label>
+        <label>M <span class="cost-input"><input id="cost-M" type="number" min="0" step="0.01"><span class="cur">Kč</span></span></label>
+        <label>L <span class="cost-input"><input id="cost-L" type="number" min="0" step="0.01"><span class="cur">Kč</span></span></label>
+        <label>XL <span class="cost-input"><input id="cost-XL" type="number" min="0" step="0.01"><span class="cur">Kč</span></span></label>
+      </div>
+      <button id="costs-save" class="btn primary">Uložit náklady</button>
+    </div>
+
+    <!-- Partners -->
+    <div id="set-partners" class="set-panel hidden">
+      <p class="muted">Společníci a jejich podíl na zisku. U každého fakturační údaje pro vyplacení (faktura od společníka na ACTUAL PRO).</p>
+      <div id="partners-list"></div>
+      <button id="partners-save" class="btn primary">Uložit společníky</button>
+    </div>
+
+    <!-- Mail -->
+    <div id="set-mail" class="set-panel hidden">
+      <p class="muted">SMTP server pro odesílání faktur a vizualizací. (Běží přes lokální <code>server.js</code>.)</p>
+      <div class="form-col">
+        <div class="mail-grid">
+          <label>SMTP server (host) <input id="mail-host" type="text" placeholder="smtp.forpsi.com"></label>
+          <label>Port <input id="mail-port" type="number" placeholder="587"></label>
+          <label>Přihlašovací jméno <input id="mail-user" type="text" placeholder="info@provlajky.cz"></label>
+          <label>Heslo <input id="mail-pass" type="password" placeholder="••••••••"></label>
+          <label>Odesílatel – jméno <input id="mail-fromname" type="text" placeholder="PROVLAJKY"></label>
+          <label>Odesílatel – e-mail <input id="mail-from" type="email" placeholder="info@provlajky.cz"></label>
+          <label class="full"><span class="cb"><input id="mail-secure" type="checkbox"> Zabezpečené spojení (SSL, port 465). Nezaškrtnuté = STARTTLS (587).</span></label>
+          <label class="full">E-mail účetní (kopie každé faktury) <input id="mail-accountant" type="email" placeholder="ucetni@firma.cz"></label>
+          <label class="full">E-mail dodavatele (výroba) <input id="mail-supplier" type="email" placeholder="orders@vyrobce.com"></label>
+          <label>Podpis – jméno <input id="mail-signname" type="text" placeholder="Dominik Špaček"></label>
+          <label>Podpis – telefon <input id="mail-signphone" type="text" placeholder="+420 605 981 155"></label>
+        </div>
+        <div class="upload-row">
+          <button id="mail-test" class="btn">Otestovat připojení</button>
+          <button id="mail-save" class="btn primary">Uložit nastavení mailů</button>
+          <span id="mail-status" class="ocr-status"></span>
+        </div>
+
+        <h4 style="margin:18px 0 4px">Šablona e-mailu — Faktura</h4>
+        <p class="muted">Proměnné: <code>{{customer}}</code>, <code>{{order}}</code>, <code>{{total}}</code>. Logo se vloží automaticky.</p>
+        <textarea id="mail-tpl-invoice" rows="6" class="tpl-area"></textarea>
+
+        <h4 style="margin:18px 0 4px">Šablona e-mailu — Vizualizace / cenová nabídka</h4>
+        <textarea id="mail-tpl-visual" rows="6" class="tpl-area"></textarea>
+
+        <h4 style="margin:18px 0 4px">Šablona e-mailu — Kopie pro účetní</h4>
+        <p class="muted">Posílá se účetní zvlášť. Předmět: <code>provlajky - {{invoice}}</code>. Proměnné: <code>{{date}}</code>, <code>{{invoice}}</code>, <code>{{order}}</code>, <code>{{total}}</code>.</p>
+        <textarea id="mail-tpl-accountant" rows="5" class="tpl-area"></textarea>
+      </div>
+    </div>
+
+    <!-- Export (jednorázová migrace dat do nového admina) -->
+    <div id="set-export" class="set-panel hidden">
+      <p class="muted">Stáhne všechny objednávky, faktury, výplaty a nastavení jako jeden JSON soubor, který se pak nahraje do nového admina (stránka „Migrace") při přechodu na sdílenou databázi.</p>
+      <button id="export-all-btn" class="btn primary">Exportovat vše (JSON)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Supplier order modal -->
+<div id="supplier-modal" class="modal-overlay hidden">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3>Objednávka u dodavatele</h3>
+      <button id="supplier-modal-close" class="modal-close">×</button>
+    </div>
+    <p class="muted">E-mail výrobci (anglicky). Můžeš upravit text a přetáhnout grafiku jako přílohu.</p>
+    <div class="form-col">
+      <label>Příjemce (dodavatel) <input id="supplier-to" type="email" placeholder="orders@vyrobce.com"></label>
+      <label>Předmět <input id="supplier-subject" type="text"></label>
+      <label>Zpráva <textarea id="supplier-body" rows="12" class="tpl-area"></textarea></label>
+
+      <div id="supplier-drop" class="dropzone">
+        <div class="dz-inner">
+          <div class="dz-icon">📎</div>
+          <div>Přetáhni sem grafiku pro dodavatele<br><span class="muted">nebo klikni a vyber soubory (PDF, obrázky, ZIP)</span></div>
+        </div>
+        <input id="supplier-files" type="file" multiple accept="image/*,application/pdf,.pdf,.ai,.eps,.svg,.zip,application/zip,application/x-zip-compressed" hidden>
+      </div>
+      <div id="supplier-attachments" class="attach-list"></div>
+      <p class="muted" id="supplier-size-note">Max. velikost příloh celkem: 40 MB na e-mail.</p>
+
+      <div class="upload-row">
+        <button id="supplier-send" class="btn primary">Odeslat dodavateli</button>
+        <span id="supplier-status" class="ocr-status"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Prohlášení pro účetní (Oświadczenie) -->
+<div id="declaration-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Prohlášení pro účetní</h3>
+      <button id="declaration-modal-close" class="modal-close">×</button>
+    </div>
+    <p class="muted">Vyber firmy, pro které jsme vlajky objednávali. Můžeš jich přidat víc.</p>
+    <div class="form-col">
+      <label class="inline-label">Datum:
+        <input id="declaration-date" type="text" placeholder="29.5.2025">
+      </label>
+      <div id="declaration-companies"></div>
+      <button id="declaration-add" class="btn" type="button">+ Přidat firmu</button>
+      <datalist id="company-options"></datalist>
+      <div class="upload-row">
+        <button id="declaration-generate" class="btn primary">Generovat PDF</button>
+        <span id="declaration-status" class="ocr-status"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Global loading overlay -->
+<div id="loading-overlay" class="loading-overlay hidden">
+  <div class="spinner big"></div>
+  <div id="loading-text">Načítám…</div>
+</div>
+
+<script src="app.js?v=106"></script>
+</body>
+</html>

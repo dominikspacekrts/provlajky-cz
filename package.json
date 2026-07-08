@@ -1,0 +1,13 @@
+{
+  "name": "provlajky-editor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PROVLAJKY – editor vlajek, faktury, e-maily",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.14"
+  }
+}
