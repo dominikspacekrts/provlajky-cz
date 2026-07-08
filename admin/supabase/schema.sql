@@ -171,6 +171,30 @@ create index if not exists email_history_sent_at_idx on email_history(sent_at de
 create index if not exists email_history_kind_idx on email_history(kind);
 
 -- ---------------------------------------------------------------------------
+-- products — katalog pro nový eshop (dev.provlajky.cz). Spravuje se z adminu
+-- (dlaždice Produkty), veřejně čitelné jsou jen řádky s active = true.
+-- ---------------------------------------------------------------------------
+create table if not exists products (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  category text not null, -- 'plazove-vlajky' | 'vlajky-na-zakazku' | 'pvc-bannery' | 'prislusenstvi'
+  name text not null,
+  subtitle text,
+  description text,
+  kind text not null default 'simple', -- 'simple' (pevná cena) | 'configurable' (tvar/velikost jako u vlajek)
+  price numeric(12,2) not null default 0,            -- 'simple': pevná cena bez DPH
+  price_by_size jsonb not null default '{}'::jsonb,  -- 'configurable': {"S":.., "M":.., "L":.., "XL":..}
+  vat_rate numeric(5,4) not null default 0.21,
+  images jsonb not null default '[]'::jsonb,         -- pole data-URL (stejná konvence jako supplier_invoices.file_data)
+  active boolean not null default false,             -- "připnuto" = viditelné na eshopu
+  sort_order int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists products_category_idx on products(category);
+create index if not exists products_active_idx on products(active);
+
+-- ---------------------------------------------------------------------------
 -- RLS: "3 jmenovaní uživatelé, stejný plný přístup ke všemu".
 -- ---------------------------------------------------------------------------
 create or replace function is_allowed_user() returns boolean as $$
@@ -186,7 +210,7 @@ declare
 begin
   foreach t in array array[
     'allowed_users','partners','settings','orders','order_items',
-    'payouts','invoices','supplier_invoices','email_history'
+    'payouts','invoices','supplier_invoices','email_history','products'
   ] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists "allowed users full access" on %I', t);
@@ -196,6 +220,10 @@ begin
     );
   end loop;
 end $$;
+
+-- Eshop (anonymní návštěvníci) smí číst jen aktivní produkty.
+drop policy if exists "public can view active products" on products;
+create policy "public can view active products" on products for select using (active = true);
 
 -- ---------------------------------------------------------------------------
 -- Po spuštění: přidej 3 řádky s e-maily, které smí appku používat, např.:

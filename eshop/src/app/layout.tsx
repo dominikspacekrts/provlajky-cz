@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
+import { CartProvider } from "@/lib/cart";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+
+const dmSans = DM_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-dm-sans" });
 
 export const metadata: Metadata = {
-  title: "PROVLAJKY.CZ",
-  description: "Nový e-shop PROVLAJKY.CZ — již brzy.",
+  title: "PROVLAJKY.CZ — plážové vlajky, bannery a reklamní stojany",
+  description: "Plážové vlajky, vlajky na zakázku, PVC bannery a příslušenství na míru pro vaši značku.",
 };
 
 export default function RootLayout({
@@ -12,8 +18,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="cs">
-      <body>{children}</body>
+    <html lang="cs" className={dmSans.variable}>
+      <body>
+        <CartProvider>
+          <Header />
+          {children}
+          <Footer />
+        </CartProvider>
+      </body>
     </html>
   );
 }

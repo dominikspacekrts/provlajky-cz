@@ -4,10 +4,13 @@ import { createClient } from "@/lib/supabase/server";
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [{ count: orderCount }, { count: unpaidCount }] = await Promise.all([
-    supabase.from("orders").select("id", { count: "exact", head: true }),
-    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("paid", false),
-  ]);
+  const [{ count: orderCount }, { count: unpaidCount }, { count: productCount }, { count: activeProductCount }] =
+    await Promise.all([
+      supabase.from("orders").select("id", { count: "exact", head: true }),
+      supabase.from("invoices").select("id", { count: "exact", head: true }).eq("paid", false),
+      supabase.from("products").select("id", { count: "exact", head: true }),
+      supabase.from("products").select("id", { count: "exact", head: true }).eq("active", true),
+    ]);
 
   const tiles = [
     {
@@ -15,6 +18,12 @@ export default async function HomePage() {
       icon: "📦",
       title: "Objednávky",
       sub: `${orderCount ?? 0} objednávek`,
+    },
+    {
+      href: "/products",
+      icon: "🏳️",
+      title: "Produkty",
+      sub: `${productCount ?? 0} produktů, ${activeProductCount ?? 0} aktivních na eshopu`,
     },
     {
       href: "/finance",

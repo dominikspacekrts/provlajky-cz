@@ -209,3 +209,31 @@ export type EmailHistoryRow = {
 };
 
 export type AllowedUser = { email: string; display_name: string; created_at: string };
+
+export type ProductCategory = "plazove-vlajky" | "vlajky-na-zakazku" | "pvc-bannery" | "prislusenstvi";
+export type ProductKind = "simple" | "configurable";
+
+export type Product = {
+  id: string;
+  slug: string;
+  category: ProductCategory;
+  name: string;
+  subtitle: string | null;
+  description: string | null;
+  kind: ProductKind;
+  price: number;
+  price_by_size: { S?: number; M?: number; L?: number; XL?: number };
+  vat_rate: number;
+  images: string[];
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export const PRODUCT_CATEGORIES: Record<ProductCategory, string> = {
+  "plazove-vlajky": "Plážové vlajky",
+  "vlajky-na-zakazku": "Vlajky na zakázku",
+  "pvc-bannery": "PVC bannery",
+  "prislusenstvi": "Příslušenství a stojany",
+};
