@@ -52,6 +52,7 @@ export type Order = {
   created_at: string;
   updated_at: string;
   dirty: boolean;
+  supplier_paid: boolean;
 };
 
 export type OrderItem = {
@@ -159,6 +160,8 @@ export type SupplierInvoice = {
   amount: number | null;
   amount_czk: number | null;
   exchange_rate: number | null;
+  filename: string | null;
+  file_data: string | null;
   created_at: string;
 };
 

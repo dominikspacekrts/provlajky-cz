@@ -10,9 +10,12 @@ import {
   updateOrderStatus,
 } from "@/lib/actions/orders";
 import { ALL_STATUSES, computeOrderTotals, customerLabel, fmtMoney, isBanner, statusClass } from "@/lib/domain";
-import type { Invoice, Order, OrderItem } from "@/lib/types";
+import type { Invoice, Order, OrderItem, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
+import SendSupplierButton from "./send-supplier-button";
+import SupplierPaidToggle from "./supplier-paid-toggle";
+import SupplierInvoices from "./supplier-invoices";
 
 const SHAPES = ["A", "B", "C", "D", "E", "F"];
 const SIZES = ["S", "M", "L", "XL"];
@@ -21,10 +24,12 @@ export default function OrderDetailClient({
   order,
   items,
   invoice,
+  supplierInvoices,
 }: {
   order: Order;
   items: OrderItem[];
   invoice: Invoice | null;
+  supplierInvoices: SupplierInvoice[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [discountPct, setDiscountPct] = useState(order.discount_pct || 0);
@@ -67,8 +72,10 @@ export default function OrderDetailClient({
           </div>
         </div>
         <div className="header-actions">
+          <SupplierPaidToggle orderId={order.id} paid={order.supplier_paid} />
           <SendInvoiceButton order={order} items={items} existingInvoice={invoice} />
           <SendVisualButton order={order} items={items} />
+          <SendSupplierButton order={order} items={items} />
         </div>
       </div>
 
@@ -156,6 +163,8 @@ export default function OrderDetailClient({
           <span>{fmtMoney(totals.grand, order.currency)}</span>
         </div>
       </div>
+
+      <SupplierInvoices orderId={order.id} invoices={supplierInvoices} />
     </div>
   );
 }

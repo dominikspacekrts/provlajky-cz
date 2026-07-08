@@ -36,8 +36,8 @@ export async function getSettings(): Promise<Settings> {
 // never includes host/user/pass, which stay entirely server-side.
 export async function getMailTemplatesForClient() {
   const settings = await getSettings();
-  const { tplInvoice, tplVisual, tplAccountant, signName, signPhone, accountant } = settings.mail;
-  return { tplInvoice, tplVisual, tplAccountant, signName, signPhone, accountant };
+  const { tplInvoice, tplVisual, tplAccountant, signName, signPhone, accountant, supplier } = settings.mail;
+  return { tplInvoice, tplVisual, tplAccountant, signName, signPhone, accountant, supplier };
 }
 
 export async function updateCostPerSize(costPerSize: Settings["cost_per_size"]) {

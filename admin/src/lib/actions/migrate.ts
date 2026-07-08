@@ -27,6 +27,18 @@ type LegacyItem = {
   designs?: LegacyDesign[] | null;
 };
 
+type LegacySupplierInvoice = {
+  id: string;
+  filename?: string | null;
+  fileData?: string | null;
+  amountEur: number;
+  rate?: number | null;
+  rateDate?: string | null;
+  date: string | number;
+  amountCzk?: number | null;
+  source?: string | null;
+};
+
 type LegacyOrder = {
   id: string;
   wcId?: number | string | null;
@@ -42,6 +54,8 @@ type LegacyOrder = {
   items: LegacyItem[];
   createdAt?: number;
   _dirty?: boolean;
+  supplierPaid?: boolean;
+  supplierInvoices?: LegacySupplierInvoice[];
 };
 
 type LegacyInvoice = {
@@ -125,12 +139,14 @@ export async function runMigrationImport(data: LegacyExport): Promise<MigrationS
     summary.settings = { ok: 0, failed: 1, error: e instanceof Error ? e.message : String(e) };
   }
 
-  // 3) orders + order_items
+  // 3) orders + order_items + per-order supplier invoices
   const orderIdMap = new Map<string, string>(); // legacy order id -> new uuid
   let ordersOk = 0,
     ordersFailed = 0,
     itemsOk = 0,
-    itemsFailed = 0;
+    itemsFailed = 0,
+    supInvOk = 0,
+    supInvFailed = 0;
   for (const o of data.orders || []) {
     try {
       const { data: inserted, error } = await supabase
@@ -150,6 +166,7 @@ export async function runMigrationImport(data: LegacyExport): Promise<MigrationS
             customer: o.customer || { billing: {}, shipping: {} },
             created_at: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
             dirty: !!o._dirty,
+            supplier_paid: !!o.supplierPaid,
           },
           { onConflict: "legacy_id" }
         )
@@ -188,12 +205,35 @@ export async function runMigrationImport(data: LegacyExport): Promise<MigrationS
           itemsFailed++;
         }
       }
+
+      for (const si of o.supplierInvoices || []) {
+        try {
+          const { error: siErr } = await supabase.from("supplier_invoices").upsert(
+            {
+              legacy_id: si.id,
+              order_id: inserted.id,
+              date: isoDate(typeof si.date === "number" ? si.date : Date.parse(si.date)) || new Date().toISOString().slice(0, 10),
+              amount: si.amountEur,
+              amount_czk: si.amountCzk ?? null,
+              exchange_rate: si.rate ?? null,
+              filename: si.filename ?? null,
+              file_data: si.fileData ?? null,
+            },
+            { onConflict: "legacy_id" }
+          );
+          if (siErr) throw siErr;
+          supInvOk++;
+        } catch {
+          supInvFailed++;
+        }
+      }
     } catch {
       ordersFailed++;
     }
   }
   summary.orders = { ok: ordersOk, failed: ordersFailed };
   summary.order_items = { ok: itemsOk, failed: itemsFailed };
+  summary.supplier_invoices = { ok: supInvOk, failed: supInvFailed };
 
   // 4) payouts (must exist before invoices, since invoices.payout_id references them)
   const payoutIdMap = new Map<string, string>();

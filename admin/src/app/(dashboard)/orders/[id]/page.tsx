@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Invoice, Order, OrderItem } from "@/lib/types";
+import type { Invoice, Order, OrderItem, SupplierInvoice } from "@/lib/types";
 import OrderDetailClient from "./order-detail-client";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +14,11 @@ export default async function OrderDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: order, error }, { data: items }, { data: invoice }] = await Promise.all([
+  const [{ data: order, error }, { data: items }, { data: invoice }, { data: supplierInvoices }] = await Promise.all([
     supabase.from("orders").select("*").eq("id", id).single(),
     supabase.from("order_items").select("*").eq("order_id", id).order("id"),
     supabase.from("invoices").select("*").eq("order_id", id).eq("kind", "product").maybeSingle(),
+    supabase.from("supplier_invoices").select("*").eq("order_id", id).order("date", { ascending: false }),
   ]);
 
   if (error || !order) notFound();
@@ -31,6 +32,7 @@ export default async function OrderDetailPage({
         order={order as Order}
         items={(items || []) as OrderItem[]}
         invoice={(invoice as Invoice) || null}
+        supplierInvoices={(supplierInvoices || []) as SupplierInvoice[]}
       />
     </div>
   );

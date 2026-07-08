@@ -52,7 +52,8 @@ create table if not exists orders (
   customer jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  dirty boolean not null default false
+  dirty boolean not null default false,
+  supplier_paid boolean not null default false
 );
 create index if not exists orders_status_idx on orders(status);
 create index if not exists orders_order_number_idx on orders(order_number);
@@ -141,6 +142,8 @@ create table if not exists supplier_invoices (
   amount numeric(12,2),        -- EUR
   amount_czk numeric(12,2),
   exchange_rate numeric(10,4),
+  filename text,
+  file_data text,              -- optional receipt/invoice image or PDF as a data URL
   created_at timestamptz not null default now()
 );
 

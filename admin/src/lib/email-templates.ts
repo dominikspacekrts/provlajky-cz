@@ -1,7 +1,7 @@
 // Ported from app.js (DEFAULT_MAIL_TPL_*, wrapEmailHtml, fillTemplate) so the
 // e-mail layout/wording stays identical to the old app.
-import { customerLabel } from "./domain";
-import type { Order } from "./types";
+import { customerLabel, isBanner } from "./domain";
+import type { Order, OrderItem } from "./types";
 
 export const DEFAULT_MAIL_TPL_INVOICE = `<p>Dobrý den,</p>
 <p>děkujeme za Vaši objednávku <strong>č. {{order}}</strong>. V příloze najdete fakturu na částku <strong>{{total}}</strong>, kterou prosím uhraďte převodem na účet uvedený ve faktuře (můžete využít QR platbu).</p>
@@ -72,4 +72,55 @@ export function wrapEmailHtml(bodyHtml: string, signName: string, signPhone: str
     </td></tr>
   </table>
 </body></html>`;
+}
+
+// Ported from buildSupplierBodyText() in app.js (~3930) — English inquiry-style
+// e-mail to the manufacturer, editable in the preview modal before sending.
+// Simplification vs. the old app: instead of re-fetching each item's original
+// artwork URL and attaching it as binary, links are listed in the body text —
+// the manufacturer opens them directly, which is what the old app's file
+// picker ultimately amounted to for URL-based (non-uploaded) artwork anyway.
+export function buildSupplierBodyText(
+  order: Pick<Order, "order_number">,
+  items: OrderItem[],
+  signName: string,
+  signPhone: string
+) {
+  const rows = items
+    .map((it) => {
+      if (isBanner(it)) {
+        return `• PVC banner — ${it.width_cm || 0}×${it.height_cm || 0} cm — quantity: ${it.qty} pcs`;
+      }
+      const bg = it.design?.bgColor
+        ? "background colour: " + it.design.bgColor.toUpperCase()
+        : "background: as per the attached graphic";
+      const sleeve = it.design?.sleeveColor === "black" ? "BLACK" : "WHITE";
+      const links = [...(it.artwork_images || []), ...(it.artwork_files || [])];
+      const linksLine = links.length ? `\n  artwork: ${links.join(", ")}` : "";
+      return `• HS beach flag — shape ${it.shape}, size ${it.size} — ${bg} — pole sleeve colour: ${sleeve} — quantity: ${it.qty} pcs${linksLine}`;
+    })
+    .join("\n");
+
+  const hasFlags = items.some((it) => !isBanner(it));
+  const hasBanners = items.some(isBanner);
+  const intro =
+    hasFlags && hasBanners
+      ? "please prepare the following items:"
+      : hasBanners
+        ? "please prepare the following PVC banners:"
+        : "please prepare the following HS beach flags:";
+
+  return `Hello,
+
+${intro}
+
+${rows}
+
+Please send us your visualization for approval and issue the invoice according to our agreed price list. Could you also let me know the estimated delivery date?
+
+Thank you.
+
+Best regards,
+${signName}
+${signPhone}`;
 }

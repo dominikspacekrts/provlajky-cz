@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { Customer } from "@/lib/types";
 
 export async function updateOrderStatus(orderId: string, status: string) {
   const supabase = await createClient();
@@ -79,6 +81,30 @@ export async function deleteOrderItem(itemId: string, orderId: string) {
   const { error } = await supabase.from("order_items").delete().eq("id", itemId);
   if (error) throw new Error(error.message);
   revalidatePath(`/orders/${orderId}`);
+}
+
+export async function setSupplierPaid(orderId: string, paid: boolean) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("orders").update({ supplier_paid: paid }).eq("id", orderId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/orders");
+}
+
+export async function createOrder(customer: Customer) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .insert({
+      status: "pending",
+      currency: "CZK",
+      customer,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+  redirect(`/orders/${data.id}`);
 }
 
 export async function updateOrderCustomer(

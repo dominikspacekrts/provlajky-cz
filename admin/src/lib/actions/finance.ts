@@ -22,6 +22,8 @@ export async function addSupplierInvoice(fields: {
   date: string;
   amount: number; // EUR
   exchange_rate: number;
+  filename?: string | null;
+  file_data?: string | null;
 }) {
   const supabase = await createClient();
   const { error } = await supabase.from("supplier_invoices").insert({
@@ -30,4 +32,13 @@ export async function addSupplierInvoice(fields: {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/finance");
+  if (fields.order_id) revalidatePath(`/orders/${fields.order_id}`);
+}
+
+export async function deleteSupplierInvoice(id: string, orderId?: string | null) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("supplier_invoices").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/finance");
+  if (orderId) revalidatePath(`/orders/${orderId}`);
 }

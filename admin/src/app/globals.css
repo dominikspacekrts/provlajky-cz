@@ -108,6 +108,20 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 .status-local { background: #ede9fe; color: #5b21b6; }
 .status-paid-awaiting,.status-paid-delivering { background: #ccfbf1; color: #0f766e; }
 
+/* Supplier (dodavatel) */
+.sup-pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; border: none; font-family: inherit; }
+.sup-pill.sup-paid { background: #dcfce7; color: #166534; }
+.sup-pill.sup-unpaid { background: #fee2e2; color: #991b1b; }
+.sup-inv-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.sup-inv-row { display: flex; align-items: center; gap: 14px; padding: 8px 12px;
+  background: #f8fafc; border: 1px solid #e7eaee; border-radius: 8px; }
+.sup-inv-row .sii-file { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sup-inv-row .sii-eur { font-weight: 600; }
+.sup-inv-row .rm { border: none; background: #fee2e2; color: #991b1b; border-radius: 6px;
+  width: 24px; height: 24px; cursor: pointer; font-size: 15px; line-height: 1; }
+.sup-inv-add { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.sup-cost-summary { margin-top: 12px; max-width: 460px; }
+
 /* Modal (reused visual pattern for email preview, confirmations, etc.) */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 1000;

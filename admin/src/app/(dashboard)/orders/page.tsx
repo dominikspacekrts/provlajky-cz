@@ -22,6 +22,9 @@ export default async function OrdersPage() {
     <div>
       <div className="row-between">
         <h2>Objednávky</h2>
+        <Link href="/orders/new" className="btn primary">
+          + Nová objednávka
+        </Link>
       </div>
       <div className="orders-list">
         {orders.length === 0 && <p className="muted">Zatím žádné objednávky.</p>}
@@ -37,6 +40,9 @@ export default async function OrdersPage() {
                   {customerLabel(o)} · {new Date(o.created_at).toLocaleDateString("cs-CZ")} ·{" "}
                   <span className={`status-badge ${statusClass(o.status)}`}>
                     {statusLabel(o.status)}
+                  </span>{" "}
+                  <span className={`sup-pill ${o.supplier_paid ? "sup-paid" : "sup-unpaid"}`} style={{ cursor: "default" }}>
+                    {o.supplier_paid ? "Dodavatel zaplacen" : "Dodavatel nezaplacen"}
                   </span>
                 </div>
               </div>
