@@ -210,7 +210,7 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     ["Variabilní symbol", inv.number],
     ["Forma úhrady", "Převodem"],
   ];
-  if (inv.foreign) {
+  if (inv.is_foreign) {
     const iban = accountToIban(SUPPLIER.bank);
     if (iban) meta.push(["IBAN", iban.replace(/(.{4})/g, "$1 ").trim()]);
     if (SUPPLIER.bic) meta.push(["BIC/SWIFT", SUPPLIER.bic]);
@@ -339,8 +339,8 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
       ty2 -= 13;
       page.drawText(T("Částka, účet i variabilní symbol jsou předvyplněné."), { x: tx, y: ty2, size: 8.5, font, color: grey });
       ty2 -= 18;
-      const accLbl = inv.foreign ? "IBAN" : "Účet";
-      const accVal = inv.foreign ? (accountToIban(SUPPLIER.bank) || "").replace(/(.{4})/g, "$1 ").trim() : SUPPLIER.bank;
+      const accLbl = inv.is_foreign ? "IBAN" : "Účet";
+      const accVal = inv.is_foreign ? (accountToIban(SUPPLIER.bank) || "").replace(/(.{4})/g, "$1 ").trim() : SUPPLIER.bank;
       page.drawText(T(`${accLbl}: ${accVal}`), { x: tx, y: ty2, size: 9, font: fontB, color: ink });
       ty2 -= 13;
       page.drawText(T(`VS: ${inv.number}   ·   ${money(tt.grand)} ${inv.currency || "CZK"}`), {

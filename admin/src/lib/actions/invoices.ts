@@ -35,7 +35,7 @@ function buildInvoiceRow(order: Order, items: OrderItem[], number: string) {
     due: due.toISOString().slice(0, 10),
     paid: false,
     currency: order.currency || "CZK",
-    foreign: !!order.foreign,
+    is_foreign: !!order.is_foreign,
     customer: b,
     shipping_customer: {
       ship_company: s.company,

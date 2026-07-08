@@ -44,7 +44,7 @@ export type Order = {
   title: string | null;
   status: string;
   currency: "CZK" | "EUR";
-  foreign: boolean;
+  is_foreign: boolean;
   shipping: number;
   ship_vat_rate: number;
   discount_pct: number;
@@ -108,7 +108,7 @@ export type Invoice = {
   due: string | null;
   paid: boolean;
   currency: "CZK" | "EUR";
-  foreign: boolean;
+  is_foreign: boolean;
   customer: CustomerAddress | null;
   shipping_customer: Record<string, string> | null;
   items: InvoiceItem[];
