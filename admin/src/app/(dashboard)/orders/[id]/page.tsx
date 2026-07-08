@@ -5,6 +5,9 @@ import type { Invoice, Order, OrderItem, SupplierInvoice } from "@/lib/types";
 import OrderDetailClient from "./order-detail-client";
 
 export const dynamic = "force-dynamic";
+// PDF generation (fetches a font from a CDN) + SMTP send can take longer than
+// Vercel's default 10s function timeout on the Hobby plan — give it headroom.
+export const maxDuration = 60;
 
 export default async function OrderDetailPage({
   params,

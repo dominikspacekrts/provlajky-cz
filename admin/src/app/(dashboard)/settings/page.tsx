@@ -4,6 +4,8 @@ import type { AllowedUser, Partner } from "@/lib/types";
 import SettingsForm from "./settings-form";
 
 export const dynamic = "force-dynamic";
+// SMTP connection test can be slow on a first (cold) TLS handshake.
+export const maxDuration = 30;
 
 export default async function SettingsPage() {
   const supabase = await createClient();
