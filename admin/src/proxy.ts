@@ -31,8 +31,12 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login");
+  // /auth/* handles invite/recovery links (confirming a token, then setting a
+  // password) — those requests arrive with no session yet, so they must be
+  // exempt from the "no user -> /login" redirect below.
+  const isAuthFlowPage = request.nextUrl.pathname.startsWith("/auth/");
 
-  if (!user && !isLoginPage) {
+  if (!user && !isLoginPage && !isAuthFlowPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

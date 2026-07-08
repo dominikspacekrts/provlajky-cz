@@ -1,11 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const linkExpired = searchParams.get("error") === "invite-link-expired";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +66,11 @@ export default function LoginPage() {
         <p className="muted" style={{ margin: "0 0 16px", fontSize: 13 }}>
           Přihlaš se svým účtem.
         </p>
+        {linkExpired && (
+          <div style={{ color: "#dc2626", fontSize: 13, background: "#fee2e2", padding: "8px 10px", borderRadius: 6, marginBottom: 12 }}>
+            Odkaz z pozvánky už neplatí nebo byl použit dřív. Požádej o novou pozvánku.
+          </div>
+        )}
         <label>
           E-mail
           <input
