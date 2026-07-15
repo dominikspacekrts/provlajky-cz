@@ -1,5 +1,6 @@
 import HeroSlideshow from "@/components/HeroSlideshow";
 import HomeTiles from "@/components/HomeTiles";
+import CountUp from "@/components/CountUp";
 
 const TRUST = [
   { t: "Ověřený výrobce", d: "Vyrábíme pod vlastní značkou, žádný překupník." },
@@ -25,15 +26,15 @@ export default function Home() {
         <section className="home-stats-card">
           <div className="dark-stats">
             <div>
-              <div className="num">3 500+</div>
+              <CountUp target={3500} />
               <div className="label">vyrobených reklamních vlajek</div>
             </div>
             <div>
-              <div className="num">10 000+</div>
+              <CountUp target={10000} />
               <div className="label">m² vyrobené reklamní plochy</div>
             </div>
             <div>
-              <div className="num">250+</div>
+              <CountUp target={250} />
               <div className="label">spokojených zákazníků</div>
             </div>
           </div>
