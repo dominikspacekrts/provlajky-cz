@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="site-footer">
       <div className="footer-contact">
-        <a href="tel:+420775500755">📞 +420 775 500 755</a>
+        <a href="tel:+420605981155">📞 +420 605 981 155</a>
         <a href="mailto:info@provlajky.cz">✉️ info@provlajky.cz</a>
       </div>
       <div className="footer-grid">

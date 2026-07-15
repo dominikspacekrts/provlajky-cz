@@ -141,7 +141,14 @@ export default function FlagConfigurator({ product }: { product: Product }) {
   }
 
   return (
-    <div className="configurator">
+    <div className="container config-page">
+      <div className="page-panel">
+      <div className="config-hero">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" />
+      </div>
+
+      <div className="configurator reveal-stagger">
       <div className="config-stage">
         <FlagWave
           shape={shape}
@@ -154,7 +161,7 @@ export default function FlagConfigurator({ product }: { product: Product }) {
         <span className="stage-hint">Najeďte myší — vlajka se rozvlaje</span>
       </div>
 
-      <div>
+      <div className="reveal-stagger">
         <h1 style={{ fontSize: 30 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
@@ -293,6 +300,8 @@ export default function FlagConfigurator({ product }: { product: Product }) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      </div>
+      </div>
   );
 }

@@ -10,10 +10,18 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const supabase = createClient();
   const { data } = await supabase.from("products").select("*").eq("slug", slug).eq("active", true).single();
   if (!data) notFound();
+  const product = data as Product;
+
+  // Konfigurátor (plážové vlajky) si container i masthead s logem řídí sám.
+  if (product.kind === "configurable") {
+    return <ProductDetail product={product} />;
+  }
 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
-      <ProductDetail product={data as Product} />
+      <div className="page-panel">
+        <ProductDetail product={product} />
+      </div>
     </div>
   );
 }

@@ -1,20 +1,12 @@
 "use client";
 
-// Hero: pomalu se prolínající fotky realizací, uprostřed logo se stínem.
+// Pozadí homepage: pomalu se prolínající fotky realizací, fixně přes celou obrazovku
+// (stejně jako pevné pozadí na podstránkách). Obsah stránky plave nad ním.
 
 import { useEffect, useState } from "react";
+import { HERO_PHOTOS as PHOTOS, setLastHeroPhoto } from "@/lib/heroPhoto";
 
-const PHOTOS = [
-  "/fotky/foto-01.jpg",
-  "/fotky/foto-02.jpg",
-  "/fotky/foto-03.jpg",
-  "/fotky/foto-04.jpg",
-  "/fotky/foto-05.jpg",
-  "/fotky/foto-06.jpg",
-  "/fotky/foto-07.jpg",
-];
-
-const INTERVAL = 5600;
+const INTERVAL = 30000;
 
 export default function HeroSlideshow() {
   const [idx, setIdx] = useState(0);
@@ -32,22 +24,22 @@ export default function HeroSlideshow() {
     return () => clearInterval(t);
   }, [loadedAll]);
 
+  // aktuálně viditelnou fotku sdílíme, aby na ni mohla navázat i další stránka po kliknutí na dlaždici
+  useEffect(() => {
+    setLastHeroPhoto(PHOTOS[idx]);
+  }, [idx]);
+
   return (
-    <section className="hero2" aria-label="PROVLAJKY.CZ — výroba reklamních vlajek a bannerů">
-      <div className="hero2-photos">
+    <div className="home-bg" aria-hidden="true">
+      <div className="home-bg-photos">
         {PHOTOS.map((src, i) =>
           i === 0 || loadedAll ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={src} src={src} alt="" className={`hero2-photo${i === idx ? " active" : ""}`} draggable={false} />
+            <img key={src} src={src} alt="" className={`home-bg-photo${i === idx ? " active" : ""}`} draggable={false} />
           ) : null
         )}
       </div>
-      <div className="hero2-shade" />
-      <div className="hero2-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo-hero.png" alt="PROVLAJKY.CZ" className="hero2-logo" />
-        <p className="hero2-tag">Reklamní vlajky, bannery a stany na míru. Navrhněte, my vyrobíme.</p>
-      </div>
-    </section>
+      <div className="home-bg-shade" />
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import HeroSlideshow from "@/components/HeroSlideshow";
 import HomeTiles from "@/components/HomeTiles";
 
@@ -12,13 +11,18 @@ const TRUST = [
 export default function Home() {
   return (
     <div className="home2">
-      <div className="home-top">
-        <HeroSlideshow />
-        <HomeTiles />
-      </div>
+      <HeroSlideshow />
 
-      <section className="dark-strip">
-        <div className="dark-strip-inner">
+      <div className="home-screen">
+        <div className="hero2-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo/logo-hero.png" alt="PROVLAJKY.CZ" className="hero2-logo" />
+          <p className="hero2-tag">Reklamní vlajky, bannery a stany na míru. Navrhněte, my vyrobíme.</p>
+        </div>
+
+        <HomeTiles />
+
+        <section className="home-stats-card">
           <div className="dark-stats">
             <div>
               <div className="num">3 500+</div>
@@ -44,24 +48,8 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="container" style={{ paddingTop: 64, paddingBottom: 24 }}>
-        <h2 style={{ fontSize: 30, textAlign: "center" }}>Hledáte něco dalšího?</h2>
-        <div className="more-grid">
-          <Link href="/vlajky-na-zakazku" className="more-card">
-            <h3>Vlajky na zakázku</h3>
-            <p>Státní i firemní vlajky na klasickou žerď podle vaší grafiky.</p>
-            <span className="tile-cta">Zjistit více →</span>
-          </Link>
-          <Link href="/prislusenstvi" className="more-card">
-            <h3>Příslušenství a stojany</h3>
-            <p>Zemní vruty, křížové stojany, závaží a náhradní tyče.</p>
-            <span className="tile-cta">Zjistit více →</span>
-          </Link>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

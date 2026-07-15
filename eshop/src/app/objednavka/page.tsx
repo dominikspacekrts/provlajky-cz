@@ -75,6 +75,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
+      <div className="page-panel">
       <h1 style={{ fontSize: 30 }}>Objednávka</h1>
       <p style={{ color: "var(--gray)", marginTop: 8, maxWidth: 560 }}>
         Z důvodu výroby na zakázku je požadována platba předem na základě zaslané faktury. Po odeslání
@@ -221,6 +222,7 @@ export default function CheckoutPage() {
           </div>
         </div>
       </form>
+      </div>
     </div>
   );
 }

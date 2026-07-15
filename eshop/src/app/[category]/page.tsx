@@ -29,6 +29,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
+      <div className="page-panel">
       <h1 style={{ fontSize: 34 }}>{PRODUCT_CATEGORIES[cat]}</h1>
 
       {products.length === 0 && (
@@ -38,7 +39,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
         </p>
       )}
 
-      <div className="category-grid">
+      <div className="category-grid reveal-stagger">
         {products.map((p) => (
           <Link key={p.id} href={`/produkt/${p.slug}`} className="category-card">
             <div className="thumb">
@@ -64,6 +65,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
             </div>
           </Link>
         ))}
+      </div>
       </div>
     </div>
   );

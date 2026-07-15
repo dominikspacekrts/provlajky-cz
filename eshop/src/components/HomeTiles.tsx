@@ -1,6 +1,6 @@
 "use client";
 
-// Tři dlaždice: vlajka vlaje při hoveru, banner se natočí do prostoru,
+// Dlaždice kategorií: vlajka vlaje při hoveru, banner se natočí do prostoru,
 // nůžkový stan se rozloží. Klik = dlaždice se zvětší přes obrazovku a naviguje.
 
 import Link from "next/link";
@@ -9,6 +9,34 @@ import { useRef, useState } from "react";
 import FlagWave from "./FlagWave";
 
 type Zoom = { top: number; left: number; width: number; height: number; bg: string; img?: string };
+
+function AccessoryIcons() {
+  return (
+    <>
+      <svg viewBox="0 0 60 100" className="accessory-icon" aria-hidden="true">
+        <path d="M30 4 L44 60 L30 96 L16 60 Z" fill="currentColor" opacity="0.85" />
+        <rect x="26" y="0" width="8" height="14" rx="2" fill="currentColor" />
+      </svg>
+      <svg viewBox="0 0 60 100" className="accessory-icon" aria-hidden="true">
+        <rect x="26" y="4" width="8" height="92" rx="3" fill="currentColor" />
+        <circle cx="30" cy="16" r="11" fill="none" stroke="currentColor" strokeWidth="4.5" />
+      </svg>
+      <svg viewBox="0 0 60 100" className="accessory-icon" aria-hidden="true">
+        <path d="M10 40 L50 40 L44 90 Q30 98 16 90 Z" fill="currentColor" opacity="0.85" />
+        <line x1="10" y1="40" x2="50" y2="40" stroke="currentColor" strokeWidth="4" />
+      </svg>
+    </>
+  );
+}
+
+function ZakazkaSvg() {
+  return (
+    <svg viewBox="0 0 140 110" className="zakazka-svg" aria-hidden="true">
+      <rect x="16" y="2" width="7" height="106" rx="3" fill="#3d3d42" />
+      <path className="flag-front" d="M23 10 L128 6 L124 50 L128 94 L23 90 Z" fill="#ffe701" />
+    </svg>
+  );
+}
 
 function TentSvg() {
   return (
@@ -37,6 +65,7 @@ export default function HomeTiles() {
   const router = useRouter();
   const [zoom, setZoom] = useState<Zoom | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [clickedHref, setClickedHref] = useState<string | null>(null);
   const navigatingRef = useRef(false);
 
   function go(e: React.MouseEvent<HTMLAnchorElement>, href: string, bg: string, img?: string) {
@@ -44,16 +73,25 @@ export default function HomeTiles() {
     e.preventDefault();
     navigatingRef.current = true;
     const r = e.currentTarget.getBoundingClientRect();
+    setClickedHref(href);
     setZoom({ top: r.top, left: r.left, width: r.width, height: r.height, bg, img });
     requestAnimationFrame(() => requestAnimationFrame(() => setExpanded(true)));
     router.prefetch(href);
-    setTimeout(() => router.push(href), 560);
+    setTimeout(() => router.push(href), 850);
+  }
+
+  function tileClass(base: string, href: string) {
+    return `tile ${base}${clickedHref === href ? " tile-clicked" : ""}`;
   }
 
   return (
-    <section className="tiles-wrap container" aria-label="Kategorie">
+    <section className="tiles-wrap" aria-label="Kategorie">
       <div className="tiles">
-        <Link href="/plazove-vlajky" className="tile tile-flag" onClick={(e) => go(e, "/plazove-vlajky", "#f2f3f5")}>
+        <Link
+          href="/plazove-vlajky"
+          className={tileClass("tile-flag", "/plazove-vlajky")}
+          onClick={(e) => go(e, "/plazove-vlajky", "#f2f3f5")}
+        >
           <div className="tile-visual">
             <FlagWave shape="B" color="#ffe701" logoSrc="/logo/logo-tmave.png" wind={0.14} />
           </div>
@@ -65,14 +103,31 @@ export default function HomeTiles() {
         </Link>
 
         <Link
+          href="/vlajky-na-zakazku"
+          className={tileClass("tile-zakazka", "/vlajky-na-zakazku")}
+          onClick={(e) => go(e, "/vlajky-na-zakazku", "#f2f3f5")}
+        >
+          <div className="tile-visual">
+            <ZakazkaSvg />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo/logo-tmave.png" alt="" className="zakazka-logo" draggable={false} />
+          </div>
+          <div className="tile-label">
+            <h3>Vlajky na zakázku</h3>
+            <p>Klasická žerď · vlastní grafika</p>
+            <span className="tile-cta">Vybrat vlajku →</span>
+          </div>
+        </Link>
+
+        <Link
           href="/pvc-bannery"
-          className="tile tile-banner"
-          onClick={(e) => go(e, "/pvc-bannery", "#191919", "/fotky/foto-01.jpg")}
+          className={tileClass("tile-banner", "/pvc-bannery")}
+          onClick={(e) => go(e, "/pvc-bannery", "#ffe701")}
         >
           <div className="tile-visual banner-persp">
-            <div className="banner-card">
+            <div className="banner-card banner-card-yellow">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/fotky/foto-01.jpg" alt="" draggable={false} />
+              <img src="/logo/logo-tmave.png" alt="" className="banner-logo" draggable={false} />
               <div className="banner-eyelets" aria-hidden="true">
                 <i /><i /><i /><i />
               </div>
@@ -85,7 +140,11 @@ export default function HomeTiles() {
           </div>
         </Link>
 
-        <Link href="/stany" className="tile tile-tent" onClick={(e) => go(e, "/stany", "#141414")}>
+        <Link
+          href="/stany"
+          className={tileClass("tile-tent", "/stany")}
+          onClick={(e) => go(e, "/stany", "#141414")}
+        >
           <div className="tile-visual">
             <TentSvg />
           </div>
@@ -93,6 +152,21 @@ export default function HomeTiles() {
             <h3>Nůžkové stany</h3>
             <p>Rozložený za minutu · potisk střechy</p>
             <span className="tile-cta">Vybrat stan →</span>
+          </div>
+        </Link>
+
+        <Link
+          href="/prislusenstvi"
+          className={tileClass("tile-accessory", "/prislusenstvi")}
+          onClick={(e) => go(e, "/prislusenstvi", "#f2f3f5")}
+        >
+          <div className="tile-visual">
+            <AccessoryIcons />
+          </div>
+          <div className="tile-label">
+            <h3>Příslušenství</h3>
+            <p>Stojany, vruty a závaží</p>
+            <span className="tile-cta">Vybrat produkt →</span>
           </div>
         </Link>
       </div>

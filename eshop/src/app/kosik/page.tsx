@@ -15,6 +15,7 @@ export default function CartPage() {
 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
+      <div className="page-panel">
       <h1 style={{ fontSize: 30 }}>Košík</h1>
 
       {lines.length === 0 ? (
@@ -82,6 +83,7 @@ export default function CartPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

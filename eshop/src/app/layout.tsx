@@ -4,6 +4,7 @@ import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AppBackdrop from "@/components/AppBackdrop";
 
 const dmSans = DM_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-dm-sans" });
 
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="cs" className={dmSans.variable}>
       <body>
         <CartProvider>
+          <AppBackdrop />
           <Header />
           {children}
           <Footer />
