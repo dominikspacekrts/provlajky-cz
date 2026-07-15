@@ -32,8 +32,23 @@ function AccessoryIcons() {
 function ZakazkaSvg() {
   return (
     <svg viewBox="0 0 140 110" className="zakazka-svg" aria-hidden="true">
+      <defs>
+        {/* vlnění látky: animovaný šum posouvá pixely vlajky = poryvy větru */}
+        <filter id="zakazkaCloth" x="-20%" y="-20%" width="140%" height="140%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.01 0.022" numOctaves="2" seed="7" result="noise">
+            <animate attributeName="baseFrequency" dur="10s" values="0.01 0.022;0.014 0.03;0.01 0.022" repeatCount="indefinite" />
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="noise" xChannelSelector="R" yChannelSelector="G" scale="9">
+            <animate attributeName="scale" dur="7s" values="6;13;6" repeatCount="indefinite" />
+          </feDisplacementMap>
+        </filter>
+      </defs>
       <rect x="16" y="2" width="7" height="106" rx="3" fill="#3d3d42" />
-      <path className="flag-front" d="M23 10 L128 6 L124 50 L128 94 L23 90 Z" fill="#ffe701" />
+      <g className="zakazka-cloth" filter="url(#zakazkaCloth)">
+        <path d="M23 10 L128 6 L124 50 L128 94 L23 90 Z" fill="#ffe701" />
+        {/* logo je součástí látky, takže se vlní spolu s vlajkou */}
+        <image href="/logo/logo-tmave.png" x="44" y="30" width="64" height="40" preserveAspectRatio="xMidYMid meet" />
+      </g>
     </svg>
   );
 }
@@ -109,8 +124,6 @@ export default function HomeTiles() {
         >
           <div className="tile-visual">
             <ZakazkaSvg />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo/logo-tmave.png" alt="" className="zakazka-logo" draggable={false} />
           </div>
           <div className="tile-label">
             <h3>Vlajky na zakázku</h3>

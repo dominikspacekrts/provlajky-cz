@@ -8,9 +8,6 @@ export const HERO_PHOTOS = [
   "/fotky/foto-02.jpg",
   "/fotky/foto-03.jpg",
   "/fotky/foto-04.jpg",
-  "/fotky/foto-05.jpg",
-  "/fotky/foto-06.jpg",
-  "/fotky/foto-07.jpg",
 ];
 
 const KEY = "provlajky-hero-photo";
