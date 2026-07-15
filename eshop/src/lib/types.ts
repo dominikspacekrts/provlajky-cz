@@ -44,6 +44,19 @@ export type CustomerAddress = {
   isCompany?: boolean;
 };
 
+// Návrh zákazníka u položky objednávky — struktura musí odpovídat typu Design
+// v admin/src/lib/types.ts (ukládá se do order_items.design jsonb).
+export type OrderItemDesign = {
+  bgColor?: string;
+  sleeveColor?: "white" | "black";
+  logo?: { src: string; x: number; y: number; w: number; h: number; rotation: number } | null;
+  thumb?: string | null;
+  flagBounds?: null;
+  // metadata navíc (admin je ignoruje): odkud návrh přišel a přesné hodnoty z eshop editoru
+  source?: "eshop";
+  eshop?: { logoX: number; logoY: number; logoScale: number; shape: string; hs: boolean };
+};
+
 export type CartLine = {
   id: string; // client-side line id
   productId: string;
@@ -57,4 +70,5 @@ export type CartLine = {
   vatRate: number;
   thumb?: string | null;
   note?: string | null;
+  design?: OrderItemDesign | null;
 };

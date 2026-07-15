@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { fmtMoney, minSizePrice } from "@/lib/money";
 import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
@@ -20,6 +20,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
     .eq("active", true)
     .order("sort_order");
   const products = (data || []) as Product[];
+
+  // Plážové vlajky nemají výpis — jde se rovnou do konfigurátoru.
+  if (cat === "plazove-vlajky") {
+    const configurable = products.find((p) => p.kind === "configurable") ?? products[0];
+    if (configurable) redirect(`/produkt/${configurable.slug}`);
+  }
 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>

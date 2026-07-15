@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
     qty: l.qty,
     unit_price: l.unitPrice,
     vat_rate: l.vatRate,
-    wc_line_name: l.name,
+    wc_line_name: [l.name, l.note].filter(Boolean).join(" — "),
+    design: l.design ?? null,
   }));
 
   const { error: itemsError } = await supabase.from("order_items").insert(itemsPayload);

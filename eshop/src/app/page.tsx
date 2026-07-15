@@ -1,92 +1,65 @@
 import Link from "next/link";
-import Image from "next/image";
-import { PRODUCT_CATEGORIES } from "@/lib/types";
+import HeroSlideshow from "@/components/HeroSlideshow";
+import HomeTiles from "@/components/HomeTiles";
 
-const CATEGORY_BLURB: Record<string, string> = {
-  "plazove-vlajky": "6 tvarů, 4 velikosti, potisk podle vašeho designu.",
-  "vlajky-na-zakazku": "Státní vlajka nebo vlastní grafika na klasické vlajce.",
-  "pvc-bannery": "Odolné venkovní bannery na míru libovolné velikosti.",
-  prislusenstvi: "Stojany, závaží a doplňky ke všem typům vlajek.",
-};
+const TRUST = [
+  { t: "Ověřený výrobce", d: "Vyrábíme pod vlastní značkou, žádný překupník." },
+  { t: "Kvalitní materiály", d: "Polyester 115 g/m² a PVC plachtoviny do každého počasí." },
+  { t: "Výroba na míru", d: "Každý kus tiskneme a šijeme podle vašeho návrhu." },
+  { t: "Rychlé dodání", d: "Standardní výroba do 7–10 pracovních dnů." },
+];
 
 export default function Home() {
   return (
-    <div>
-      <section className="container" style={{ paddingTop: 56, paddingBottom: 40 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 48, alignItems: "center" }}>
-          <div>
-            <h1 style={{ fontSize: 48, lineHeight: 1.08 }}>
-              Vytvořte si originální design, který zaujme na venkovních akcích
-            </h1>
-            <p style={{ color: "var(--gray)", fontSize: 17, lineHeight: 1.6, marginTop: 18, maxWidth: 480 }}>
-              Plážové vlajky, vlajky na zakázku a PVC bannery v různých velikostech, tvarech a materiálech pro
-              zvýšení viditelnosti vaší značky. Každý kus vyrábíme na míru, aby skvěle vypadal a dlouho vydržel.
-            </p>
-            <div style={{ display: "flex", gap: 14, marginTop: 28, flexWrap: "wrap" }}>
-              <Link href="/plazove-vlajky" className="btn-pill dark">
-                Plážové vlajky
-              </Link>
-              <Link href="/vlajky-na-zakazku" className="btn-pill light" style={{ border: "1.5px solid #e5e7eb" }}>
-                Vlajky na zakázku
-              </Link>
+    <div className="home2">
+      <div className="home-top">
+        <HeroSlideshow />
+        <HomeTiles />
+      </div>
+
+      <section className="dark-strip">
+        <div className="dark-strip-inner">
+          <div className="dark-stats">
+            <div>
+              <div className="num">3 500+</div>
+              <div className="label">vyrobených reklamních vlajek</div>
+            </div>
+            <div>
+              <div className="num">10 000+</div>
+              <div className="label">m² vyrobené reklamní plochy</div>
+            </div>
+            <div>
+              <div className="num">250+</div>
+              <div className="label">spokojených zákazníků</div>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-            {["A", "C", "E"].map((s) => (
-              <div key={s} style={{ aspectRatio: "3/5", borderRadius: 16, overflow: "hidden", background: "#f4f5f7" }}>
-                <Image src={`/shapes/${s}.jpg`} alt={`Tvar ${s}`} width={300} height={500} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          <div className="dark-trust">
+            {TRUST.map((x) => (
+              <div key={x.t} className="trust-item">
+                <span className="check" aria-hidden="true">✓</span>
+                <div>
+                  <div className="tt">{x.t}</div>
+                  <div className="td">{x.d}</div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="stats-bar">
-        <div className="stats-bar-inner">
-          <div>
-            <div className="num">3 500+</div>
-            <div className="label">Počet vyrobených reklamních vlajek</div>
-          </div>
-          <div>
-            <div className="num">10 000+</div>
-            <div className="label">Počet m² vyrobené reklamy</div>
-          </div>
-          <div>
-            <div className="num">100 %</div>
-            <div className="label">Počet spokojených klientů</div>
-          </div>
-        </div>
-      </section>
-
-      <section className="container" style={{ paddingTop: 56, paddingBottom: 60 }}>
-        <h2 style={{ fontSize: 32, textAlign: "center" }}>Co u nás najdete</h2>
-        <p style={{ color: "var(--gray)", textAlign: "center", maxWidth: 640, margin: "14px auto 0" }}>
-          Nabízíme různé velikosti, tvary i materiály, které zaručují vysokou kvalitu a odolnost. Vyberte si
-          kategorii a nakonfigurujte si vlastní design.
-        </p>
-
-        <div className="category-grid" style={{ marginTop: 36 }}>
-          {Object.entries(PRODUCT_CATEGORIES).map(([slug, label]) => (
-            <Link key={slug} href={`/${slug}`} className="category-card">
-              <div className="thumb">
-                {slug === "prislusenstvi" ? (
-                  <span style={{ fontSize: 52 }}>⚓</span>
-                ) : (
-                  <Image
-                    src={`/shapes/${slug === "vlajky-na-zakazku" ? "F" : slug === "pvc-bannery" ? "D" : "B"}.jpg`}
-                    alt={label}
-                    width={240}
-                    height={240}
-                    style={{ width: "100%", height: "100%", objectFit: "contain", padding: 16 }}
-                  />
-                )}
-              </div>
-              <div className="body">
-                <div className="name">{label}</div>
-                <div className="price">{CATEGORY_BLURB[slug]}</div>
-              </div>
-            </Link>
-          ))}
+      <section className="container" style={{ paddingTop: 64, paddingBottom: 24 }}>
+        <h2 style={{ fontSize: 30, textAlign: "center" }}>Hledáte něco dalšího?</h2>
+        <div className="more-grid">
+          <Link href="/vlajky-na-zakazku" className="more-card">
+            <h3>Vlajky na zakázku</h3>
+            <p>Státní i firemní vlajky na klasickou žerď podle vaší grafiky.</p>
+            <span className="tile-cta">Zjistit více →</span>
+          </Link>
+          <Link href="/prislusenstvi" className="more-card">
+            <h3>Příslušenství a stojany</h3>
+            <p>Zemní vruty, křížové stojany, závaží a náhradní tyče.</p>
+            <span className="tile-cta">Zjistit více →</span>
+          </Link>
         </div>
       </section>
     </div>

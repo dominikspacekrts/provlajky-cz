@@ -38,7 +38,7 @@ export default function CartPage() {
               <div className="meta">
                 <div className="name">{l.name}</div>
                 <div className="sub">
-                  {[l.shape ? `Tvar ${l.shape}` : null, l.size].filter(Boolean).join(" · ") || "—"} ·{" "}
+                  {[l.shape ? `Tvar ${l.shape}` : null, l.size, l.note].filter(Boolean).join(" · ") || "—"} ·{" "}
                   {fmtMoney(l.unitPrice)} / ks
                 </div>
               </div>

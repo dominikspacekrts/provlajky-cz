@@ -77,8 +77,8 @@ export default function CheckoutPage() {
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
       <h1 style={{ fontSize: 30 }}>Objednávka</h1>
       <p style={{ color: "var(--gray)", marginTop: 8, maxWidth: 560 }}>
-        Objednávku u nás vyřizujeme ručně — po odeslání vás kontaktujeme s cenovou nabídkou a fakturou, platba
-        probíhá bankovním převodem.
+        Z důvodu výroby na zakázku je požadována platba předem na základě zaslané faktury. Po odeslání
+        objednávky vás kontaktujeme s potvrzením, vizualizací a fakturou — platba probíhá bankovním převodem.
       </p>
 
       <form onSubmit={submit} style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 40, marginTop: 28 }}>
