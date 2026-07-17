@@ -29,33 +29,10 @@ function AccessoryIcons() {
   );
 }
 
-function ZakazkaSvg() {
-  return (
-    <svg viewBox="0 0 140 110" className="zakazka-svg" aria-hidden="true">
-      <defs>
-        {/* vlnění látky: animovaný šum posouvá pixely vlajky = poryvy větru */}
-        <filter id="zakazkaCloth" x="-20%" y="-20%" width="140%" height="140%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.01 0.022" numOctaves="2" seed="7" result="noise">
-            <animate attributeName="baseFrequency" dur="10s" values="0.01 0.022;0.014 0.03;0.01 0.022" repeatCount="indefinite" />
-          </feTurbulence>
-          <feDisplacementMap in="SourceGraphic" in2="noise" xChannelSelector="R" yChannelSelector="G" scale="9">
-            <animate attributeName="scale" dur="7s" values="6;13;6" repeatCount="indefinite" />
-          </feDisplacementMap>
-        </filter>
-      </defs>
-      <rect x="16" y="2" width="7" height="106" rx="3" fill="#3d3d42" />
-      <g className="zakazka-cloth" filter="url(#zakazkaCloth)">
-        <path d="M23 10 L128 6 L124 50 L128 94 L23 90 Z" fill="#ffe701" />
-        {/* logo je součástí látky, takže se vlní spolu s vlajkou */}
-        <image href="/logo/logo-tmave.png" x="44" y="30" width="64" height="40" preserveAspectRatio="xMidYMid meet" />
-      </g>
-    </svg>
-  );
-}
-
 function TentSvg() {
   return (
     <svg viewBox="0 0 220 210" className="tent-svg" aria-hidden="true">
+      <ellipse cx="110" cy="198" rx="86" ry="7" fill="#000" opacity="0.35" className="tent-shadow" />
       <g className="tent-legs">
         <line x1="38" y1="92" x2="38" y2="196" stroke="#3d3d42" strokeWidth="5" strokeLinecap="round" />
         <line x1="182" y1="92" x2="182" y2="196" stroke="#3d3d42" strokeWidth="5" strokeLinecap="round" />
@@ -67,10 +44,9 @@ function TentSvg() {
       <g className="tent-canopy">
         <polygon points="110,14 196,86 24,86" fill="#ffe701" />
         <polygon points="110,14 196,86 110,86" fill="#e6cf00" />
-        <rect x="24" y="86" width="172" height="22" rx="3" fill="#1c1c1f" />
-        <text x="110" y="102" textAnchor="middle" fill="#ffe701" fontSize="13" fontWeight="700" fontFamily="inherit" letterSpacing="1.5">
-          PROVLAJKY.CZ
-        </text>
+        {/* lem střechy — bílý pruh s logem na bílém podkladu */}
+        <rect x="24" y="86" width="172" height="24" rx="3" fill="#ffffff" stroke="#d9dbdf" strokeWidth="1" />
+        <image href="/logo/logo-tmave.png" x="75" y="89" width="70" height="18" preserveAspectRatio="xMidYMid meet" />
       </g>
     </svg>
   );
@@ -108,7 +84,7 @@ export default function HomeTiles() {
           onClick={(e) => go(e, "/plazove-vlajky", "#f2f3f5")}
         >
           <div className="tile-visual">
-            <FlagWave shape="B" color="#ffe701" logoSrc="/logo/logo-tmave.png" wind={0.14} />
+            <FlagWave shape="B" color="#ffe701" logoSrc="/logo/logo-tmave.png" logoPlate wind={0.14} />
           </div>
           <div className="tile-label">
             <h3>Plážové vlajky</h3>
@@ -123,7 +99,7 @@ export default function HomeTiles() {
           onClick={(e) => go(e, "/vlajky-na-zakazku", "#f2f3f5")}
         >
           <div className="tile-visual">
-            <ZakazkaSvg />
+            <FlagWave shape="D" classic color="#ffe701" logoSrc="/logo/logo-tmave.png" logoPlate wind={0.14} />
           </div>
           <div className="tile-label">
             <h3>Vlajky na zakázku</h3>
@@ -138,11 +114,17 @@ export default function HomeTiles() {
           onClick={(e) => go(e, "/pvc-bannery", "#ffe701")}
         >
           <div className="tile-visual banner-persp">
-            <div className="banner-card banner-card-yellow">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo/logo-tmave.png" alt="" className="banner-logo" draggable={false} />
+            <div className="banner-card">
+              <div className="banner-cords" aria-hidden="true">
+                <i /><i /><i /><i /><i /><i />
+              </div>
+              <div className="banner-wrinkles" aria-hidden="true" />
+              <div className="banner-plate">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo/logo-tmave.png" alt="" className="banner-logo" draggable={false} />
+              </div>
               <div className="banner-eyelets" aria-hidden="true">
-                <i /><i /><i /><i />
+                <i /><i /><i /><i /><i /><i />
               </div>
             </div>
           </div>

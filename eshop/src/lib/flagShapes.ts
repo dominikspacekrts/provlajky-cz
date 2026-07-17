@@ -100,16 +100,35 @@ export type FlagTextureOptions = {
   hs?: boolean;
   sleeveColor?: "black" | "white";
   logo?: HTMLImageElement | null;
+  /** Bílá zaoblená plocha pod logem — logo pak funguje i na tmavé/syté látce. */
+  logoPlate?: boolean;
   /** Vlastní vykreslení plochy vlajky (např. náhled z editoru). Kreslí se ořezané do tvaru. */
   drawDesign?: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
 };
+
+/** Bílý zaoblený podklad s měkkým stínem, vycentrovaný pod logem. */
+function drawLogoPlate(ctx: CanvasRenderingContext2D, cx: number, cy: number, lw: number, lh: number) {
+  const padX = lw * 0.1;
+  const padY = Math.max(lh * 0.16, lw * 0.05);
+  const w = lw + padX * 2;
+  const h = lh + padY * 2;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.22)";
+  ctx.shadowBlur = w * 0.05;
+  ctx.shadowOffsetY = h * 0.04;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.roundRect(cx - w / 2, cy - h / 2, w, h, Math.min(w, h) * 0.16);
+  ctx.fill();
+  ctx.restore();
+}
 
 export const TEXTURE_H = 1180; // celé plátno
 export const FLAG_H = 1024; // výška vlajky na plátně, zbytek dole je pahýl tyče
 
 /** Nakreslí vlajku (+ tunel a pahýl tyče) do canvasu. Vrací canvas použitelný jako WebGL textura. */
 export function drawFlagCanvas(opts: FlagTextureOptions, canvas?: HTMLCanvasElement): HTMLCanvasElement {
-  const { shape, color = "#c9ccd1", hs = false, sleeveColor = "black", logo, drawDesign } = opts;
+  const { shape, color = "#c9ccd1", hs = false, sleeveColor = "black", logo, logoPlate = false, drawDesign } = opts;
   const fw = Math.round(FLAG_H * SHAPE_ASPECT[shape]);
   const c = canvas ?? document.createElement("canvas");
   c.width = fw;
@@ -138,6 +157,7 @@ export function drawFlagCanvas(opts: FlagTextureOptions, canvas?: HTMLCanvasElem
     const s = Math.min(maxW / logo.width, maxH / logo.height);
     const lw = logo.width * s;
     const lh = logo.height * s;
+    if (logoPlate) drawLogoPlate(ctx, fw * 0.55, FLAG_H * 0.42, lw, lh);
     ctx.drawImage(logo, fw * 0.55 - lw / 2, FLAG_H * 0.42 - lh / 2, lw, lh);
   }
 
@@ -153,6 +173,89 @@ export function drawFlagCanvas(opts: FlagTextureOptions, canvas?: HTMLCanvasElem
   ctx.stroke(leading);
   ctx.setLineDash([]);
   ctx.restore();
+
+  return c;
+}
+
+export type ClassicFlagTextureOptions = {
+  color?: string;
+  logo?: HTMLImageElement | null;
+  logoPlate?: boolean;
+};
+
+/**
+ * Klasická obdélníková vlajka na žerdi (dlaždice „Vlajky na zakázku").
+ * Žerď s kulovou hlavicí vlevo, tunel podél náběžné hrany, látka doprava.
+ * Vrací canvas použitelný jako WebGL textura pro FlagWave (varianta classic).
+ */
+export function drawClassicFlagCanvas(opts: ClassicFlagTextureOptions, canvas?: HTMLCanvasElement): HTMLCanvasElement {
+  const { color = "#ffe701", logo, logoPlate = false } = opts;
+  const W = 1500;
+  const H = 1000;
+  const c = canvas ?? document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext("2d")!;
+  ctx.clearRect(0, 0, W, H);
+
+  const poleW = 30;
+  const flagX = poleW;
+  const flagY = 64;
+  const flagH = H - flagY - 64;
+  const flagW = W - flagX;
+
+  // žerď — válcový gradient + kulová hlavice
+  const poleGrad = ctx.createLinearGradient(0, 0, poleW, 0);
+  poleGrad.addColorStop(0, "#2c2c30");
+  poleGrad.addColorStop(0.35, "#6a6b72");
+  poleGrad.addColorStop(0.55, "#4a4b51");
+  poleGrad.addColorStop(1, "#242428");
+  ctx.fillStyle = poleGrad;
+  ctx.beginPath();
+  ctx.roundRect(1, 34, poleW - 2, H - 34, [10, 10, 0, 0]);
+  ctx.fill();
+  const ballGrad = ctx.createRadialGradient(poleW * 0.36, 22, 3, poleW * 0.5, 27, 24);
+  ballGrad.addColorStop(0, "#9a9ba2");
+  ballGrad.addColorStop(1, "#3a3a3f");
+  ctx.fillStyle = ballGrad;
+  ctx.beginPath();
+  ctx.arc(poleW * 0.5, 27, 21, 0, Math.PI * 2);
+  ctx.fill();
+
+  // látka vlajky
+  ctx.fillStyle = color;
+  ctx.fillRect(flagX, flagY, flagW, flagH);
+
+  // tunel podél žerdi + prošití
+  const sleeveW = flagW * 0.05;
+  ctx.fillStyle = shade(color, 0.82);
+  ctx.fillRect(flagX, flagY, sleeveW, flagH);
+  ctx.lineWidth = Math.max(2, flagW * 0.004);
+  ctx.setLineDash([18, 14]);
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.moveTo(flagX + sleeveW * 0.8, flagY + 6);
+  ctx.lineTo(flagX + sleeveW * 0.8, flagY + flagH - 6);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // obvodový lem — dvojité prošití látky po okraji
+  ctx.lineWidth = Math.max(2, flagW * 0.0035);
+  ctx.strokeStyle = shade(color, 0.88);
+  ctx.strokeRect(flagX + sleeveW + 10, flagY + 10, flagW - sleeveW - 20, flagH - 20);
+
+  // logo na bílém podkladu, vycentrované ve volné ploše
+  if (logo) {
+    const cx = flagX + sleeveW + (flagW - sleeveW) * 0.5;
+    const cy = flagY + flagH * 0.5;
+    const maxW = flagW * 0.44;
+    const maxH = flagH * 0.42;
+    const s = Math.min(maxW / logo.width, maxH / logo.height);
+    const lw = logo.width * s;
+    const lh = logo.height * s;
+    if (logoPlate) drawLogoPlate(ctx, cx, cy, lw, lh);
+    ctx.drawImage(logo, cx - lw / 2, cy - lh / 2, lw, lh);
+  }
 
   return c;
 }

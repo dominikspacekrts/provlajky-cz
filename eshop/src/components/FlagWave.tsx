@@ -6,17 +6,20 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { FlagShape } from "@/lib/types";
-import { drawFlagCanvas, type FlagTextureOptions } from "@/lib/flagShapes";
+import { drawClassicFlagCanvas, drawFlagCanvas, type FlagTextureOptions } from "@/lib/flagShapes";
 
 const VERT = /* glsl */ `
   uniform float uTime;
   uniform float uAmp;
+  uniform float uPinTop;
   varying vec2 vUv;
   varying float vShade;
 
   float wave(vec2 uv, float t) {
     float yDown = 1.0 - uv.y;
-    float stiff = pow(uv.x, 1.08) * pow(yDown, 0.85);
+    // plážová vlajka je fixní vlevo i podél oblouku nahoře (uPinTop=1),
+    // klasická vlajka na žerdi jen podél levé hrany (uPinTop=0)
+    float stiff = pow(uv.x, 1.08) * mix(1.0, pow(yDown, 0.85), uPinTop);
     float ph = (uv.x * 1.7 + yDown * 0.9) * 6.4 - t;
     float w = sin(ph) * 0.68 + sin(ph * 1.83 + 1.7) * 0.32;
     return w * stiff;
@@ -52,10 +55,14 @@ const FRAG = /* glsl */ `
 
 export type FlagWaveProps = {
   shape: FlagShape;
+  /** klasická obdélníková vlajka na žerdi místo plážové (ignoruje shape/hs) */
+  classic?: boolean;
   color?: string;
   hs?: boolean;
   sleeveColor?: "black" | "white";
   logoSrc?: string;
+  /** bílý zaoblený podklad pod logem */
+  logoPlate?: boolean;
   drawDesign?: FlagTextureOptions["drawDesign"];
   /** klidová síla větru 0–1 */
   wind?: number;
@@ -67,10 +74,12 @@ export type FlagWaveProps = {
 
 export default function FlagWave({
   shape,
+  classic = false,
   color = "#c9ccd1",
   hs = false,
   sleeveColor = "black",
   logoSrc,
+  logoPlate = false,
   drawDesign,
   wind = 0.35,
   interactive = true,
@@ -128,6 +137,7 @@ export default function FlagWave({
       uniforms: {
         uTime: { value: 0 },
         uAmp: { value: 0.05 },
+        uPinTop: { value: classic ? 0 : 1 },
         uTex: { value: null },
       },
     });
@@ -209,7 +219,7 @@ export default function FlagWave({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [interactive]);
+  }, [interactive, classic]);
 
   // (pře)kreslení textury při změně tvaru/barvy/loga + poryv větru
   useEffect(() => {
@@ -219,7 +229,9 @@ export default function FlagWave({
 
     const apply = (logo: HTMLImageElement | null) => {
       if (cancelled || !st.material || !st.mesh) return;
-      st.texCanvas = drawFlagCanvas({ shape, color, hs, sleeveColor, logo, drawDesign }, st.texCanvas);
+      st.texCanvas = classic
+        ? drawClassicFlagCanvas({ color, logo, logoPlate }, st.texCanvas)
+        : drawFlagCanvas({ shape, color, hs, sleeveColor, logo, logoPlate, drawDesign }, st.texCanvas);
       st.texture?.dispose();
       const tex = new THREE.CanvasTexture(st.texCanvas);
       tex.colorSpace = THREE.SRGBColorSpace;
@@ -240,7 +252,7 @@ export default function FlagWave({
       apply(null);
     }
     return () => { cancelled = true; };
-  }, [shape, color, hs, sleeveColor, logoSrc, drawDesign]);
+  }, [shape, classic, color, hs, sleeveColor, logoSrc, logoPlate, drawDesign]);
 
   return <div ref={hostRef} className={className} style={{ width: "100%", height: "100%", ...style }} aria-hidden="true" />;
 }
