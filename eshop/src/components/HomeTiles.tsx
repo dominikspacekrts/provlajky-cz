@@ -5,7 +5,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import FlagWave from "./FlagWave";
 
 type Zoom = { top: number; left: number; width: number; height: number; bg: string; img?: string };
@@ -29,54 +29,76 @@ function AccessoryIcons() {
   );
 }
 
-// Nůžkový stan v dlaždici — v klidu složený (nohy stažené k sobě do úzkého
-// stojícího balíku), na hover se rozloží. Ovládá to `.tile-tent:hover` v CSS,
-// takže při odjetí myší se plynule složí zpět. Stan zůstává stát, nerozpadne se.
-function TentTileSvg() {
-  const legs = [36, 92, 148, 204];
-  return (
-    <svg viewBox="0 0 240 210" className="ttile" aria-hidden="true">
-      <ellipse className="tt-shadow" cx="120" cy="200" rx="92" ry="7" />
-      <g className="tt-tent">
-        <g className="tt-frame">
-          {/* nůžkové X mezi sousedními nohami */}
-          {[0, 1, 2].map((i) => {
-            const a = legs[i];
-            const b = legs[i + 1];
-            return (
-              <g key={i} className="tt-x">
-                <line x1={a} y1="104" x2={b} y2="170" />
-                <line x1={b} y1="104" x2={a} y2="170" />
-                <line x1={a} y1="150" x2={b} y2="196" />
-                <line x1={b} y1="150" x2={a} y2="196" />
-              </g>
-            );
-          })}
-          {/* nohy + patky */}
-          {legs.map((x) => (
-            <g key={x}>
-              <line className="tt-leg" x1={x} y1="98" x2={x} y2="196" />
-              <rect className="tt-foot" x={x - 5} y="194" width="10" height="5" rx="2" />
-            </g>
-          ))}
-        </g>
-        <g className="tt-canopy">
-          <polygon className="tt-roof" points="120,16 212,92 28,92" />
-          <polygon className="tt-roof-shade" points="120,16 212,92 120,92" />
-          <rect className="tt-valance" x="28" y="92" width="184" height="22" rx="3" />
-          <image href="/logo/logo-tmave.png" x="82" y="95" width="76" height="16" preserveAspectRatio="xMidYMid meet" />
-        </g>
-      </g>
-    </svg>
-  );
-}
-
 export default function HomeTiles() {
   const router = useRouter();
   const [zoom, setZoom] = useState<Zoom | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [clickedHref, setClickedHref] = useState<string | null>(null);
   const navigatingRef = useRef(false);
+
+  // Nůžkový stan v dlaždici = realistické video (Viewmax) přehrávané podle myši.
+  // Klip jde od složeného stanu (0 s) po rozložený (konec). Myší najedeš → čas
+  // se plynule posouvá k rozloženému; odjedeš → zpět ke složenému. Scrubování
+  // (ne autoplay), takže se stan reálně „rozloží a složí" tam a zpět.
+  const tentVideoRef = useRef<HTMLVideoElement | null>(null);
+  const tentLinkRef = useRef<HTMLAnchorElement | null>(null);
+  const tentHoverRef = useRef(false);
+  useEffect(() => {
+    const v = tentVideoRef.current;
+    const link = tentLinkRef.current;
+    if (!v || !link) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Nativní listenery (spolehlivější než React onMouseEnter) — otevři na hover,
+    // na dotyku přepínej. Cíl scrubování: 0 = složeno, dur = rozloženo.
+    const enter = () => {
+      tentHoverRef.current = true;
+    };
+    const leave = () => {
+      tentHoverRef.current = false;
+    };
+    const toggle = () => {
+      tentHoverRef.current = !tentHoverRef.current;
+    };
+    link.addEventListener("pointerenter", enter);
+    link.addEventListener("pointerleave", leave);
+    link.addEventListener("touchstart", toggle, { passive: true });
+
+    let raf = 0;
+    const tick = () => {
+      const dur = v.duration || 0;
+      if (dur) {
+        const target = tentHoverRef.current ? dur : 0;
+        const cur = v.currentTime;
+        const diff = target - cur;
+        if (Math.abs(diff) > 0.02) {
+          try {
+            v.currentTime = cur + diff * 0.15;
+          } catch {
+            /* seek než je klip seekovatelný */
+          }
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    const startLoop = () => {
+      try {
+        v.pause();
+      } catch {
+        /* noop */
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    if (v.readyState >= 1) startLoop();
+    else v.addEventListener("loadedmetadata", startLoop, { once: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      link.removeEventListener("pointerenter", enter);
+      link.removeEventListener("pointerleave", leave);
+      link.removeEventListener("touchstart", toggle);
+    };
+  }, []);
 
   function go(e: React.MouseEvent<HTMLAnchorElement>, href: string, bg: string, img?: string) {
     if (e.metaKey || e.ctrlKey || navigatingRef.current) return;
@@ -157,10 +179,20 @@ export default function HomeTiles() {
         <Link
           href="/stany"
           className={tileClass("tile-tent", "/stany")}
+          ref={tentLinkRef}
           onClick={(e) => go(e, "/stany", "#f2f3f5")}
         >
           <div className="tile-visual tile-tent-visual">
-            <TentTileSvg />
+            <video
+              ref={tentVideoRef}
+              className="tent-video"
+              src="/stan-unfold.mp4"
+              poster="/stan-folded.jpg"
+              muted
+              playsInline
+              preload="auto"
+              aria-hidden="true"
+            />
           </div>
           <div className="tile-label">
             <h3>Nůžkové stany</h3>
