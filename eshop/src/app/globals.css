@@ -287,13 +287,31 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 .banner-eyelets i:nth-child(5) { top: 3px; left: 50%; margin-left: -6.5px; }
 .banner-eyelets i:nth-child(6) { bottom: 3px; left: 50%; margin-left: -6.5px; }
 
-/* Nůžkový stan — realistické video (Viewmax): postavený → složí se → postaví, ve smyčce */
-.tile-tent-video { background: #f2f3f5; padding: 0; overflow: hidden; }
-.tent-video {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  transform: scale(1.02); transition: transform 0.5s ease;
+/* Nůžkový stan — v klidu složený (nohy k sobě), na hover se rozloží; při odjetí
+   myší se plynule složí zpět. Stan zůstává stát, nerozpadne se. */
+.tile-tent-visual {
+  background: linear-gradient(180deg, #f4f5f7 0%, #e9ebee 100%);
+  display: flex; align-items: flex-end; justify-content: center;
 }
-.tile-tent:hover .tent-video { transform: scale(1.06); }
+.ttile { width: 84%; margin-bottom: 6%; overflow: visible; }
+.ttile .tt-shadow { fill: #000; opacity: 0.2; }
+.ttile .tt-leg { stroke: #b7bcc4; stroke-width: 5; stroke-linecap: round; }
+.ttile .tt-foot { fill: #8a9099; }
+.ttile .tt-x line { stroke: #cbd0d6; stroke-width: 3; stroke-linecap: round; }
+.ttile .tt-roof { fill: var(--yellow); }
+.ttile .tt-roof-shade { fill: #e6cf00; }
+.ttile .tt-valance { fill: #fff; stroke: #e2e4e8; stroke-width: 1; }
+/* transformace kolem spodku = stan „stojí"; přechod dělá hladké složení tam i zpět */
+.ttile .tt-tent, .ttile .tt-canopy, .ttile .tt-shadow {
+  transform-box: fill-box;
+  transition: transform 0.7s cubic-bezier(0.45, 0.05, 0.2, 1);
+}
+.ttile .tt-tent { transform-origin: 50% 100%; transform: scaleX(0.15); }         /* složeno: nohy k sobě */
+.ttile .tt-canopy { transform-origin: 50% 100%; transform: scaleY(1.16) translateY(-3px); } /* plachta se nasbírá nahoru */
+.ttile .tt-shadow { transform-origin: 50% 50%; transform: scaleX(0.16); }
+.tile-tent:hover .tt-tent { transform: scaleX(1); }
+.tile-tent:hover .tt-canopy { transform: none; }
+.tile-tent:hover .tt-shadow { transform: scaleX(1); }
 
 .tile-accessory .tile-visual {
   background: linear-gradient(180deg, #f2f3f5 0%, #e6e8eb 100%);
