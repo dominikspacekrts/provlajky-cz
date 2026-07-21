@@ -164,7 +164,9 @@ export default function FlagWave({
     const resize = () => {
       const w = host.clientWidth || 1;
       const h = host.clientHeight || 1;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      // Supersampling — renderujeme na vyšší vnitřní rozlišení, aby látka i logo
+      // v malé dlaždici nebyly pixelované/zubaté.
+      renderer.setPixelRatio(Math.min((window.devicePixelRatio || 1) * 2, 3));
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
@@ -235,7 +237,7 @@ export default function FlagWave({
       st.texture?.dispose();
       const tex = new THREE.CanvasTexture(st.texCanvas);
       tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = 4;
+      tex.anisotropy = 16;
       st.texture = tex;
       st.material.uniforms.uTex.value = tex;
       st.texAspect = st.texCanvas.width / st.texCanvas.height;

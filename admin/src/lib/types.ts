@@ -220,7 +220,15 @@ export type ProductCategory =
   | "totemy"
   | "nafukovaci-brany"
   | "nahradni-dily";
-export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant";
+export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options";
+
+// Volba produktu (např. hmotnost základny) — vlastní prodejní i nákupní cena.
+export type ProductOption = {
+  id: string;
+  label: string; // např. "6 kg"
+  sellPrice: number; // prodejní cena bez DPH
+  buyPrice: number; // nákupní cena bez DPH (doplní admin)
+};
 
 // Cena banneru za m² — zvlášť nákup a prodej, pro plnou PVC plachtovinu i mesh.
 export type BannerMaterialPricing = { buyPerM2: number; sellPerM2: number };
@@ -244,6 +252,8 @@ export type ProductVariant = {
 export type ProductConfig = {
   banner?: { pvc: BannerMaterialPricing; mesh: BannerMaterialPricing };
   variants?: ProductVariant[];
+  options?: ProductOption[]; // kind 'options' — volby s cenou (hmotnost apod.)
+  buyPrice?: number; // kind 'simple' — nákupní cena (jen pro přehled marže v adminu)
 };
 
 export type Product = {

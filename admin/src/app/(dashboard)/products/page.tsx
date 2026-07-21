@@ -21,6 +21,16 @@ function priceLabel(p: Product): string {
       ? `${vs.length} variant · od ${fmtMoney(Math.min(...sells), "CZK")} bez DPH`
       : `${vs.length} variant · prodejní cena nenastavena`;
   }
+  if (p.kind === "options") {
+    const os = p.config?.options ?? [];
+    const sells = os.map((o) => o.sellPrice).filter((v) => v > 0);
+    if (!sells.length) return `${os.length} voleb · cena nenastavena`;
+    const min = Math.min(...sells);
+    const max = Math.max(...sells);
+    return min === max
+      ? `${fmtMoney(min, "CZK")} bez DPH`
+      : `${fmtMoney(min, "CZK")} – ${fmtMoney(max, "CZK")} bez DPH`;
+  }
   const bySize = ["S", "M", "L", "XL"].map((s) => p.price_by_size?.[s as "S"]).filter((v): v is number => v != null);
   return bySize.length > 0 ? `od ${fmtMoney(Math.min(...bySize), "CZK")} bez DPH` : "cena nenastavena";
 }

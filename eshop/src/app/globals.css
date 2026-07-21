@@ -221,7 +221,7 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 .tile-flag .tile-visual { background: linear-gradient(180deg, #eef0f3 0%, #e3e6ea 100%); }
 .tile-flag .tile-visual > div { position: absolute; inset: 4% 0 0; }
 
-.tile-banner .tile-visual { background: #17181c; display: flex; align-items: center; justify-content: center; }
+.tile-banner .tile-visual { background: linear-gradient(180deg, #f4f5f7 0%, #e9ebee 100%); display: flex; align-items: center; justify-content: center; }
 .banner-persp { perspective: 900px; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
 /* PVC plachta — tisk až do krajů, svařený lem po obvodu, vypnutá gumolany do rámu */
 .banner-card {
@@ -299,12 +299,15 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 }
 .tile-tent:hover .tent-video { transform: scale(1.05); }
 
-.tile-accessory .tile-visual {
-  background: linear-gradient(180deg, #f2f3f5 0%, #e6e8eb 100%);
-  display: flex; align-items: center; justify-content: center; gap: 6%;
+.tile-accessory .tile-visual, .tile-accessory-visual {
+  background: linear-gradient(180deg, #f4f5f7 0%, #e9ebee 100%);
+  display: flex; align-items: center; justify-content: center;
 }
-.accessory-icon { width: 27%; height: auto; color: #3d3d42; }
-.accessory-icon:nth-child(2) { color: var(--ink); }
+/* reálná fotka příslušenství (bílé pozadí splyne přes mix-blend-mode: multiply) */
+.accessory-photo {
+  width: 76%; height: 76%; object-fit: contain; mix-blend-mode: multiply;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,0.14));
+}
 
 .tile-zakazka .tile-visual { background: linear-gradient(180deg, #eef0f3 0%, #e3e6ea 100%); }
 .tile-zakazka .tile-visual > div { position: absolute; inset: 5% 3% 0; }
@@ -317,12 +320,8 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
   .banner-card::after { animation: bannerSheen 6.5s ease-in-out infinite; }
   .tile-banner:hover .banner-card::after { animation-duration: 2.8s; }
 
-  .accessory-icon { animation: accBob 3.4s ease-in-out infinite; }
-  .accessory-icon:nth-child(1) { animation-delay: -0.3s; }
-  .accessory-icon:nth-child(2) { animation-name: accBobMid; animation-duration: 3.8s; animation-delay: -1.7s; }
-  .accessory-icon:nth-child(3) { animation-delay: -2.5s; }
-  .tile-accessory:hover .accessory-icon { animation-name: accBobHi; animation-duration: 1.7s; }
-  .tile-accessory:hover .accessory-icon:nth-child(2) { animation-name: accBobMidHi; animation-duration: 1.7s; }
+  .accessory-photo { animation: idleFloat 5s ease-in-out infinite; }
+  .tile-accessory:hover .accessory-photo { animation-duration: 2.8s; }
 }
 
 @keyframes bannerSway {

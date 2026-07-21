@@ -10,7 +10,14 @@ export type ProductCategory =
   | "totemy"
   | "nafukovaci-brany"
   | "nahradni-dily";
-export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant";
+export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options";
+
+export type ProductOption = {
+  id: string;
+  label: string;
+  sellPrice: number;
+  buyPrice: number;
+};
 
 export type BannerMaterialPricing = { buyPerM2: number; sellPerM2: number };
 
@@ -30,6 +37,8 @@ export type ProductVariant = {
 export type ProductConfig = {
   banner?: { pvc: BannerMaterialPricing; mesh: BannerMaterialPricing };
   variants?: ProductVariant[];
+  options?: ProductOption[];
+  buyPrice?: number;
 };
 
 export type Product = {

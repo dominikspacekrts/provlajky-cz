@@ -64,11 +64,17 @@ export function minBannerSell(product: Product): number | null {
   return sells.length ? Math.min(...sells) : null;
 }
 
+export function minOptionSell(product: Product): number | null {
+  const prices = (product.config?.options ?? []).map((o) => o.sellPrice).filter((p) => p > 0);
+  return prices.length ? Math.min(...prices) : null;
+}
+
 // Sjednocené „od …" na kartě kategorie podle typu produktu.
 export function fromPrice(product: Product): number | null {
   if (product.kind === "simple") return product.price || null;
   if (product.kind === "configurable") return minSizePrice(product.price_by_size);
   if (product.kind === "variant") return minVariantSell(product.config?.variants);
   if (product.kind === "banner_m2") return minBannerSell(product);
+  if (product.kind === "options") return minOptionSell(product);
   return null;
 }

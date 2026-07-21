@@ -9,11 +9,13 @@ import { type Product } from "@/lib/types";
 import FlagConfigurator from "./FlagConfigurator";
 import BannerConfigurator from "./BannerConfigurator";
 import VariantConfigurator from "./VariantConfigurator";
+import OptionsConfigurator from "./OptionsConfigurator";
 
 export default function ProductDetail({ product }: { product: Product }) {
   if (product.kind === "configurable") return <FlagConfigurator product={product} />;
   if (product.kind === "banner_m2") return <BannerConfigurator product={product} />;
   if (product.kind === "variant") return <VariantConfigurator product={product} />;
+  if (product.kind === "options") return <OptionsConfigurator product={product} />;
   return <SimpleProductDetail product={product} />;
 }
 

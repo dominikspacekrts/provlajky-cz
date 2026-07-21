@@ -10,25 +10,6 @@ import FlagWave from "./FlagWave";
 
 type Zoom = { top: number; left: number; width: number; height: number; bg: string; img?: string };
 
-function AccessoryIcons() {
-  return (
-    <>
-      <svg viewBox="0 0 60 100" className="accessory-icon" aria-hidden="true">
-        <path d="M30 4 L44 60 L30 96 L16 60 Z" fill="currentColor" opacity="0.85" />
-        <rect x="26" y="0" width="8" height="14" rx="2" fill="currentColor" />
-      </svg>
-      <svg viewBox="0 0 60 100" className="accessory-icon" aria-hidden="true">
-        <rect x="26" y="4" width="8" height="92" rx="3" fill="currentColor" />
-        <circle cx="30" cy="16" r="11" fill="none" stroke="currentColor" strokeWidth="4.5" />
-      </svg>
-      <svg viewBox="0 0 60 100" className="accessory-icon" aria-hidden="true">
-        <path d="M10 40 L50 40 L44 90 Q30 98 16 90 Z" fill="currentColor" opacity="0.85" />
-        <line x1="10" y1="40" x2="50" y2="40" stroke="currentColor" strokeWidth="4" />
-      </svg>
-    </>
-  );
-}
-
 export default function HomeTiles() {
   const router = useRouter();
   const [zoom, setZoom] = useState<Zoom | null>(null);
@@ -152,7 +133,7 @@ export default function HomeTiles() {
         <Link
           href="/pvc-bannery"
           className={tileClass("tile-banner", "/pvc-bannery")}
-          onClick={(e) => go(e, "/pvc-bannery", "#ffe701")}
+          onClick={(e) => go(e, "/pvc-bannery", "#f2f3f5")}
         >
           <div className="tile-visual banner-persp">
             <div className="banner-card">
@@ -206,12 +187,13 @@ export default function HomeTiles() {
           className={tileClass("tile-accessory", "/prislusenstvi")}
           onClick={(e) => go(e, "/prislusenstvi", "#f2f3f5")}
         >
-          <div className="tile-visual">
-            <AccessoryIcons />
+          <div className="tile-visual tile-accessory-visual">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/prislusenstvi/tezka-zelezna-zakladna.jpg" alt="" className="accessory-photo" draggable={false} />
           </div>
           <div className="tile-label">
             <h3>Příslušenství</h3>
-            <p>Stojany, vruty a závaží</p>
+            <p>Stojany, závaží a zápichy</p>
             <span className="tile-cta">Vybrat produkt →</span>
           </div>
         </Link>

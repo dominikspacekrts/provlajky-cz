@@ -8,12 +8,20 @@ import {
   type ProductCategory,
   type ProductConfig,
   type ProductKind,
+  type ProductOption,
   type ProductVariant,
 } from "@/lib/types";
 
 const emptyBanner = (): NonNullable<ProductConfig["banner"]> => ({
   pvc: { buyPerM2: 0, sellPerM2: 0 },
   mesh: { buyPerM2: 0, sellPerM2: 0 },
+});
+
+const emptyOption = (): ProductOption => ({
+  id: crypto.randomUUID().slice(0, 8),
+  label: "",
+  sellPrice: 0,
+  buyPrice: 0,
 });
 
 const emptyVariant = (): ProductVariant => ({
@@ -108,6 +116,7 @@ export default function ProductFormButton({ product }: { product?: Product }) {
   // ── config helpers ─────────────────────────────────────────────────────────
   const banner = value.config.banner ?? emptyBanner();
   const variants = value.config.variants ?? [];
+  const options = value.config.options ?? [];
 
   function setBanner(next: NonNullable<ProductConfig["banner"]>) {
     setValue((cur) => ({ ...cur, config: { ...cur.config, banner: next } }));
@@ -117,6 +126,15 @@ export default function ProductFormButton({ product }: { product?: Product }) {
   }
   function patchVariant(id: string, patch: Partial<ProductVariant>) {
     setVariants(variants.map((v) => (v.id === id ? { ...v, ...patch } : v)));
+  }
+  function setOptions(next: ProductOption[]) {
+    setValue((cur) => ({ ...cur, config: { ...cur.config, options: next } }));
+  }
+  function patchOption(id: string, patch: Partial<ProductOption>) {
+    setOptions(options.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  }
+  function setBuyPrice(v: number) {
+    setValue((cur) => ({ ...cur, config: { ...cur.config, buyPrice: v } }));
   }
 
   function submit() {
@@ -130,6 +148,10 @@ export default function ProductFormButton({ product }: { product?: Product }) {
         ? { banner }
         : value.kind === "variant"
         ? { variants }
+        : value.kind === "options"
+        ? { options }
+        : value.kind === "simple"
+        ? { buyPrice: value.config.buyPrice ?? 0 }
         : {};
     setError(null);
     startTransition(async () => {
@@ -184,20 +206,85 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                   <option value="configurable">Konfigurovatelný (tvar/velikost — vlajky)</option>
                   <option value="banner_m2">Banner na m² (PVC / mesh)</option>
                   <option value="variant">Varianty s náklady (stany, nafukovací, díly)</option>
+                  <option value="options">Volby s cenou (hmotnost apod. — stojany)</option>
                   <option value="simple">Jednoduchý (pevná cena — příslušenství)</option>
                 </select>
               </label>
 
               {value.kind === "simple" && (
-                <label>
-                  Cena bez DPH (Kč)
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={value.price}
-                    onChange={(e) => set("price", Number(e.target.value) || 0)}
-                  />
-                </label>
+                <div className="variant-row" style={{ marginBottom: 0 }}>
+                  <label style={{ flex: 1 }}>
+                    Prodejní cena bez DPH (Kč)
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={value.price}
+                      onChange={(e) => set("price", Number(e.target.value) || 0)}
+                    />
+                  </label>
+                  <label style={{ flex: 1 }}>
+                    Nákupní cena bez DPH (Kč)
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={value.config.buyPrice ?? 0}
+                      onChange={(e) => setBuyPrice(Number(e.target.value) || 0)}
+                    />
+                    <small style={{ color: value.price >= (value.config.buyPrice ?? 0) ? "#16a34a" : "#dc2626" }}>
+                      marže {fmt(value.price - (value.config.buyPrice ?? 0))}
+                    </small>
+                  </label>
+                </div>
+              )}
+
+              {value.kind === "options" && (
+                <div className="variant-block">
+                  <div className="row-between" style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, color: "var(--color-gray-700)" }}>
+                      Volby (např. hmotnost) — u každé prodejní a nákupní cena bez DPH.
+                    </div>
+                    <button type="button" className="btn" onClick={() => setOptions([...options, emptyOption()])}>
+                      + Volba
+                    </button>
+                  </div>
+                  {options.length === 0 && <p className="muted">Zatím žádná volba. Přidej první tlačítkem výše.</p>}
+                  {options.map((o) => (
+                    <div key={o.id} className="variant-row" style={{ alignItems: "flex-end" }}>
+                      <label style={{ flex: 2 }}>
+                        Popis volby (např. 6 kg)
+                        <input value={o.label} onChange={(e) => patchOption(o.id, { label: e.target.value })} />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Prodej
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={o.sellPrice}
+                          onChange={(e) => patchOption(o.id, { sellPrice: Number(e.target.value) || 0 })}
+                        />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Nákup
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={o.buyPrice}
+                          onChange={(e) => patchOption(o.id, { buyPrice: Number(e.target.value) || 0 })}
+                        />
+                        <small style={{ color: o.sellPrice >= o.buyPrice ? "#16a34a" : "#dc2626" }}>
+                          marže {fmt(o.sellPrice - o.buyPrice)}
+                        </small>
+                      </label>
+                      <button
+                        type="button"
+                        className="btn danger"
+                        onClick={() => setOptions(options.filter((x) => x.id !== o.id))}
+                      >
+                        Smazat
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
 
               {value.kind === "configurable" && (
