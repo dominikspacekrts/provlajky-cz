@@ -325,3 +325,13 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 
 .customer-picker-row { margin: 6px 0 12px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--color-gray-700); }
 .customer-picker-row select { min-width: 280px; }
+
+/* Editor variant / banneru na m² v produktovém formuláři */
+.modal-wide { max-width: 860px; }
+.variant-block { border: 1px solid var(--color-gray-200); border-radius: 10px; padding: 12px; background: #fafafa; }
+.variant-card { border: 1px solid var(--color-gray-200); border-radius: 10px; padding: 12px; background: #fff; margin-bottom: 12px; }
+.variant-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 8px; }
+.variant-row > label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--color-gray-700); min-width: 110px; }
+.variant-row input { width: 100%; padding: 7px 8px; border: 1px solid var(--color-gray-300); border-radius: 7px; font-size: 13px; }
+.variant-row small { font-size: 11px; margin-top: 2px; }
+.variant-sum { font-size: 13px; color: var(--color-gray-700); background: #f3f4f6; border-radius: 7px; padding: 6px 10px; margin: 4px 0 10px; }

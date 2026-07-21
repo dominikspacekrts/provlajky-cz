@@ -210,8 +210,41 @@ export type EmailHistoryRow = {
 
 export type AllowedUser = { email: string; display_name: string; created_at: string };
 
-export type ProductCategory = "plazove-vlajky" | "vlajky-na-zakazku" | "pvc-bannery" | "prislusenstvi";
-export type ProductKind = "simple" | "configurable";
+export type ProductCategory =
+  | "plazove-vlajky"
+  | "vlajky-na-zakazku"
+  | "pvc-bannery"
+  | "prislusenstvi"
+  | "nuzkove-stany"
+  | "nafukovaci-stany"
+  | "totemy"
+  | "nafukovaci-brany"
+  | "nahradni-dily";
+export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant";
+
+// Cena banneru za m² — zvlášť nákup a prodej, pro plnou PVC plachtovinu i mesh.
+export type BannerMaterialPricing = { buyPerM2: number; sellPerM2: number };
+
+// Varianta stanu / nafukovacího produktu / náhradního dílu. Všechny složky nákladu
+// zadává admin; z jejich součtu se odvodí prodejní cena. sellAir = dodání do 14 dní
+// (letecká doprava), sellTrain = dodání do 4 týdnů (vlaková doprava).
+export type ProductVariant = {
+  id: string;
+  label: string;
+  size?: string | null;
+  cost: number; // nákupní cena / kus (bez DPH)
+  customs: number; // clo
+  airFreight: number; // doprava letecky
+  trainFreight: number; // doprava vlakem
+  transactionFee: number; // cena z transakce
+  sellAir: number; // prodejní cena — dodání do 14 dní
+  sellTrain: number; // prodejní cena — dodání do 4 týdnů
+};
+
+export type ProductConfig = {
+  banner?: { pvc: BannerMaterialPricing; mesh: BannerMaterialPricing };
+  variants?: ProductVariant[];
+};
 
 export type Product = {
   id: string;
@@ -227,6 +260,7 @@ export type Product = {
   images: string[];
   active: boolean;
   sort_order: number;
+  config: ProductConfig;
   created_at: string;
   updated_at: string;
 };
@@ -236,4 +270,9 @@ export const PRODUCT_CATEGORIES: Record<ProductCategory, string> = {
   "vlajky-na-zakazku": "Vlajky na zakázku",
   "pvc-bannery": "PVC bannery",
   "prislusenstvi": "Příslušenství a stojany",
+  "nuzkove-stany": "Nůžkové stany",
+  "nafukovaci-stany": "Nafukovací stany",
+  "totemy": "Totemy / nafukovací sloupy",
+  "nafukovaci-brany": "Nafukovací brány",
+  "nahradni-dily": "Náhradní díly a příslušenství",
 };

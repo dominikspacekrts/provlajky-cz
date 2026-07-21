@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { fmtMoney, minSizePrice } from "@/lib/money";
+import { fmtMoney, fromPrice } from "@/lib/money";
 import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -52,14 +52,15 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
             <div className="body">
               <div className="name">{p.name}</div>
               <div className="price">
-                {p.kind === "simple" ? (
-                  <>{fmtMoney(p.price)} <span className="vat">bez DPH</span></>
+                {fromPrice(p) != null ? (
+                  <>
+                    {p.kind === "simple" ? "" : "od "}
+                    {fmtMoney(fromPrice(p)!)}
+                    {p.kind === "banner_m2" ? "/m² " : " "}
+                    <span className="vat">bez DPH</span>
+                  </>
                 ) : (
-                  minSizePrice(p.price_by_size) != null ? (
-                    <>od {fmtMoney(minSizePrice(p.price_by_size)!)} <span className="vat">bez DPH</span></>
-                  ) : (
-                    "cena na dotaz"
-                  )
+                  "cena na dotaz"
                 )}
               </div>
             </div>

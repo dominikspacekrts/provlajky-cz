@@ -7,9 +7,13 @@ import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import { type Product } from "@/lib/types";
 import FlagConfigurator from "./FlagConfigurator";
+import BannerConfigurator from "./BannerConfigurator";
+import VariantConfigurator from "./VariantConfigurator";
 
 export default function ProductDetail({ product }: { product: Product }) {
   if (product.kind === "configurable") return <FlagConfigurator product={product} />;
+  if (product.kind === "banner_m2") return <BannerConfigurator product={product} />;
+  if (product.kind === "variant") return <VariantConfigurator product={product} />;
   return <SimpleProductDetail product={product} />;
 }
 

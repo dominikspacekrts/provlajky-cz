@@ -29,29 +29,6 @@ function AccessoryIcons() {
   );
 }
 
-function TentSvg() {
-  return (
-    <svg viewBox="0 0 220 210" className="tent-svg" aria-hidden="true">
-      <ellipse cx="110" cy="198" rx="86" ry="7" fill="#000" opacity="0.35" className="tent-shadow" />
-      <g className="tent-legs">
-        <line x1="38" y1="92" x2="38" y2="196" stroke="#3d3d42" strokeWidth="5" strokeLinecap="round" />
-        <line x1="182" y1="92" x2="182" y2="196" stroke="#3d3d42" strokeWidth="5" strokeLinecap="round" />
-        <line x1="38" y1="104" x2="182" y2="168" stroke="#55555c" strokeWidth="3.4" strokeLinecap="round" />
-        <line x1="182" y1="104" x2="38" y2="168" stroke="#55555c" strokeWidth="3.4" strokeLinecap="round" />
-        <line x1="38" y1="168" x2="182" y2="196" stroke="#55555c" strokeWidth="3.4" strokeLinecap="round" opacity="0.55" />
-        <line x1="182" y1="168" x2="38" y2="196" stroke="#55555c" strokeWidth="3.4" strokeLinecap="round" opacity="0.55" />
-      </g>
-      <g className="tent-canopy">
-        <polygon points="110,14 196,86 24,86" fill="#ffe701" />
-        <polygon points="110,14 196,86 110,86" fill="#e6cf00" />
-        {/* lem střechy — bílý pruh s logem na bílém podkladu */}
-        <rect x="24" y="86" width="172" height="24" rx="3" fill="#ffffff" stroke="#d9dbdf" strokeWidth="1" />
-        <image href="/logo/logo-tmave.png" x="75" y="89" width="70" height="18" preserveAspectRatio="xMidYMid meet" />
-      </g>
-    </svg>
-  );
-}
-
 export default function HomeTiles() {
   const router = useRouter();
   const [zoom, setZoom] = useState<Zoom | null>(null);
@@ -138,10 +115,20 @@ export default function HomeTiles() {
         <Link
           href="/stany"
           className={tileClass("tile-tent", "/stany")}
-          onClick={(e) => go(e, "/stany", "#141414")}
+          onClick={(e) => go(e, "/stany", "#f2f3f5")}
         >
-          <div className="tile-visual">
-            <TentSvg />
+          <div className="tile-visual tile-tent-video">
+            <video
+              className="tent-video"
+              src="/stan-fold.mp4"
+              poster="/stan-hero.jpg"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-hidden="true"
+            />
           </div>
           <div className="tile-label">
             <h3>Nůžkové stany</h3>

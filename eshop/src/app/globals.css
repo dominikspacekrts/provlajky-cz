@@ -287,15 +287,13 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 .banner-eyelets i:nth-child(5) { top: 3px; left: 50%; margin-left: -6.5px; }
 .banner-eyelets i:nth-child(6) { bottom: 3px; left: 50%; margin-left: -6.5px; }
 
-.tile-tent .tile-visual { background: #1a1b1f; display: flex; align-items: flex-end; justify-content: center; }
-.tent-svg { width: 82%; margin-bottom: 8%; overflow: visible; }
-.tent-canopy, .tent-legs, .tent-shadow { transform-box: view-box; transition: transform 0.8s cubic-bezier(0.3, 1.3, 0.35, 1); }
-.tent-shadow { transform: scaleX(0.3); transform-origin: 50% 100%; }
-.tile-tent:hover .tent-shadow { transform: scaleX(1); }
-.tent-canopy { transform: scaleX(0.26); transform-origin: 50% 46%; }
-.tent-legs { transform: scaleX(0.26) scaleY(0.4); transform-origin: 50% 44%; }
-.tile-tent:hover .tent-canopy { transform: scaleX(1); }
-.tile-tent:hover .tent-legs { transform: scale(1); }
+/* Nůžkový stan — realistické video (Viewmax): postavený → složí se → postaví, ve smyčce */
+.tile-tent-video { background: #f2f3f5; padding: 0; overflow: hidden; }
+.tent-video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transform: scale(1.02); transition: transform 0.5s ease;
+}
+.tile-tent:hover .tent-video { transform: scale(1.06); }
 
 .tile-accessory .tile-visual {
   background: linear-gradient(180deg, #f2f3f5 0%, #e6e8eb 100%);
@@ -314,9 +312,6 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
   .tile-banner:hover .banner-card { animation: bannerGust 2.8s ease-in-out infinite; }
   .banner-card::after { animation: bannerSheen 6.5s ease-in-out infinite; }
   .tile-banner:hover .banner-card::after { animation-duration: 2.8s; }
-
-  .tent-svg { animation: idleFloat 5.4s ease-in-out infinite; }
-  .tile-tent:hover .tent-svg { animation-duration: 3.4s; }
 
   .accessory-icon { animation: accBob 3.4s ease-in-out infinite; }
   .accessory-icon:nth-child(1) { animation-delay: -0.3s; }
@@ -592,3 +587,83 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 @media (max-width: 480px) {
   .tiles { grid-template-columns: 1fr; max-width: 300px; }
 }
+
+/* ── Stránka /stany — hero přes tmavé pozadí + sekce kategorií ─────────────── */
+.stany-page { position: relative; z-index: 5; }
+.stany-hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 40px; align-items: center; margin-bottom: 20px; }
+.stany-hero-copy h1 { color: #fff; font-size: 40px; line-height: 1.08; letter-spacing: -0.02em; }
+.stany-hero-copy p { color: #d1d5db; margin-top: 16px; font-size: 16.5px; line-height: 1.65; max-width: 46ch; }
+.stany-hero-cta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 24px; }
+.stany-hero-cta .btn-outline { color: #fff; border-color: rgba(255,255,255,0.55); }
+.stany-hero-cta .btn-outline:hover { background: rgba(255,255,255,0.12); }
+.stany-fold { display: flex; align-items: center; gap: 14px; margin-top: 26px; color: #9ca3af; font-size: 13.5px; }
+.stany-fold .tentfold { width: 92px; height: auto; flex-shrink: 0; }
+.stany-hero-photo { background: #fff; border-radius: 22px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.4); }
+.stany-hero-photo img { display: block; width: 100%; height: auto; }
+.stany-section { margin-top: 44px; }
+.stany-section h2 { color: #fff; font-size: 25px; letter-spacing: -0.01em; }
+.category-card .card-sub { color: var(--gray); font-size: 13px; margin-top: 4px; line-height: 1.45; }
+@media (max-width: 860px) {
+  .stany-hero { grid-template-columns: 1fr; }
+  .stany-hero-copy h1 { font-size: 32px; }
+}
+
+/* Skládací nůžkový stan (TentFold) */
+.tentfold .tf-shadow { fill: #000; opacity: 0.28; }
+.tentfold .tf-frame line { stroke: #cbd0d6; stroke-width: 4.5; stroke-linecap: round; }
+.tentfold .tf-frame .tf-x { stroke: #aeb4bc; stroke-width: 3.2; }
+.tentfold .tf-roof { fill: var(--yellow); }
+.tentfold .tf-roof-shade { fill: #e6cf00; }
+.tentfold .tf-valance { fill: #fff; stroke: #e2e4e8; stroke-width: 1; }
+.tentfold .tf-tent { transform-box: fill-box; transform-origin: 50% 100%; }
+.tentfold .tf-canopy { transform-box: fill-box; transform-origin: 50% 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .tentfold .tf-tent { animation: tentFold 5s cubic-bezier(0.6,0,0.3,1) infinite; }
+  .tentfold .tf-canopy { animation: canopyDrop 5s cubic-bezier(0.6,0,0.3,1) infinite; }
+  .stany-fold:hover .tf-tent, .stany-fold:hover .tf-canopy { animation-duration: 2.4s; }
+}
+@keyframes tentFold {
+  0%, 20% { transform: scaleX(1); }
+  46%, 60% { transform: scaleX(0.13); }
+  86%, 100% { transform: scaleX(1); }
+}
+@keyframes canopyDrop {
+  0%, 20% { transform: translateY(0); }
+  46%, 60% { transform: translateY(48px) scaleY(0.72); }
+  86%, 100% { transform: translateY(0) scaleY(1); }
+}
+
+/* Konfigurátor banneru — náhled ve tvaru zadaného rozměru */
+.variant-select {
+  width: 100%; padding: 11px 12px; border: 1.5px solid var(--border); border-radius: 10px;
+  font-size: 14px; background: #fff; margin-top: 4px;
+}
+.banner-preview {
+  position: relative; background: repeating-conic-gradient(#eceef1 0% 25%, #f6f7f9 0% 50%) 50% / 22px 22px;
+  border-radius: 4px; box-shadow: 0 14px 34px rgba(0,0,0,0.14); overflow: hidden; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; outline: 2px dashed transparent;
+  transition: outline-color 0.15s;
+}
+.banner-preview:hover { outline-color: var(--yellow); }
+.banner-preview-hint { color: #9aa0a8; font-weight: 700; font-size: 14px; z-index: 2; }
+.banner-preview-dims {
+  position: absolute; bottom: 6px; right: 8px; z-index: 3; font-size: 11px; font-weight: 700;
+  color: #fff; background: rgba(20,20,20,0.6); padding: 2px 7px; border-radius: 20px;
+}
+.banner-preview-eyelets { position: absolute; inset: 6px; pointer-events: none; }
+.banner-preview-eyelets b {
+  position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff 0 30%, #9aa0a8 45%, #6b7280 70%);
+}
+.banner-preview-eyelets b:nth-child(1) { top: 0; left: 0; }
+.banner-preview-eyelets b:nth-child(2) { top: 0; left: 50%; transform: translateX(-50%); }
+.banner-preview-eyelets b:nth-child(3) { top: 0; right: 0; }
+.banner-preview-eyelets b:nth-child(4) { bottom: 0; left: 0; }
+.banner-preview-eyelets b:nth-child(5) { bottom: 0; left: 50%; transform: translateX(-50%); }
+.banner-preview-eyelets b:nth-child(6) { bottom: 0; right: 0; }
+.banner-dim-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.banner-dim-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--gray); font-weight: 600; }
+.banner-dim-row input { width: 110px; padding: 9px 10px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 14px; }
+.banner-dim-x { font-size: 20px; color: var(--gray); padding-bottom: 8px; }
+.banner-area { margin-left: auto; font-weight: 800; font-size: 18px; color: var(--ink); }
+.config-preview:has(.banner-preview) { aspect-ratio: auto; padding: 24px; background: #f4f5f7; }

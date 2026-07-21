@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { Product, ProductCategory, ProductKind } from "@/lib/types";
+import type { Product, ProductCategory, ProductConfig, ProductKind } from "@/lib/types";
 
 function slugify(name: string) {
   return name
@@ -27,6 +27,7 @@ export type ProductInput = {
   images: string[];
   active: boolean;
   sort_order: number;
+  config: ProductConfig;
 };
 
 export async function createProduct(input: ProductInput) {

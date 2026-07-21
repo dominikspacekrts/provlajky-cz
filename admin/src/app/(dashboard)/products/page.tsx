@@ -7,6 +7,24 @@ import DeleteProductButton from "./delete-product-button";
 
 export const dynamic = "force-dynamic";
 
+function priceLabel(p: Product): string {
+  if (p.kind === "simple") return fmtMoney(p.price, "CZK") + " bez DPH";
+  if (p.kind === "banner_m2") {
+    const b = p.config?.banner;
+    const sells = [b?.pvc.sellPerM2, b?.mesh.sellPerM2].filter((v): v is number => !!v);
+    return sells.length ? `od ${fmtMoney(Math.min(...sells), "CZK")}/m² bez DPH` : "cena/m² nenastavena";
+  }
+  if (p.kind === "variant") {
+    const vs = p.config?.variants ?? [];
+    const sells = vs.flatMap((v) => [v.sellAir, v.sellTrain]).filter((v) => v > 0);
+    return sells.length
+      ? `${vs.length} variant · od ${fmtMoney(Math.min(...sells), "CZK")} bez DPH`
+      : `${vs.length} variant · prodejní cena nenastavena`;
+  }
+  const bySize = ["S", "M", "L", "XL"].map((s) => p.price_by_size?.[s as "S"]).filter((v): v is number => v != null);
+  return bySize.length > 0 ? `od ${fmtMoney(Math.min(...bySize), "CZK")} bez DPH` : "cena nenastavena";
+}
+
 export default async function ProductsPage() {
   const supabase = await createClient();
   const { data } = await supabase.from("products").select("*").order("category").order("sort_order");
@@ -44,19 +62,7 @@ export default async function ProductsPage() {
                 </div>
                 <div className="product-info">
                   <div className="product-name">{p.name}</div>
-                  <div className="product-price">
-                    {p.kind === "simple"
-                      ? fmtMoney(p.price, "CZK") + " bez DPH"
-                      : ["S", "M", "L", "XL"]
-                          .map((s) => p.price_by_size?.[s as "S"])
-                          .filter((v) => v != null)
-                          .length > 0
-                      ? `od ${fmtMoney(
-                          Math.min(...["S", "M", "L", "XL"].map((s) => p.price_by_size?.[s as "S"] ?? Infinity)),
-                          "CZK"
-                        )} bez DPH`
-                      : "cena nenastavena"}
-                  </div>
+                  <div className="product-price">{priceLabel(p)}</div>
                 </div>
                 <div className="product-actions">
                   <ActiveToggle productId={p.id} active={p.active} />
