@@ -15,12 +15,13 @@ export default function AppBackdrop() {
     // Znovu načíst při každé změně cesty — dokud jsme na "/", slideshow průběžně
     // aktualizuje sessionStorage, takže při odchodu z homepage chceme vždy tu
     // fotku, co je zrovna aktivní, ne tu, co byla při prvním načtení stránky.
-    if (pathname !== "/") {
+    if (pathname !== "/" && pathname !== "/nova") {
       setPhoto(getLastHeroPhoto() ?? HERO_PHOTOS[0]);
     }
   }, [pathname]);
 
-  if (pathname === "/" || !photo) return null;
+  // /nova má vlastní hero pozadí — pevné celoobrazovkové pozadí tu nechceme.
+  if (pathname === "/" || pathname === "/nova" || !photo) return null;
 
   return (
     <div className="app-backdrop" aria-hidden="true">

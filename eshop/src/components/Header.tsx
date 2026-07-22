@@ -33,6 +33,9 @@ export default function Header() {
     </Link>
   );
 
+  // /nova má vlastní hlavičku (logo + košík), globální chrome tu neukazujeme.
+  if (pathname === "/nova") return null;
+
   if (pathname === "/") {
     return <div className="floating-controls floating-right">{cart}</div>;
   }
