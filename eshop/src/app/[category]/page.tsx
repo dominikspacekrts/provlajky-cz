@@ -21,10 +21,16 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
     .order("sort_order");
   const products = (data || []) as Product[];
 
-  // Plážové vlajky nemají výpis — jde se rovnou do konfigurátoru.
-  if (cat === "plazove-vlajky") {
-    const configurable = products.find((p) => p.kind === "configurable") ?? products[0];
-    if (configurable) redirect(`/produkt/${configurable.slug}`);
+  // Vybrané kategorie nemají výpis — jde se rovnou do konfigurátoru (jako plážové vlajky).
+  const DIRECT_TO_CONFIG: Partial<Record<ProductCategory, Product["kind"]>> = {
+    "plazove-vlajky": "configurable",
+    "vlajky-na-zakazku": "custom_flag",
+    "pvc-bannery": "banner_m2",
+  };
+  const directKind = DIRECT_TO_CONFIG[cat];
+  if (directKind) {
+    const target = products.find((p) => p.kind === directKind) ?? products[0];
+    if (target) redirect(`/produkt/${target.slug}`);
   }
 
   return (

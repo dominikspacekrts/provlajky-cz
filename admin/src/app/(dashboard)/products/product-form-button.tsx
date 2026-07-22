@@ -10,6 +10,9 @@ import {
   type ProductKind,
   type ProductOption,
   type ProductVariant,
+  type TentWalls,
+  type FlagMaterial,
+  type CustomFlagConfig,
 } from "@/lib/types";
 
 const emptyBanner = (): NonNullable<ProductConfig["banner"]> => ({
@@ -22,6 +25,20 @@ const emptyOption = (): ProductOption => ({
   label: "",
   sellPrice: 0,
   buyPrice: 0,
+});
+
+const emptyFlagMaterial = (): FlagMaterial => ({
+  id: crypto.randomUUID().slice(0, 8),
+  label: "",
+  sellPerM2: 0,
+  buyPerM2: 0,
+});
+
+const emptyCustomFlag = (): CustomFlagConfig => ({
+  materials: [],
+  eyeletSurchargePct: 20,
+  maxDimState: 300,
+  maxDimCustom: 200,
 });
 
 const emptyVariant = (): ProductVariant => ({
@@ -137,6 +154,14 @@ export default function ProductFormButton({ product }: { product?: Product }) {
     setValue((cur) => ({ ...cur, config: { ...cur.config, buyPrice: v } }));
   }
 
+  const customFlag = value.config.customFlag ?? emptyCustomFlag();
+  function setCustomFlag(next: CustomFlagConfig) {
+    setValue((cur) => ({ ...cur, config: { ...cur.config, customFlag: next } }));
+  }
+  function patchFlagMaterial(id: string, patch: Partial<FlagMaterial>) {
+    setCustomFlag({ ...customFlag, materials: customFlag.materials.map((m) => (m.id === id ? { ...m, ...patch } : m)) });
+  }
+
   function submit() {
     if (!value.name.trim()) {
       setError("Vyplň název produktu.");
@@ -150,6 +175,8 @@ export default function ProductFormButton({ product }: { product?: Product }) {
         ? { variants }
         : value.kind === "options"
         ? { options }
+        : value.kind === "custom_flag"
+        ? { customFlag }
         : value.kind === "simple"
         ? { buyPrice: value.config.buyPrice ?? 0 }
         : {};
@@ -205,6 +232,7 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                 <select value={value.kind} onChange={(e) => set("kind", e.target.value as ProductKind)}>
                   <option value="configurable">Konfigurovatelný (tvar/velikost — vlajky)</option>
                   <option value="banner_m2">Banner na m² (PVC / mesh)</option>
+                  <option value="custom_flag">Vlajky na zakázku (materiály za m²)</option>
                   <option value="variant">Varianty s náklady (stany, nafukovací, díly)</option>
                   <option value="options">Volby s cenou (hmotnost apod. — stojany)</option>
                   <option value="simple">Jednoduchý (pevná cena — příslušenství)</option>
@@ -351,12 +379,105 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                 </div>
               )}
 
+              {value.kind === "custom_flag" && (
+                <div className="variant-block">
+                  <div className="row-between" style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, color: "var(--color-gray-700)" }}>
+                      Materiály vlajek na zakázku — cena za m² bez DPH (prodej i nákup). Zákazník vybere materiál,
+                      zadá rozměr a cena se spočítá podle plochy. Typy a umístění oček řeší eshop automaticky.
+                    </div>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => setCustomFlag({ ...customFlag, materials: [...customFlag.materials, emptyFlagMaterial()] })}
+                    >
+                      + Materiál
+                    </button>
+                  </div>
+
+                  {customFlag.materials.length === 0 && (
+                    <p className="muted">Zatím žádný materiál. Přidej první tlačítkem výše.</p>
+                  )}
+
+                  {customFlag.materials.map((m) => (
+                    <div key={m.id} className="variant-row" style={{ alignItems: "flex-end" }}>
+                      <label style={{ flex: 2 }}>
+                        Materiál (např. polyglans)
+                        <input value={m.label} onChange={(e) => patchFlagMaterial(m.id, { label: e.target.value })} />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Prodej / m²
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={m.sellPerM2}
+                          onChange={(e) => patchFlagMaterial(m.id, { sellPerM2: Number(e.target.value) || 0 })}
+                        />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Nákup / m²
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={m.buyPerM2}
+                          onChange={(e) => patchFlagMaterial(m.id, { buyPerM2: Number(e.target.value) || 0 })}
+                        />
+                        <small style={{ color: m.sellPerM2 >= m.buyPerM2 ? "#16a34a" : "#dc2626" }}>
+                          marže {fmt(m.sellPerM2 - m.buyPerM2)}/m²
+                        </small>
+                      </label>
+                      <button
+                        type="button"
+                        className="btn danger"
+                        onClick={() =>
+                          setCustomFlag({ ...customFlag, materials: customFlag.materials.filter((x) => x.id !== m.id) })
+                        }
+                      >
+                        Smazat
+                      </button>
+                    </div>
+                  ))}
+
+                  <div className="variant-row" style={{ marginTop: 12 }}>
+                    <label style={{ flex: 1 }}>
+                      Hustší oka každých 30 cm (+%)
+                      <input
+                        type="number"
+                        step="1"
+                        value={customFlag.eyeletSurchargePct}
+                        onChange={(e) => setCustomFlag({ ...customFlag, eyeletSurchargePct: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label style={{ flex: 1 }}>
+                      Max rozměr — státní (cm)
+                      <input
+                        type="number"
+                        step="1"
+                        value={customFlag.maxDimState}
+                        onChange={(e) => setCustomFlag({ ...customFlag, maxDimState: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                    <label style={{ flex: 1 }}>
+                      Max rozměr — vlastní (cm)
+                      <input
+                        type="number"
+                        step="1"
+                        value={customFlag.maxDimCustom}
+                        onChange={(e) => setCustomFlag({ ...customFlag, maxDimCustom: Number(e.target.value) || 0 })}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {value.kind === "variant" && (
                 <div className="variant-block">
                   <div className="row-between" style={{ marginBottom: 8 }}>
                     <div style={{ fontSize: 13, color: "var(--color-gray-700)" }}>
                       Varianty — u každé zadej náklad (nákup, clo, doprava, transakce). Součet se dopočítá; podle něj
                       nastav prodejní cenu. Prodej letecky = dodání do 14 dní, prodej vlakem = dodání do 4 týdnů.
+                      Na eshopu se produkt automaticky rozdělí na karty podle „Rozměru". „Grafika (stěny)" určuje
+                      kreslený náhled stanu (u nůžkových stanů) — necháš-li Auto, odvodí se z popisu varianty.
                     </div>
                     <button type="button" className="btn" onClick={() => setVariants([...variants, emptyVariant()])}>
                       + Varianta
@@ -381,6 +502,20 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                               value={v.size ?? ""}
                               onChange={(e) => patchVariant(v.id, { size: e.target.value })}
                             />
+                          </label>
+                          <label style={{ flex: 1.4 }}>
+                            Grafika (stěny)
+                            <select
+                              value={v.walls ?? ""}
+                              onChange={(e) =>
+                                patchVariant(v.id, { walls: (e.target.value || undefined) as TentWalls | undefined })
+                              }
+                            >
+                              <option value="">Auto (z popisu)</option>
+                              <option value="none">Bez stěn (jen rám + strop)</option>
+                              <option value="half">Poloviční stěny</option>
+                              <option value="full">Celé stěny</option>
+                            </select>
                           </label>
                           <button
                             type="button"

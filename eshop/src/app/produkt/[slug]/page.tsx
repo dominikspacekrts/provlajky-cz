@@ -5,8 +5,15 @@ import ProductDetail from "@/components/ProductDetail";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ size?: string }>;
+}) {
   const { slug } = await params;
+  const { size } = await searchParams;
   const supabase = createClient();
   const { data } = await supabase.from("products").select("*").eq("slug", slug).eq("active", true).single();
   if (!data) notFound();
@@ -20,7 +27,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   return (
     <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
       <div className="page-panel">
-        <ProductDetail product={product} />
+        <ProductDetail product={product} size={size} />
       </div>
     </div>
   );

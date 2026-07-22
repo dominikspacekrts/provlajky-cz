@@ -220,7 +220,7 @@ export type ProductCategory =
   | "totemy"
   | "nafukovaci-brany"
   | "nahradni-dily";
-export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options";
+export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options" | "custom_flag";
 
 // Volba produktu (např. hmotnost základny) — vlastní prodejní i nákupní cena.
 export type ProductOption = {
@@ -233,9 +233,27 @@ export type ProductOption = {
 // Cena banneru za m² — zvlášť nákup a prodej, pro plnou PVC plachtovinu i mesh.
 export type BannerMaterialPricing = { buyPerM2: number; sellPerM2: number };
 
+// Vlajky na zakázku — materiál s cenou za m² a parametry konfigurátoru.
+export type FlagMaterial = {
+  id: string;
+  label: string;
+  sellPerM2: number;
+  buyPerM2: number;
+};
+
+export type CustomFlagConfig = {
+  materials: FlagMaterial[];
+  eyeletSurchargePct: number; // hustší oka každých 30 cm (+%)
+  maxDimState: number; // max rozměr státní vlajky (cm)
+  maxDimCustom: number; // max rozměr vlastní vlajky (cm)
+};
+
 // Varianta stanu / nafukovacího produktu / náhradního dílu. Všechny složky nákladu
 // zadává admin; z jejich součtu se odvodí prodejní cena. sellAir = dodání do 14 dní
 // (letecká doprava), sellTrain = dodání do 4 týdnů (vlaková doprava).
+// Grafika stěn stanu pro kreslený náhled na eshopu (TentGraphic).
+export type TentWalls = "none" | "half" | "full";
+
 export type ProductVariant = {
   id: string;
   label: string;
@@ -247,12 +265,14 @@ export type ProductVariant = {
   transactionFee: number; // cena z transakce
   sellAir: number; // prodejní cena — dodání do 14 dní
   sellTrain: number; // prodejní cena — dodání do 4 týdnů
+  walls?: TentWalls; // volitelné — jaká grafika stěn se u varianty vykreslí na eshopu
 };
 
 export type ProductConfig = {
   banner?: { pvc: BannerMaterialPricing; mesh: BannerMaterialPricing };
   variants?: ProductVariant[];
   options?: ProductOption[]; // kind 'options' — volby s cenou (hmotnost apod.)
+  customFlag?: CustomFlagConfig; // kind 'custom_flag' — vlajky na zakázku
   buyPrice?: number; // kind 'simple' — nákupní cena (jen pro přehled marže v adminu)
 };
 

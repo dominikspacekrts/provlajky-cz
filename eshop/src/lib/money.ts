@@ -1,4 +1,4 @@
-import type { BannerMaterialPricing, Product, ProductVariant } from "./types";
+import type { BannerMaterialPricing, FlagMaterial, Product, ProductVariant } from "./types";
 
 export function fmtMoney(value: number) {
   return new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 }).format(
@@ -64,6 +64,28 @@ export function minBannerSell(product: Product): number | null {
   return sells.length ? Math.min(...sells) : null;
 }
 
+// ── Vlajky na zakázku (custom_flag) ──────────────────────────────────────────
+// Cena = plocha m² × cena materiálu za m², volitelně + příplatek za hustší oka.
+export function customFlagPrice(
+  material: FlagMaterial | undefined,
+  widthCm: number,
+  heightCm: number,
+  denseEyelets: boolean,
+  surchargePct: number
+): number {
+  if (!material) return 0;
+  const m2 = (Math.max(0, widthCm) / 100) * (Math.max(0, heightCm) / 100);
+  const billable = Math.max(m2, 0.25); // minimální účtovaná plocha
+  const base = billable * (material.sellPerM2 || 0);
+  const withDense = denseEyelets ? base * (1 + (surchargePct || 0) / 100) : base;
+  return Math.round(withDense);
+}
+
+export function minCustomFlagSell(product: Product): number | null {
+  const prices = (product.config?.customFlag?.materials ?? []).map((m) => m.sellPerM2).filter((p) => p > 0);
+  return prices.length ? Math.min(...prices) : null;
+}
+
 export function minOptionSell(product: Product): number | null {
   const prices = (product.config?.options ?? []).map((o) => o.sellPrice).filter((p) => p > 0);
   return prices.length ? Math.min(...prices) : null;
@@ -76,5 +98,6 @@ export function fromPrice(product: Product): number | null {
   if (product.kind === "variant") return minVariantSell(product.config?.variants);
   if (product.kind === "banner_m2") return minBannerSell(product);
   if (product.kind === "options") return minOptionSell(product);
+  if (product.kind === "custom_flag") return minCustomFlagSell(product);
   return null;
 }

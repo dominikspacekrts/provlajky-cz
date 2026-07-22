@@ -111,6 +111,11 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 .category-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.08); transform: translateY(-2px); }
 .category-card .thumb { aspect-ratio: 1/1; background: #f4f5f7; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .category-card .thumb img { width: 100%; height: 100%; object-fit: cover; }
+/* Kreslený stan (TentGraphic) v kartě i v náhledu produktu */
+.tentgraphic { width: 100%; height: 100%; display: block; }
+.category-card .thumb .tentgraphic { padding: 14px; }
+.category-card .thumb { background: linear-gradient(160deg, #f7f8fa 0%, #eef0f4 100%); }
+.config-preview .tentgraphic { padding: 24px; }
 .category-card .body { padding: 16px; }
 .category-card .name { font-weight: 700; font-size: 16px; }
 .category-card .price { color: var(--gray); font-size: 14px; margin-top: 4px; }
@@ -133,6 +138,51 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 .config-price .vat { font-size: 14px; color: var(--gray); font-weight: 500; }
 .qty-row { display: flex; align-items: center; gap: 12px; margin: 18px 0; }
 .qty-row input { width: 64px; padding: 10px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; text-align: center; }
+
+/* ── Konfigurátor vlajek na zakázku ─────────────────────────────────────────── */
+.config-preview-flag { background: #f6f7f9; }
+.cb-line { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.cb-line input { width: 17px; height: 17px; }
+
+/* Našeptávač země */
+.country-picker { position: relative; max-width: 460px; }
+.country-input { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--border); border-radius: 10px; padding: 0 12px; background: #fff; }
+.country-input input { flex: 1; border: none; outline: none; padding: 12px 0; font: inherit; background: transparent; }
+.country-flag-mini { width: 26px; height: 18px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.08); flex-shrink: 0; }
+.country-list {
+  position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto;
+  background: #fff; border: 1.5px solid var(--border); border-radius: 10px; box-shadow: 0 16px 40px rgba(0,0,0,0.14); list-style: none; padding: 4px;
+}
+.country-list button {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: none; background: none;
+  padding: 8px 10px; border-radius: 7px; cursor: pointer; font: inherit; color: #111;
+}
+.country-list button:hover { background: #f2f3f5; }
+
+/* Upload vlastní grafiky */
+.flag-upload {
+  border: 2px dashed var(--border); border-radius: 12px; padding: 22px; text-align: center; color: var(--gray);
+  cursor: pointer; font-size: 14px; background: #fff; transition: border-color 0.15s, background 0.15s;
+}
+.flag-upload:hover { border-color: var(--ink); background: #fafafa; }
+.flag-upload u { color: var(--ink); }
+
+/* Typ oček */
+.eyelet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.eyelet-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 10px 8px; background: #fff; cursor: pointer; font-size: 11.5px; color: #374151; text-align: center;
+}
+.eyelet-cell.active { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink) inset; }
+.eyelet-cell .eyelet-glyph, .eyelet-cell .eyelet-photo { width: 100%; height: 66px; object-fit: contain; }
+.eyelet-cell span { line-height: 1.25; }
+
+/* Umístění oček */
+.placement-box { border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; max-width: 460px; }
+.placement-line { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
+.placement-line input { width: 16px; height: 16px; }
+
+.flag-packaging-note { background: #f4f5f7; border-radius: 10px; padding: 14px 16px; color: var(--gray); font-size: 13px; line-height: 1.55; margin-top: 18px; }
 
 /* Cart / checkout */
 .cart-line { display: flex; gap: 16px; align-items: center; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }

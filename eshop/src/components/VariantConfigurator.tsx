@@ -15,13 +15,24 @@ import {
   variantSellPrice,
   type DeliverySpeed,
 } from "@/lib/money";
-import type { Product, ProductVariant } from "@/lib/types";
+import { wallsFromVariant, tentRealImage, type Product, type ProductVariant } from "@/lib/types";
 
-export default function VariantConfigurator({ product }: { product: Product }) {
+export default function VariantConfigurator({ product, size }: { product: Product; size?: string }) {
   const { addLine } = useCart();
   const router = useRouter();
 
-  const variants = useMemo<ProductVariant[]>(() => product.config?.variants ?? [], [product]);
+  // Když je zadaná velikost (split podle velikosti), zúžíme varianty jen na ni —
+  // rozbalovátko pak nabízí čistě konfiguraci stěn (jako HS u vlajek).
+  const variants = useMemo<ProductVariant[]>(() => {
+    const all = product.config?.variants ?? [];
+    if (!size) return all;
+    const filtered = all.filter((v) => (v.size ?? "").trim() === size.trim());
+    return filtered.length > 0 ? filtered : all;
+  }, [product, size]);
+
+  const isNuzkovy = product.category === "nuzkove-stany";
+  const title = size ? `${product.name} ${size}` : product.name;
+
   const [variantId, setVariantId] = useState<string>(variants[0]?.id ?? "");
   const selected = variants.find((v) => v.id === variantId) ?? variants[0];
 
@@ -40,7 +51,7 @@ export default function VariantConfigurator({ product }: { product: Product }) {
     addLine({
       productId: product.id,
       productSlug: product.slug,
-      name: product.name,
+      name: title,
       type: "product",
       shape: null,
       size: null,
@@ -57,7 +68,7 @@ export default function VariantConfigurator({ product }: { product: Product }) {
   if (variants.length === 0) {
     return (
       <div>
-        <h1 style={{ fontSize: 30 }}>{product.name}</h1>
+        <h1 style={{ fontSize: 30 }}>{title}</h1>
         <p style={{ color: "var(--gray)", marginTop: 12 }}>
           Varianty připravujeme. Napište nám na <a href="mailto:info@provlajky.cz">info@provlajky.cz</a> a
           připravíme nabídku na míru.
@@ -69,7 +80,16 @@ export default function VariantConfigurator({ product }: { product: Product }) {
   return (
     <div className="configurator">
       <div className="config-preview">
-        {image ? (
+        {isNuzkovy && selected ? (
+          <Image
+            src={tentRealImage(wallsFromVariant(selected))}
+            alt={`${product.name} ${selected.label}`}
+            width={640}
+            height={480}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            unoptimized
+          />
+        ) : image ? (
           <Image
             src={image}
             alt={product.name}
@@ -84,10 +104,10 @@ export default function VariantConfigurator({ product }: { product: Product }) {
       </div>
 
       <div>
-        <h1 style={{ fontSize: 30 }}>{product.name}</h1>
+        <h1 style={{ fontSize: 30 }}>{title}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
-        <div className="option-label">Varianta</div>
+        <div className="option-label">{isNuzkovy ? "Konfigurace stěn" : "Varianta"}</div>
         <select
           className="variant-select"
           value={selected?.id}

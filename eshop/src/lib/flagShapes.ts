@@ -181,6 +181,8 @@ export type ClassicFlagTextureOptions = {
   color?: string;
   logo?: HTMLImageElement | null;
   logoPlate?: boolean;
+  /** celoplošná textura vlajky (státní vlajka nebo nahraný návrh) — přebije color i logo */
+  flagImage?: HTMLImageElement | null;
 };
 
 /**
@@ -189,7 +191,7 @@ export type ClassicFlagTextureOptions = {
  * Vrací canvas použitelný jako WebGL textura pro FlagWave (varianta classic).
  */
 export function drawClassicFlagCanvas(opts: ClassicFlagTextureOptions, canvas?: HTMLCanvasElement): HTMLCanvasElement {
-  const { color = "#ffe701", logo, logoPlate = false } = opts;
+  const { color = "#ffe701", logo, logoPlate = false, flagImage } = opts;
   const W = 1500;
   const H = 1000;
   const c = canvas ?? document.createElement("canvas");
@@ -222,12 +224,37 @@ export function drawClassicFlagCanvas(opts: ClassicFlagTextureOptions, canvas?: 
   ctx.arc(poleW * 0.5, 27, 21, 0, Math.PI * 2);
   ctx.fill();
 
-  // látka vlajky
+  const sleeveW = flagW * 0.05;
+
+  // Celoplošná textura vlajky (státní vlajka / nahraný návrh) — přebije barvu i logo.
+  if (flagImage && flagImage.complete && flagImage.naturalWidth > 0) {
+    // „cover" fit do plochy vlajky
+    const iw = flagImage.naturalWidth;
+    const ih = flagImage.naturalHeight;
+    const scale = Math.max(flagW / iw, flagH / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(flagX, flagY, flagW, flagH);
+    ctx.clip();
+    ctx.drawImage(flagImage, flagX + (flagW - dw) / 2, flagY + (flagH - dh) / 2, dw, dh);
+    ctx.restore();
+
+    // jemný tunel u žerdi + obvodové prošití
+    ctx.fillStyle = "rgba(0,0,0,0.12)";
+    ctx.fillRect(flagX, flagY, sleeveW, flagH);
+    ctx.lineWidth = Math.max(2, flagW * 0.0035);
+    ctx.strokeStyle = "rgba(0,0,0,0.15)";
+    ctx.strokeRect(flagX + 4, flagY + 4, flagW - 8, flagH - 8);
+    return c;
+  }
+
+  // látka vlajky (jednobarevná)
   ctx.fillStyle = color;
   ctx.fillRect(flagX, flagY, flagW, flagH);
 
   // tunel podél žerdi + prošití
-  const sleeveW = flagW * 0.05;
   ctx.fillStyle = shade(color, 0.82);
   ctx.fillRect(flagX, flagY, sleeveW, flagH);
   ctx.lineWidth = Math.max(2, flagW * 0.004);

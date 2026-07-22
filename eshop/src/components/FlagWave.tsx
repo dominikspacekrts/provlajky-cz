@@ -63,6 +63,8 @@ export type FlagWaveProps = {
   logoSrc?: string;
   /** bílý zaoblený podklad pod logem */
   logoPlate?: boolean;
+  /** celoplošná textura vlajky (státní vlajka / nahraný návrh) — jen classic režim */
+  flagImageSrc?: string | null;
   drawDesign?: FlagTextureOptions["drawDesign"];
   /** klidová síla větru 0–1 */
   wind?: number;
@@ -80,6 +82,7 @@ export default function FlagWave({
   sleeveColor = "black",
   logoSrc,
   logoPlate = false,
+  flagImageSrc,
   drawDesign,
   wind = 0.35,
   interactive = true,
@@ -229,10 +232,10 @@ export default function FlagWave({
     if (!st.material) return;
     let cancelled = false;
 
-    const apply = (logo: HTMLImageElement | null) => {
+    const apply = (logo: HTMLImageElement | null, flagImage: HTMLImageElement | null) => {
       if (cancelled || !st.material || !st.mesh) return;
       st.texCanvas = classic
-        ? drawClassicFlagCanvas({ color, logo, logoPlate }, st.texCanvas)
+        ? drawClassicFlagCanvas({ color, logo, logoPlate, flagImage }, st.texCanvas)
         : drawFlagCanvas({ shape, color, hs, sleeveColor, logo, logoPlate, drawDesign }, st.texCanvas);
       st.texture?.dispose();
       const tex = new THREE.CanvasTexture(st.texCanvas);
@@ -245,16 +248,21 @@ export default function FlagWave({
       st.gust = 1;
     };
 
-    if (logoSrc) {
-      const img = new Image();
-      img.onload = () => apply(img);
-      img.onerror = () => apply(null);
-      img.src = logoSrc;
-    } else {
-      apply(null);
-    }
+    const loadImg = (src?: string | null) =>
+      new Promise<HTMLImageElement | null>((resolve) => {
+        if (!src) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+
+    Promise.all([loadImg(logoSrc), loadImg(classic ? flagImageSrc : null)]).then(([logo, flagImage]) => {
+      apply(logo, flagImage);
+    });
     return () => { cancelled = true; };
-  }, [shape, classic, color, hs, sleeveColor, logoSrc, logoPlate, drawDesign]);
+  }, [shape, classic, color, hs, sleeveColor, logoSrc, logoPlate, flagImageSrc, drawDesign]);
 
   return <div ref={hostRef} className={className} style={{ width: "100%", height: "100%", ...style }} aria-hidden="true" />;
 }

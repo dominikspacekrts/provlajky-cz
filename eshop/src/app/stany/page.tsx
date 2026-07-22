@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase";
-import { fmtMoney, fromPrice } from "@/lib/money";
-import { PRODUCT_CATEGORIES, TENT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
+import { fmtMoney, minVariantSell } from "@/lib/money";
+import {
+  PRODUCT_CATEGORIES,
+  TENT_CATEGORIES,
+  variantSizes,
+  tentRealImage,
+  type Product,
+  type ProductCategory,
+} from "@/lib/types";
 import TentFold from "@/components/TentFold";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +20,14 @@ export const metadata: Metadata = {
   description:
     "Skládací nůžkové stany, nafukovací stany, totemy, brány i náhradní díly s plnobarevným potiskem na míru.",
 };
+
+// Kategorie, které rozdělujeme na karty podle velikosti (každá velikost = vlastní karta).
+const SPLIT_BY_SIZE: ReadonlySet<ProductCategory> = new Set<ProductCategory>([
+  "nuzkove-stany",
+  "nafukovaci-stany",
+  "totemy",
+  "nafukovaci-brany",
+]);
 
 export default async function StanyPage() {
   const supabase = createClient();
@@ -29,6 +44,9 @@ export default async function StanyPage() {
   for (const cat of TENT_CATEGORIES) byCategory.set(cat, []);
   for (const p of products) byCategory.get(p.category)?.push(p);
 
+  const firstNuzkovy = byCategory.get("nuzkove-stany")?.[0];
+  const firstNuzkovySize = firstNuzkovy ? variantSizes(firstNuzkovy)[0] : undefined;
+
   return (
     <div className="container stany-page" style={{ paddingTop: 40, paddingBottom: 72 }}>
       <section className="stany-hero reveal-stagger">
@@ -36,11 +54,14 @@ export default async function StanyPage() {
           <h1>Nůžkové stany s potiskem</h1>
           <p>
             Skládací pop-up stany s hliníkovou nůžkovou konstrukcí a plnobarevným potiskem střechy, valance i bočnic.
-            Rozloží se za minutu bez nářadí — ideální na sportovní akce, festivaly i prodejní stánky.
+            Vyber velikost, pak konfiguraci stěn — rozloží se za minutu bez nářadí.
           </p>
           <div className="stany-hero-cta">
-            {byCategory.get("nuzkove-stany")?.[0] ? (
-              <Link href={`/produkt/${byCategory.get("nuzkove-stany")![0].slug}`} className="btn-yellow">
+            {firstNuzkovy ? (
+              <Link
+                href={`/produkt/${firstNuzkovy.slug}${firstNuzkovySize ? `?size=${encodeURIComponent(firstNuzkovySize)}` : ""}`}
+                className="btn-yellow"
+              >
                 Sestavit stan →
               </Link>
             ) : (
@@ -68,35 +89,16 @@ export default async function StanyPage() {
           <section key={cat} className="stany-section reveal-stagger">
             <h2>{PRODUCT_CATEGORIES[cat]}</h2>
             <div className="category-grid">
-              {items.map((p) => (
-                <Link key={p.id} href={`/produkt/${p.slug}`} className="category-card">
-                  <div className="thumb">
-                    {p.images?.[0] ? (
-                      <Image
-                        src={p.images[0]}
-                        alt={p.name}
-                        width={320}
-                        height={320}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        unoptimized
-                      />
-                    ) : (
-                      <span style={{ fontSize: 46 }}>⛺</span>
-                    )}
-                  </div>
-                  <div className="body">
-                    <div className="name">{p.name}</div>
-                    {p.subtitle && <div className="card-sub">{p.subtitle}</div>}
-                    <div className="price">
-                      {fromPrice(p) != null ? (
-                        <>od {fmtMoney(fromPrice(p)!)} <span className="vat">bez DPH</span></>
-                      ) : (
-                        "cena na dotaz"
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
+              {SPLIT_BY_SIZE.has(cat)
+                ? items.flatMap((p) => {
+                    const sizes = variantSizes(p);
+                    // Bez rozměrů (např. kompresor) → jedna karta jako dřív.
+                    if (sizes.length === 0) return [<ProductCard key={p.id} product={p} category={cat} />];
+                    return sizes.map((size) => (
+                      <SizeCard key={`${p.id}-${size}`} product={p} category={cat} size={size} />
+                    ));
+                  })
+                : items.map((p) => <ProductCard key={p.id} product={p} category={cat} />)}
             </div>
           </section>
         );
@@ -109,5 +111,83 @@ export default async function StanyPage() {
         </p>
       )}
     </div>
+  );
+}
+
+// Karta pro jednu velikost daného produktu (split podle velikosti).
+function SizeCard({ product, category, size }: { product: Product; category: ProductCategory; size: string }) {
+  const variantsOfSize = (product.config?.variants ?? []).filter((v) => (v.size ?? "").trim() === size);
+  const from = minVariantSell(variantsOfSize);
+  const isNuzkovy = category === "nuzkove-stany";
+  return (
+    <Link href={`/produkt/${product.slug}?size=${encodeURIComponent(size)}`} className="category-card">
+      <div className="thumb">
+        {isNuzkovy ? (
+          <Image
+            src={tentRealImage("full")}
+            alt={`${product.name} ${size}`}
+            width={480}
+            height={360}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            unoptimized
+          />
+        ) : product.images?.[0] ? (
+          <Image
+            src={product.images[0]}
+            alt={`${product.name} ${size}`}
+            width={320}
+            height={320}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            unoptimized
+          />
+        ) : (
+          <span style={{ fontSize: 46 }}>⛺</span>
+        )}
+      </div>
+      <div className="body">
+        <div className="name">{`${product.name} ${size}`}</div>
+        <div className="price">
+          {from != null ? (
+            <>od {fmtMoney(from)} <span className="vat">bez DPH</span></>
+          ) : (
+            "cena na dotaz"
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// Klasická karta produktu (kategorie bez rozdělení podle velikosti).
+function ProductCard({ product }: { product: Product; category: ProductCategory }) {
+  const from = minVariantSell(product.config?.variants);
+  return (
+    <Link href={`/produkt/${product.slug}`} className="category-card">
+      <div className="thumb">
+        {product.images?.[0] ? (
+          <Image
+            src={product.images[0]}
+            alt={product.name}
+            width={320}
+            height={320}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            unoptimized
+          />
+        ) : (
+          <span style={{ fontSize: 46 }}>⛺</span>
+        )}
+      </div>
+      <div className="body">
+        <div className="name">{product.name}</div>
+        {product.subtitle && <div className="card-sub">{product.subtitle}</div>}
+        <div className="price">
+          {from != null ? (
+            <>od {fmtMoney(from)} <span className="vat">bez DPH</span></>
+          ) : (
+            "cena na dotaz"
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }

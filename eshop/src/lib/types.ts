@@ -10,7 +10,7 @@ export type ProductCategory =
   | "totemy"
   | "nafukovaci-brany"
   | "nahradni-dily";
-export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options";
+export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options" | "custom_flag";
 
 export type ProductOption = {
   id: string;
@@ -20,6 +20,24 @@ export type ProductOption = {
 };
 
 export type BannerMaterialPricing = { buyPerM2: number; sellPerM2: number };
+
+// Vlajky na zakázku — materiál a cena za m².
+export type FlagMaterial = {
+  id: string;
+  label: string;
+  sellPerM2: number;
+  buyPerM2: number;
+};
+
+export type CustomFlagConfig = {
+  materials: FlagMaterial[];
+  eyeletSurchargePct: number; // hustší oka každých 30 cm (+%)
+  maxDimState: number; // max rozměr státní vlajky (cm)
+  maxDimCustom: number; // max rozměr vlastní vlajky (cm)
+};
+
+// Grafika stěn stanu pro kreslený náhled (TentGraphic).
+export type TentWalls = "none" | "half" | "full";
 
 export type ProductVariant = {
   id: string;
@@ -32,12 +50,14 @@ export type ProductVariant = {
   transactionFee: number;
   sellAir: number; // prodejní cena — dodání do 14 dní
   sellTrain: number; // prodejní cena — dodání do 4 týdnů
+  walls?: TentWalls; // volitelné — jaká grafika stěn se u varianty vykreslí
 };
 
 export type ProductConfig = {
   banner?: { pvc: BannerMaterialPricing; mesh: BannerMaterialPricing };
   variants?: ProductVariant[];
   options?: ProductOption[];
+  customFlag?: CustomFlagConfig;
   buyPrice?: number;
 };
 
@@ -78,6 +98,40 @@ export const TENT_CATEGORIES: ProductCategory[] = [
   "nafukovaci-brany",
   "nahradni-dily",
 ];
+
+// ── Stany: odvození grafiky a seskupení podle velikosti ──────────────────────
+
+// Jaká grafika stěn patří k variantě — buď explicitně nastavená v adminu (walls),
+// nebo odvozená z labelu (bez stěn → none, poloviční → half, celé → full).
+export function wallsFromVariant(v: ProductVariant): TentWalls {
+  if (v.walls) return v.walls;
+  const l = (v.label || "").toLowerCase();
+  if (l.includes("bez stěn") || l.includes("rám + strop") || l.includes("rám (konstrukce)") || l.includes("strop"))
+    return "none";
+  if (l.includes("poloviční")) return "half";
+  if (l.includes("celé stěny") || l.includes("celá stěna") || l.includes("3 celé") || l.includes("bočnice"))
+    return "full";
+  return "full";
+}
+
+export function printSidesFromVariant(v: ProductVariant): "single" | "double" {
+  return (v.label || "").toLowerCase().includes("oboustrann") ? "double" : "single";
+}
+
+// Realistický fotorealistický obrázek stanu (Viewmax) podle konfigurace stěn.
+export function tentRealImage(walls: TentWalls): string {
+  return `/stany/real-${walls}.jpg`;
+}
+
+// Seřazený seznam unikátních velikostí variant produktu (pro split podle velikosti).
+export function variantSizes(product: Product): string[] {
+  const seen: string[] = [];
+  for (const v of product.config?.variants ?? []) {
+    const s = (v.size ?? "").trim();
+    if (s && !seen.includes(s)) seen.push(s);
+  }
+  return seen;
+}
 
 export const FLAG_SHAPES = ["A", "B", "C", "D", "E", "F"] as const;
 export type FlagShape = (typeof FLAG_SHAPES)[number];

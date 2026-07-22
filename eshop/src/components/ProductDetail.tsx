@@ -10,11 +10,13 @@ import FlagConfigurator from "./FlagConfigurator";
 import BannerConfigurator from "./BannerConfigurator";
 import VariantConfigurator from "./VariantConfigurator";
 import OptionsConfigurator from "./OptionsConfigurator";
+import CustomFlagConfigurator from "./CustomFlagConfigurator";
 
-export default function ProductDetail({ product }: { product: Product }) {
+export default function ProductDetail({ product, size }: { product: Product; size?: string }) {
   if (product.kind === "configurable") return <FlagConfigurator product={product} />;
+  if (product.kind === "custom_flag") return <CustomFlagConfigurator product={product} />;
   if (product.kind === "banner_m2") return <BannerConfigurator product={product} />;
-  if (product.kind === "variant") return <VariantConfigurator product={product} />;
+  if (product.kind === "variant") return <VariantConfigurator product={product} size={size} />;
   if (product.kind === "options") return <OptionsConfigurator product={product} />;
   return <SimpleProductDetail product={product} />;
 }
