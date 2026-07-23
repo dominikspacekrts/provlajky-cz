@@ -251,22 +251,23 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
   animation: heroLogoIn 1.1s 0.25s cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 /* Dlaždice */
-.tiles-wrap { position: relative; z-index: 6; padding: 0; max-width: 1060px; margin: 0 auto; width: 100%; }
-/* 6 kategorií = 3 dlaždice na řádek ve dvou řadách */
-.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+/* 6 kategorií = 3 dlaždice na řádek ve dvou řadách. Šířka je svázaná i s výškou
+   okna (vh), aby se obě řady vešly na obrazovku i na nižších displejích. */
+.tiles-wrap { position: relative; z-index: 6; padding: 0; max-width: min(820px, 92vh); margin: 0 auto; width: 100%; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .tile {
-  position: relative; display: flex; flex-direction: column; aspect-ratio: 1 / 1.04;
-  border-radius: 18px; overflow: hidden; text-decoration: none; color: inherit;
+  position: relative; display: flex; flex-direction: column; aspect-ratio: 1 / 0.8;
+  border-radius: 16px; overflow: hidden; text-decoration: none; color: inherit;
   background: #fff; border: 1px solid var(--border);
   box-shadow: 0 14px 38px rgba(0,0,0,0.14);
   transition: transform 0.35s ease, box-shadow 0.35s ease;
 }
 .tile:hover { transform: translateY(-6px); box-shadow: 0 22px 50px rgba(0,0,0,0.2); }
 .tile-visual { flex: 1; position: relative; overflow: hidden; min-height: 0; }
-.tile-label { padding: 15px 18px 17px; background: #fff; border-top: 1px solid var(--border); }
-.tile-label h3 { font-size: 18px; line-height: 1.25; }
-.tile-label p { color: var(--gray); font-size: 13px; margin: 4px 0 9px; }
-.tile-cta { font-weight: 700; font-size: 13px; box-shadow: inset 0 -2px 0 var(--yellow); transition: box-shadow 0.25s; }
+.tile-label { padding: 11px 14px 12px; background: #fff; border-top: 1px solid var(--border); }
+.tile-label h3 { font-size: 15px; line-height: 1.22; }
+.tile-label p { color: var(--gray); font-size: 11.5px; margin: 3px 0 6px; }
+.tile-cta { font-weight: 700; font-size: 11.5px; box-shadow: inset 0 -2px 0 var(--yellow); transition: box-shadow 0.25s; }
 .tile:hover .tile-cta { box-shadow: inset 0 -8px 0 var(--yellow); }
 
 .tile-flag .tile-visual { background: linear-gradient(180deg, #eef0f3 0%, #e3e6ea 100%); }
@@ -643,7 +644,8 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 @media (max-width: 900px) {
   .tiles-wrap { max-width: 560px; }
   .tiles { grid-template-columns: repeat(2, 1fr); gap: 14px; }
-  .tile { aspect-ratio: 1 / 1.1; }
+  /* 2 sloupce = 3 řady, takže nižší dlaždice, ať se vejdou na obrazovku */
+  .tile { aspect-ratio: 1 / 0.78; }
   .home-stats-card { padding: 22px 20px; }
   .dark-stats { grid-template-columns: 1fr; gap: 22px; }
   .dark-trust { grid-template-columns: repeat(2, 1fr); }
