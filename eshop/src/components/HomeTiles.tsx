@@ -1,22 +1,13 @@
 "use client";
 
 // Dlaždice kategorií: vlajka vlaje při hoveru, banner se natočí do prostoru,
-// nůžkový stan se rozloží. Klik = dlaždice se zvětší přes obrazovku a naviguje.
+// nůžkový stan se rozloží. Klik = rovnou navigace, bez přechodové animace.
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import FlagWave from "./FlagWave";
 
-type Zoom = { top: number; left: number; width: number; height: number; bg: string; img?: string };
-
 export default function HomeTiles() {
-  const router = useRouter();
-  const [zoom, setZoom] = useState<Zoom | null>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [clickedHref, setClickedHref] = useState<string | null>(null);
-  const navigatingRef = useRef(false);
-
   // Nůžkový stan v dlaždici = realistické video (Viewmax) přehrávané podle myši.
   // Klip jde od složeného stanu (0 s) po rozložený (konec). Myší najedeš → čas
   // se plynule posouvá k rozloženému; odjedeš → zpět ke složenému. Scrubování
@@ -81,29 +72,12 @@ export default function HomeTiles() {
     };
   }, []);
 
-  function go(e: React.MouseEvent<HTMLAnchorElement>, href: string, bg: string, img?: string) {
-    if (e.metaKey || e.ctrlKey || navigatingRef.current) return;
-    e.preventDefault();
-    navigatingRef.current = true;
-    const r = e.currentTarget.getBoundingClientRect();
-    setClickedHref(href);
-    setZoom({ top: r.top, left: r.left, width: r.width, height: r.height, bg, img });
-    requestAnimationFrame(() => requestAnimationFrame(() => setExpanded(true)));
-    router.prefetch(href);
-    setTimeout(() => router.push(href), 850);
-  }
-
-  function tileClass(base: string, href: string) {
-    return `tile ${base}${clickedHref === href ? " tile-clicked" : ""}`;
-  }
-
   return (
     <section className="tiles-wrap" aria-label="Kategorie">
       <div className="tiles">
         <Link
           href="/plazove-vlajky"
-          className={tileClass("tile-flag", "/plazove-vlajky")}
-          onClick={(e) => go(e, "/plazove-vlajky", "#f2f3f5")}
+          className="tile tile-flag"
         >
           <div className="tile-visual">
             <FlagWave shape="B" color="#ffe701" logoSrc="/logo/logo-tmave.png" logoPlate wind={0.14} />
@@ -117,8 +91,7 @@ export default function HomeTiles() {
 
         <Link
           href="/vlajky-na-zakazku"
-          className={tileClass("tile-zakazka", "/vlajky-na-zakazku")}
-          onClick={(e) => go(e, "/vlajky-na-zakazku", "#f2f3f5")}
+          className="tile tile-zakazka"
         >
           <div className="tile-visual">
             <FlagWave shape="D" classic color="#ffe701" logoSrc="/logo/logo-tmave.png" logoPlate wind={0.14} />
@@ -132,8 +105,7 @@ export default function HomeTiles() {
 
         <Link
           href="/pvc-bannery"
-          className={tileClass("tile-banner", "/pvc-bannery")}
-          onClick={(e) => go(e, "/pvc-bannery", "#f2f3f5")}
+          className="tile tile-banner"
         >
           <div className="tile-visual banner-persp">
             <div className="banner-card">
@@ -159,9 +131,8 @@ export default function HomeTiles() {
 
         <Link
           href="/stany"
-          className={tileClass("tile-tent", "/stany")}
+          className="tile tile-tent"
           ref={tentLinkRef}
-          onClick={(e) => go(e, "/stany", "#f2f3f5")}
         >
           <div className="tile-visual tile-tent-visual">
             <video
@@ -184,8 +155,7 @@ export default function HomeTiles() {
 
         <Link
           href="/stany#totemy"
-          className={tileClass("tile-inflatable", "/stany#totemy")}
-          onClick={(e) => go(e, "/stany#totemy", "#f2f3f5")}
+          className="tile tile-inflatable"
         >
           <div className="tile-visual tile-inflatable-visual">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -200,8 +170,7 @@ export default function HomeTiles() {
 
         <Link
           href="/prislusenstvi"
-          className={tileClass("tile-accessory", "/prislusenstvi")}
-          onClick={(e) => go(e, "/prislusenstvi", "#f2f3f5")}
+          className="tile tile-accessory"
         >
           <div className="tile-visual tile-accessory-visual">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -214,22 +183,6 @@ export default function HomeTiles() {
           </div>
         </Link>
       </div>
-
-      {zoom && (
-        <div
-          className={`tile-zoom${expanded ? " expanded" : ""}`}
-          style={
-            expanded
-              ? { top: 0, left: 0, width: "100vw", height: "100vh", background: zoom.bg }
-              : { top: zoom.top, left: zoom.left, width: zoom.width, height: zoom.height, background: zoom.bg }
-          }
-        >
-          {zoom.img && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={zoom.img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }} />
-          )}
-        </div>
-      )}
     </section>
   );
 }

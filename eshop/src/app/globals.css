@@ -420,20 +420,6 @@ h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 }
 
 /* Zoom přechod dlaždice → stránka */
-.tile-zoom {
-  position: fixed; z-index: 90; border-radius: 20px; overflow: hidden;
-  transition: top 0.85s cubic-bezier(0.45, 0.05, 0.2, 1), left 0.85s cubic-bezier(0.45, 0.05, 0.2, 1),
-    width 0.85s cubic-bezier(0.45, 0.05, 0.2, 1), height 0.85s cubic-bezier(0.45, 0.05, 0.2, 1),
-    border-radius 0.85s ease;
-}
-.tile-zoom.expanded { border-radius: 0; }
-
-/* Klik na dlaždici: ikona/obsah "odjede" pryč — opak vyplynutí na cílové stránce */
-@keyframes tileExit { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(18px); } }
-.tile.tile-clicked .tile-visual, .tile.tile-clicked .tile-label {
-  animation: tileExit 0.5s cubic-bezier(0.4, 0, 1, 1) both;
-}
-
 /* Spodní pole homepage — čísla + výhody v jedné skleněné kartě, přišpendlené ke spodku obrazovky */
 .home-stats-card {
   margin-top: auto; color: #fff;
