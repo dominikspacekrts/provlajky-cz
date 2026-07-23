@@ -8,6 +8,7 @@ import {
   TENT_CATEGORIES,
   variantSizes,
   tentRealImage,
+  INFLATABLE_TENT_IMAGE,
   type Product,
   type ProductCategory,
 } from "@/lib/types";
@@ -119,12 +120,13 @@ function SizeCard({ product, category, size }: { product: Product; category: Pro
   const variantsOfSize = (product.config?.variants ?? []).filter((v) => (v.size ?? "").trim() === size);
   const from = minVariantSell(variantsOfSize);
   const isNuzkovy = category === "nuzkove-stany";
+  const isNafukovaci = category === "nafukovaci-stany";
   return (
     <Link href={`/produkt/${product.slug}?size=${encodeURIComponent(size)}`} className="category-card">
       <div className="thumb">
-        {isNuzkovy ? (
+        {isNuzkovy || isNafukovaci ? (
           <Image
-            src={tentRealImage("full")}
+            src={isNuzkovy ? tentRealImage("full") : INFLATABLE_TENT_IMAGE}
             alt={`${product.name} ${size}`}
             width={480}
             height={360}
