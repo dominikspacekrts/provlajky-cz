@@ -49,7 +49,7 @@ export type ProductVariant = {
   trainFreight: number;
   transactionFee: number;
   sellAir: number; // prodejní cena — dodání do 14 dní
-  sellTrain: number; // prodejní cena — dodání do 4 týdnů
+  sellTrain: number; // prodejní cena — dodání do 2 měsíců
   walls?: TentWalls; // volitelné — jaká grafika stěn se u varianty vykreslí
 };
 

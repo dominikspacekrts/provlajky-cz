@@ -1,7 +1,7 @@
 "use client";
 
 // Konfigurátor variant (nůžkové/nafukovací stany, totemy, brány, díly).
-// Uživatel vybere variantu a rychlost dodání (do 14 dní / do 4 týdnů) — cenu
+// Uživatel vybere variantu a rychlost dodání (do 14 dní / do 2 měsíců) — cenu
 // řídí prodejní cena nastavená v adminu. Doprava letecky/vlakem se nezobrazuje.
 
 import { useMemo, useState } from "react";

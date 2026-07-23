@@ -475,7 +475,7 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                   <div className="row-between" style={{ marginBottom: 8 }}>
                     <div style={{ fontSize: 13, color: "var(--color-gray-700)" }}>
                       Varianty — u každé zadej náklad (nákup, clo, doprava, transakce). Součet se dopočítá; podle něj
-                      nastav prodejní cenu. Prodej letecky = dodání do 14 dní, prodej vlakem = dodání do 4 týdnů.
+                      nastav prodejní cenu. Prodej letecky = dodání do 14 dní, prodej vlakem = dodání do 2 měsíců.
                       Na eshopu se produkt automaticky rozdělí na karty podle „Rozměru". „Grafika (stěny)" určuje
                       kreslený náhled stanu (u nůžkových stanů) — necháš-li Auto, odvodí se z popisu varianty.
                     </div>
@@ -569,7 +569,7 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                             </small>
                           </label>
                           <label style={{ flex: 1 }}>
-                            Prodejní cena — dodání do 4 týdnů (vlakem)
+                            Prodejní cena — dodání do 2 měsíců (vlakem)
                             <input
                               type="number"
                               step="0.01"
