@@ -123,6 +123,9 @@ export function tentRealImage(walls: TentWalls): string {
   return `/stany/real-${walls}.jpg`;
 }
 
+// Nafukovací („spider" dome) stan s vstupní stříškou a logem PROVLAJKY.
+export const INFLATABLE_TENT_IMAGE = "/stany/nafukovaci.jpg";
+
 // Seřazený seznam unikátních velikostí variant produktu (pro split podle velikosti).
 export function variantSizes(product: Product): string[] {
   const seen: string[] = [];

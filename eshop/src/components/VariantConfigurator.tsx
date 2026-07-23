@@ -15,7 +15,13 @@ import {
   variantSellPrice,
   type DeliverySpeed,
 } from "@/lib/money";
-import { wallsFromVariant, tentRealImage, type Product, type ProductVariant } from "@/lib/types";
+import {
+  wallsFromVariant,
+  tentRealImage,
+  INFLATABLE_TENT_IMAGE,
+  type Product,
+  type ProductVariant,
+} from "@/lib/types";
 
 export default function VariantConfigurator({ product, size }: { product: Product; size?: string }) {
   const { addLine } = useCart();
@@ -31,6 +37,7 @@ export default function VariantConfigurator({ product, size }: { product: Produc
   }, [product, size]);
 
   const isNuzkovy = product.category === "nuzkove-stany";
+  const isNafukovaci = product.category === "nafukovaci-stany";
   const title = size ? `${product.name} ${size}` : product.name;
 
   const [variantId, setVariantId] = useState<string>(variants[0]?.id ?? "");
@@ -80,9 +87,9 @@ export default function VariantConfigurator({ product, size }: { product: Produc
   return (
     <div className="configurator">
       <div className="config-preview">
-        {isNuzkovy && selected ? (
+        {(isNuzkovy || isNafukovaci) && selected ? (
           <Image
-            src={tentRealImage(wallsFromVariant(selected))}
+            src={isNuzkovy ? tentRealImage(wallsFromVariant(selected)) : INFLATABLE_TENT_IMAGE}
             alt={`${product.name} ${selected.label}`}
             width={640}
             height={480}
