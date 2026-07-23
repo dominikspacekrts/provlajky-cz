@@ -87,7 +87,7 @@ export default async function StanyPage() {
         const items = byCategory.get(cat) ?? [];
         if (items.length === 0) return null;
         return (
-          <section key={cat} className="stany-section reveal-stagger">
+          <section key={cat} id={cat} className="stany-section reveal-stagger">
             <h2>{PRODUCT_CATEGORIES[cat]}</h2>
             <div className="category-grid">
               {SPLIT_BY_SIZE.has(cat)

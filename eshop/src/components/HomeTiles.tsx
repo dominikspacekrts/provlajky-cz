@@ -151,8 +151,8 @@ export default function HomeTiles() {
             </div>
           </div>
           <div className="tile-label">
-            <h3>PVC bannery</h3>
-            <p>Libovolný rozměr · oka po obvodu</p>
+            <h3>PVC bannery / Meshe</h3>
+            <p>Libovolný rozměr · plachta i mesh</p>
             <span className="tile-cta">Vybrat banner →</span>
           </div>
         </Link>
@@ -176,9 +176,25 @@ export default function HomeTiles() {
             />
           </div>
           <div className="tile-label">
-            <h3>Nůžkové stany</h3>
+            <h3>Nůžkové a nafukovací stany</h3>
             <p>Rozložený za minutu · potisk střechy</p>
             <span className="tile-cta">Vybrat stan →</span>
+          </div>
+        </Link>
+
+        <Link
+          href="/stany#totemy"
+          className={tileClass("tile-inflatable", "/stany#totemy")}
+          onClick={(e) => go(e, "/stany#totemy", "#f2f3f5")}
+        >
+          <div className="tile-visual tile-inflatable-visual">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/produkty/nafukovaci-brana.jpg" alt="" className="inflatable-photo" draggable={false} />
+          </div>
+          <div className="tile-label">
+            <h3>Nafukovací reklamní předměty</h3>
+            <p>Brány a totemy · potisk na míru</p>
+            <span className="tile-cta">Vybrat produkt →</span>
           </div>
         </Link>
 
