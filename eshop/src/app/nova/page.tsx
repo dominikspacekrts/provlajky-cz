@@ -38,15 +38,25 @@ export default function NovaHome() {
 
   return (
     <div className="lp">
-      {/* Tenký trust pruh úplně nahoře (jako airdome) */}
+      {/* Tenký trust pruh úplně nahoře — nekonečný pomalý pás (dvě kopie za sebou) */}
       <div className="lp-topstrip">
-        <div className="lp-topstrip-inner">
-          {TRUST.map((t) => (
-            <span key={t} className="lp-trust-item">
-              <span className="lp-check" aria-hidden="true">✓</span>
-              {t}
-            </span>
-          ))}
+        <div className="lp-topstrip-track">
+          <div className="lp-topstrip-inner">
+            {TRUST.map((t) => (
+              <span key={t} className="lp-trust-item">
+                <span className="lp-check" aria-hidden="true">✓</span>
+                {t}
+              </span>
+            ))}
+          </div>
+          <div className="lp-topstrip-inner" aria-hidden="true">
+            {TRUST.map((t) => (
+              <span key={`${t}-2`} className="lp-trust-item">
+                <span className="lp-check" aria-hidden="true">✓</span>
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -78,13 +88,14 @@ export default function NovaHome() {
             <img key={src} src={src} alt="" className={`lp-hero-photo${i === idx ? " active" : ""}`} draggable={false} />
           ))}
           <div className="lp-hero-shade" />
+          <div className="lp-hero-vignette" />
         </div>
 
         <div className="lp-hero-content">
           <h1 className="lp-hero-title">
-            MAXIMÁLNÍ VIDITELNOST VAŠÍ ZNAČKY.
+            Maximální viditelnost vaší značky.
             <br />
-            NULOVÁ STAROST S VÝROBOU.
+            <span className="lp-hero-accent">Nulová starost s výrobou.</span>
           </h1>
           <p className="lp-hero-sub">
             Reklamní vlajky, bannery a stany na míru. Navrhnete si je v našem editoru, my je vyrobíme a doručíme —
