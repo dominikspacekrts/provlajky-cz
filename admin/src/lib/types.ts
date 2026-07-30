@@ -250,7 +250,7 @@ export type CustomFlagConfig = {
 
 // Varianta stanu / nafukovacího produktu / náhradního dílu. Všechny složky nákladu
 // zadává admin; z jejich součtu se odvodí prodejní cena. sellAir = dodání do 14 dní
-// (letecká doprava), sellTrain = dodání do 4 týdnů (vlaková doprava).
+// (letecká doprava), sellTrain = dodání do 2 měsíců (vlaková doprava).
 // Grafika stěn stanu pro kreslený náhled na eshopu (TentGraphic).
 export type TentWalls = "none" | "half" | "full";
 
@@ -264,7 +264,7 @@ export type ProductVariant = {
   trainFreight: number; // doprava vlakem
   transactionFee: number; // cena z transakce
   sellAir: number; // prodejní cena — dodání do 14 dní
-  sellTrain: number; // prodejní cena — dodání do 4 týdnů
+  sellTrain: number; // prodejní cena — dodání do 2 měsíců
   walls?: TentWalls; // volitelné — jaká grafika stěn se u varianty vykreslí na eshopu
 };
 
