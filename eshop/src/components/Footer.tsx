@@ -1,7 +1,15 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { PRODUCT_CATEGORIES } from "@/lib/types";
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // /nova má vlastní závěr (kontakt, čísla, patička) — globální patičku tu neukazujeme.
+  if (pathname === "/nova") return null;
+
   return (
     <footer className="site-footer">
       <div className="footer-contact">
