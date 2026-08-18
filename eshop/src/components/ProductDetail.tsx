@@ -11,6 +11,7 @@ import BannerConfigurator from "./BannerConfigurator";
 import VariantConfigurator from "./VariantConfigurator";
 import OptionsConfigurator from "./OptionsConfigurator";
 import CustomFlagConfigurator from "./CustomFlagConfigurator";
+import { CheckMark, FlagMark } from "@/components/Icons";
 
 export default function ProductDetail({ product, size }: { product: Product; size?: string }) {
   if (product.kind === "configurable") return <FlagConfigurator product={product} />;
@@ -53,7 +54,7 @@ function SimpleProductDetail({ product }: { product: Product }) {
         {shapeImage ? (
           <Image src={shapeImage} alt={product.name} width={480} height={600} style={{ width: "100%", height: "100%", objectFit: "contain" }} unoptimized />
         ) : (
-          <span style={{ fontSize: 60 }}>🏳️</span>
+          <FlagMark className="thumb-empty" />
         )}
       </div>
 
@@ -72,7 +73,7 @@ function SimpleProductDetail({ product }: { product: Product }) {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? "Přidáno ✓" : "Vložit do košíku"}
+            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
           </button>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku

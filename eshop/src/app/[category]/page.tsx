@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { fmtMoney, fromPrice } from "@/lib/money";
 import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
+import { FlagMark } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 
@@ -34,12 +35,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   }
 
   return (
-    <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
+    <div className="container">
       <div className="page-panel">
-      <h1 style={{ fontSize: 34 }}>{PRODUCT_CATEGORIES[cat]}</h1>
+      <h1>{PRODUCT_CATEGORIES[cat]}</h1>
 
       {products.length === 0 && (
-        <p className="muted" style={{ color: "var(--gray)", marginTop: 16 }}>
+        <p className="muted">
           V této kategorii momentálně nemáme žádné produkty. Ozvěte se nám na{" "}
           <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.
         </p>
@@ -52,7 +53,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
               {p.images?.[0] ? (
                 <Image src={p.images[0]} alt={p.name} width={320} height={320} style={{ width: "100%", height: "100%", objectFit: "cover" }} unoptimized />
               ) : (
-                <span style={{ fontSize: 46 }}>🏳️</span>
+                <FlagMark className="thumb-empty" />
               )}
             </div>
             <div className="body">

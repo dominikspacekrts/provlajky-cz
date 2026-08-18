@@ -25,7 +25,7 @@ export default async function ProductPage({
   }
 
   return (
-    <div className="container" style={{ paddingTop: 40, paddingBottom: 60 }}>
+    <div className="container">
       <div className="page-panel">
         <ProductDetail product={product} size={size} />
       </div>

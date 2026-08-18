@@ -22,6 +22,7 @@ import {
   type Product,
   type ProductVariant,
 } from "@/lib/types";
+import { CheckMark } from "@/components/Icons";
 
 export default function VariantConfigurator({ product, size }: { product: Product; size?: string }) {
   const { addLine } = useCart();
@@ -166,7 +167,7 @@ export default function VariantConfigurator({ product, size }: { product: Produc
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? "Přidáno ✓" : "Vložit do košíku"}
+            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
           </button>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku

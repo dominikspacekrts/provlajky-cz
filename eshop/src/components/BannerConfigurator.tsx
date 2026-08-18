@@ -15,6 +15,7 @@ import {
   type BannerMaterial,
 } from "@/lib/money";
 import type { Product } from "@/lib/types";
+import { CheckMark, PenMark } from "@/components/Icons";
 
 export default function BannerConfigurator({ product }: { product: Product }) {
   const { addLine } = useCart();
@@ -163,7 +164,8 @@ export default function BannerConfigurator({ product }: { product: Product }) {
 
         <div style={{ marginTop: 18 }}>
           <button className="btn-outline btn-design" onClick={() => fileRef.current?.click()}>
-            🎨 {artwork ? "Změnit grafiku" : "Nahrát vlastní grafiku"}
+            <PenMark className="btn-mark" />
+            {artwork ? "Změnit grafiku" : "Nahrát vlastní grafiku"}
           </button>
           {artwork && (
             <button className="link-reset" onClick={() => setArtwork(null)}>
@@ -197,7 +199,7 @@ export default function BannerConfigurator({ product }: { product: Product }) {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? "Přidáno ✓" : "Vložit do košíku"}
+            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
           </button>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku
