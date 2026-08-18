@@ -24,6 +24,7 @@ import {
 } from "@/lib/flagShapes";
 import FlagWave from "./FlagWave";
 import FlagEditorModal from "./FlagEditorModal";
+import { CheckMark, PenMark } from "@/components/Icons";
 
 function ShapeIcon({ shape, size = 44 }: { shape: FlagShape; size?: number }) {
   const h = 100;
@@ -219,7 +220,8 @@ export default function FlagConfigurator({ product }: { product: Product }) {
 
         <div style={{ marginTop: 22 }}>
           <button className="btn-outline btn-design" onClick={() => setEditorOpen(true)}>
-            🎨 {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
+            <PenMark className="btn-mark" />
+            {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
           </button>
           {design && (
             <button className="link-reset" onClick={() => setDesign(null)}>
@@ -283,7 +285,7 @@ export default function FlagConfigurator({ product }: { product: Product }) {
       {askNext && (
         <div className="editor-backdrop" onClick={() => setAskNext(false)}>
           <div className="ask-panel" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
-            <div className="ask-check">✓</div>
+            <div className="ask-check"><CheckMark /></div>
             <h2>Přidáno do košíku</h2>
             <p>
               {product.name} · tvar {shape} · velikost {size}

@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export default function ThankYouPage() {
   return (
-    <div className="container" style={{ paddingTop: 80, paddingBottom: 100 }}>
-      <div className="page-panel" style={{ textAlign: "center", maxWidth: 560, margin: "0 auto" }}>
+    <div className="container">
+      <div className="page-panel is-centered">
         <div style={{ fontSize: 56 }}>✅</div>
         <h1 style={{ fontSize: 30, marginTop: 16 }}>Děkujeme za objednávku!</h1>
         <p style={{ color: "var(--gray)", marginTop: 12, maxWidth: 480, marginInline: "auto" }}>

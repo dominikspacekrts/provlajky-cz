@@ -1,53 +1,65 @@
 "use client";
 
-// Chrome je na celém webu stejné: na homepage jen plovoucí košík, jinde navíc
-// domeček zpátky na úvod — mění se pouze obsah stránky, ne rozhraní kolem něj.
+// Chrome celého webu: pruh s akcí úplně nahoře (odscrolluje pryč) a pod ním
+// černá lišta, která zůstává u horní hrany a při scrollu se stáhne.
+// Na homepage leží lišta nad hero fotkou, na podstránkách nad papírovým
+// podkladem — proto má vždycky plnou tmavou výplň, ne průhlednou.
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
-
-function HomeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 11.5L12 4l8 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <path
-        d="M6 10v9a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1v-9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+import { SALE } from "@/lib/sale";
+import { NovaArrow } from "@/components/NovaReveal";
 
 export default function Header() {
   const { count } = useCart();
   const pathname = usePathname();
+  const [stuck, setStuck] = useState(false);
 
-  const cart = (
-    <Link href="/kosik" className="cart-pill">
-      Košík
-      {count > 0 && <span className="cart-count">{count}</span>}
-    </Link>
-  );
+  useEffect(() => {
+    const onScroll = () => setStuck(window.scrollY > 40);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-  // /nova má vlastní hlavičku (logo + košík), globální chrome tu neukazujeme.
-  if (pathname === "/nova") return null;
-
-  if (pathname === "/") {
-    return <div className="floating-controls floating-right">{cart}</div>;
-  }
+  const isHome = pathname === "/";
 
   return (
     <>
-      <div className="floating-controls floating-left">
-        <Link href="/" className="home-btn" aria-label="Zpět na úvod">
-          <HomeIcon />
+      {SALE.active && (
+        <Link href={SALE.href} className="nv-promo">
+          <span className="nv-promo-l">
+            <b>Letní akce</b>
+            <span>
+              Sleva {SALE.percent} % na {SALE.what} — do {SALE.until}.
+            </span>
+            <NovaArrow />
+          </span>
         </Link>
-      </div>
-      <div className="floating-controls floating-right">{cart}</div>
+      )}
+
+      <header className={`nv-nav${stuck ? " is-stuck" : ""}`}>
+        <Link href="/" className="nv-logo" aria-label="PROVLAJKY.CZ — úvodní strana">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo/logo-bile.png" alt="PROVLAJKY.CZ" />
+        </Link>
+        <div className="nv-nav-right">
+          <a href="tel:+420605981155" className="nv-nav-phone">
+            <span>+420 605 981 155</span>
+          </a>
+          <a href={isHome ? "#produkty" : "/#produkty"} className="nv-btn nv-btn-yellow">
+            <span className="nv-btn-l">Vyberte si svůj produkt</span>
+          </a>
+          <Link href="/kosik" className="nv-nav-cart">
+            <span className="nv-btn-l">
+              Košík
+              {count > 0 && <em className="nv-nav-count">{count}</em>}
+            </span>
+          </Link>
+        </div>
+      </header>
     </>
   );
 }

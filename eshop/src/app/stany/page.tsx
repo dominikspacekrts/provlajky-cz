@@ -49,7 +49,7 @@ export default async function StanyPage() {
   const firstNuzkovySize = firstNuzkovy ? variantSizes(firstNuzkovy)[0] : undefined;
 
   return (
-    <div className="container stany-page" style={{ paddingTop: 40, paddingBottom: 72 }}>
+    <div className="container stany-page">
       <section className="stany-hero reveal-stagger">
         <div className="stany-hero-copy">
           <h1>Nůžkové stany s potiskem</h1>

@@ -18,6 +18,7 @@ import {
 } from "@/lib/flagOptions";
 import FlagWave from "./FlagWave";
 import EyeletIcon from "./EyeletIcon";
+import { CheckMark } from "@/components/Icons";
 
 type FlagType = "state" | "custom";
 
@@ -344,7 +345,7 @@ export default function CustomFlagConfigurator({ product }: { product: Product }
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? "Přidáno ✓" : "Vložit do košíku"}
+            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
           </button>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku
