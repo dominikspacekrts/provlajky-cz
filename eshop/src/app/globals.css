@@ -944,7 +944,7 @@ html:has(.nv) { scroll-behavior: smooth; }
   font-variation-settings: "wght" 680, "wdth" 114; letter-spacing: -0.038em;
   text-wrap: balance;
 }
-.nv-tile-note {
+.nv .nv-tile-note {
   margin: 14px auto 0; max-width: 36ch;
   font-size: clamp(13.5px, 1.05vw, 16px); line-height: 1.55;
   text-wrap: balance;
@@ -998,7 +998,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-tile.is-stage .nv-tile-note { color: rgba(8, 8, 10, 0.62); }
 .nv-tile.is-stage .nv-tile-media { position: relative; background: transparent; }
 /* FlagWave si drží plátno sám — musí dostat plnou plochu, jinak nemá kam kreslit */
-.nv-tile.is-stage .nv-tile-media > div { position: absolute; inset: 2% 0 0; }
+.nv-tile.is-stage .nv-tile-media > div { position: absolute; inset: -5% 0 6%; }
 .nv-tile.is-studio .nv-tile-note { color: rgba(8, 8, 10, 0.62); }
 
 /* vlásková rámečková linka, která se při najetí usadí dovnitř panelu */
