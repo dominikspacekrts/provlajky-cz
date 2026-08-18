@@ -140,9 +140,6 @@ export default function Home() {
                 <NovaArrow />
               </span>
             </a>
-            <a href="tel:+420605981155" className="nv-btn nv-btn-ghost nv-btn-lg">
-              <span className="nv-btn-l">+420 605 981 155</span>
-            </a>
           </div>
         </div>
 
@@ -215,9 +212,6 @@ export default function Home() {
                 Vyberte si svůj produkt
                 <NovaArrow />
               </span>
-            </a>
-            <a href="tel:+420605981155" className="nv-btn nv-btn-ghost nv-btn-lg">
-              <span className="nv-btn-l">+420 605 981 155</span>
             </a>
             <a href="mailto:info@provlajky.cz" className="nv-btn nv-btn-ghost nv-btn-lg">
               <span className="nv-btn-l">info@provlajky.cz</span>

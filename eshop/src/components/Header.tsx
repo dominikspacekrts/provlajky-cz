@@ -46,9 +46,6 @@ export default function Header() {
           <img src="/logo/logo-bile.png" alt="PROVLAJKY.CZ" />
         </Link>
         <div className="nv-nav-right">
-          <a href="tel:+420605981155" className="nv-nav-phone">
-            <span>+420 605 981 155</span>
-          </a>
           <a href={isHome ? "#produkty" : "/#produkty"} className="nv-btn nv-btn-yellow">
             <span className="nv-btn-l">Vyberte si svůj produkt</span>
           </a>
