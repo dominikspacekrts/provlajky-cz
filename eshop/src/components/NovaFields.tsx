@@ -13,6 +13,7 @@
 // Panel bez fotky se vykreslí jako označený slot s cestou, kam fotku nahrát.
 
 import Link from "next/link";
+import FlagWave from "./FlagWave";
 import { NovaArrow, useInView } from "./NovaReveal";
 
 type Tile = {
@@ -21,7 +22,9 @@ type Tile = {
   note: string;
   href: string;
   cta: string;
-  tone: "scene" | "studio";
+  tone: "scene" | "studio" | "stage";
+  /** místo fotky vlající 3D vlajka jako dřív v katalogu */
+  visual?: "flag-b" | "flag-classic";
   fit?: "contain" | "cover";
   /** null = fotka zatím není, vykreslí se označený slot */
   img: string | null;
@@ -36,8 +39,9 @@ const TILES: Tile[] = [
     note: "Šest tvarů, potisk na míru, žerď i základna podle terénu.",
     href: "/plazove-vlajky",
     cta: "Vybrat vlajku",
-    tone: "scene",
-    img: "/fotky/foto-01.jpg",
+    tone: "stage",
+    visual: "flag-b",
+    img: null,
   },
   {
     id: "vlajky-na-zakazku",
@@ -45,10 +49,9 @@ const TILES: Tile[] = [
     note: "Státní i vlastní grafika, libovolný rozměr, oka podle potřeby.",
     href: "/vlajky-na-zakazku",
     cta: "Vybrat vlajku",
-    tone: "scene",
+    tone: "stage",
+    visual: "flag-classic",
     img: null,
-    slotPath: "/nova/vlajky-na-zakazku.jpg",
-    slotHint: "na šířku, min. 1600 px",
   },
   {
     id: "pvc-bannery",
@@ -109,7 +112,9 @@ export default function NovaFields({
         <section
           key={t.id}
           id={t.id}
-          className={`nv-tile is-${t.tone}${t.fit ? ` fit-${t.fit}` : ""}${t.img ? "" : " is-slot"}`}
+          className={`nv-tile is-${t.tone}${t.fit ? ` fit-${t.fit}` : ""}${
+            t.img || t.visual ? "" : " is-slot"
+          }`}
           style={{ "--d": `${(i % 2) * 90 + Math.floor(i / 2) * 40}ms` } as React.CSSProperties}
         >
           <div className="nv-tile-head">
@@ -123,7 +128,16 @@ export default function NovaFields({
           </div>
 
           <div className="nv-tile-media">
-            {t.img ? (
+            {t.visual ? (
+              <FlagWave
+                shape={t.visual === "flag-b" ? "B" : "D"}
+                classic={t.visual === "flag-classic"}
+                color="#ffe701"
+                logoSrc="/logo/logo-tmave.png"
+                logoPlate
+                wind={0.14}
+              />
+            ) : t.img ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={t.img} alt="" draggable={false} loading="lazy" decoding="async" />
             ) : (
