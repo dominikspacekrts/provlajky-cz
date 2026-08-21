@@ -17,17 +17,14 @@ import TentFold from "@/components/TentFold";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Nůžkové stany a nafukovací produkty s potiskem — PROVLAJKY.CZ",
-  description:
-    "Skládací nůžkové stany, nafukovací stany, totemy, brány i náhradní díly s plnobarevným potiskem na míru.",
+  title: "Nůžkové a nafukovací stany s potiskem — PROVLAJKY.CZ",
+  description: "Skládací nůžkové stany a nafukovací stany s plnobarevným potiskem na míru.",
 };
 
 // Kategorie, které rozdělujeme na karty podle velikosti (každá velikost = vlastní karta).
 const SPLIT_BY_SIZE: ReadonlySet<ProductCategory> = new Set<ProductCategory>([
   "nuzkove-stany",
   "nafukovaci-stany",
-  "totemy",
-  "nafukovaci-brany",
 ]);
 
 export default async function StanyPage() {

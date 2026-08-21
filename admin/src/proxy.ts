@@ -52,5 +52,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/exchange-rate).*)"],
+  // Statické soubory v /public (loga, PDF worker, šablony) musí projít bez
+  // přihlášení — bez téhle výjimky je proxy přesměrovávala na /login, takže
+  // se třeba logo v hlavičce/na přihlašovací stránce nikdy nenačetlo.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api/exchange-rate|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|mjs|pdf)$).*)",
+  ],
 };

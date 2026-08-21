@@ -9,5 +9,5 @@ export async function updatePartner(id: string, fields: Partial<Pick<Partner, "n
   const { error } = await supabase.from("partners").update(fields).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/settings");
-  revalidatePath("/finance");
+  revalidatePath("/platby");
 }

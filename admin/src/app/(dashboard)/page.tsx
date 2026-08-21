@@ -4,13 +4,19 @@ import { createClient } from "@/lib/supabase/server";
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [{ count: orderCount }, { count: unpaidCount }, { count: productCount }, { count: activeProductCount }] =
-    await Promise.all([
-      supabase.from("orders").select("id", { count: "exact", head: true }),
-      supabase.from("invoices").select("id", { count: "exact", head: true }).eq("paid", false),
-      supabase.from("products").select("id", { count: "exact", head: true }),
-      supabase.from("products").select("id", { count: "exact", head: true }).eq("active", true),
-    ]);
+  const [
+    { count: orderCount },
+    { count: unpaidCount },
+    { count: productCount },
+    { count: activeProductCount },
+    { count: customerCount },
+  ] = await Promise.all([
+    supabase.from("orders").select("id", { count: "exact", head: true }),
+    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("paid", false),
+    supabase.from("products").select("id", { count: "exact", head: true }),
+    supabase.from("products").select("id", { count: "exact", head: true }).eq("active", true),
+    supabase.from("customers").select("id", { count: "exact", head: true }),
+  ]);
 
   const tiles = [
     {
@@ -20,28 +26,46 @@ export default async function HomePage() {
       sub: `${orderCount ?? 0} objednávek`,
     },
     {
-      href: "/products",
-      icon: "🏳️",
-      title: "Produkty",
-      sub: `${productCount ?? 0} produktů, ${activeProductCount ?? 0} aktivních na eshopu`,
+      href: "/platby",
+      icon: "💸",
+      title: "Platby",
+      sub: "Výdělky a výplaty partnerů",
     },
     {
-      href: "/finance",
-      icon: "💶",
-      title: "Finance",
-      sub: `${unpaidCount ?? 0} nezaplacených faktur`,
+      href: "/faktury",
+      icon: "🧾",
+      title: "Faktury",
+      sub: `${unpaidCount ?? 0} nezaplacených`,
     },
     {
-      href: "/email-history",
-      icon: "✉️",
-      title: "Historie mailů",
-      sub: "Odeslané e-maily s náhledem",
+      href: "/uzivatele",
+      icon: "👥",
+      title: "Uživatelé",
+      sub: `${customerCount ?? 0} registrovaných`,
     },
     {
       href: "/settings",
       icon: "⚙️",
       title: "Nastavení",
       sub: "Firma, SMTP, partneři, šablony",
+    },
+    {
+      href: "/statistika",
+      icon: "📊",
+      title: "Statistika",
+      sub: "Tržby, náklady, zisk",
+    },
+    {
+      href: "/products",
+      icon: "🏳️",
+      title: "Produkty",
+      sub: `${productCount ?? 0} produktů, ${activeProductCount ?? 0} aktivních na eshopu`,
+    },
+    {
+      href: "/email-history",
+      icon: "✉️",
+      title: "Historie mailů",
+      sub: "Odeslané e-maily s náhledem",
     },
     {
       href: "/migrate",

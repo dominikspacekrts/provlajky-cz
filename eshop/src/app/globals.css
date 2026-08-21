@@ -645,22 +645,31 @@ html:has(.nv) { scroll-behavior: smooth; }
 
 /* --- pruh s letní akcí -------------------------------------------- */
 .nv-promo {
-  display: block; background: var(--nv-yellow); color: var(--nv-ink);
-  text-decoration: none; padding: 13px var(--nv-pad);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--nv-yellow); color: var(--nv-ink);
+  padding: 13px var(--nv-pad);
 }
 .nv-promo-l {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  flex: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
   gap: 6px 14px; text-align: center;
   font-size: clamp(12px, 1vw, 13.5px); line-height: 1.45;
   font-variation-settings: "wght" 500, "wdth" 100;
+  color: inherit; text-decoration: none;
 }
 .nv-promo b {
   font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase;
   font-variation-settings: "wght" 700, "wdth" 96;
 }
-.nv-promo:hover .nv-arrow { transform: translateX(5px); }
+.nv-promo-l:hover .nv-arrow { transform: translateX(5px); }
 .nv-promo.is-empty { background: var(--nv-ink-2); color: rgba(255, 255, 255, 0.72); }
 .nv-promo.is-empty b { color: var(--nv-yellow); }
+.nv-promo-close {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border: 0; background: transparent; color: inherit;
+  font-size: 18px; line-height: 1; cursor: pointer; opacity: 0.6;
+  transition: opacity 0.25s var(--nv-ease);
+}
+.nv-promo-close:hover, .nv-promo-close:focus-visible { opacity: 1; }
 .nv-promo code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em;
   background: rgba(255, 255, 255, 0.1); padding: 2px 6px;
@@ -745,6 +754,9 @@ html:has(.nv) { scroll-behavior: smooth; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 clamp(16px, 3.4vw, 34px);
   background: var(--nv-ink); border-bottom: 1px solid transparent;
+  /* Trvalý jemný stín pod lištou — dřív měla hranici jen ve "stuck" stavu,
+     takže na první obrazovce ležela na fotce úplně plocho a bez hloubky. */
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.07), 0 12px 24px -18px rgba(0, 0, 0, 0.7);
   transition: height 0.55s var(--nv-ease), background 0.5s var(--nv-ease),
     border-color 0.5s var(--nv-ease);
 }
@@ -752,6 +764,7 @@ html:has(.nv) { scroll-behavior: smooth; }
   height: 62px; background: rgba(8, 8, 10, 0.88); backdrop-filter: blur(16px) saturate(1.2);
   border-bottom-color: var(--nv-line-l);
 }
+.nv-nav-left { display: flex; align-items: center; gap: clamp(20px, 3vw, 40px); }
 .nv-logo { display: block; }
 .nv-logo img {
   height: 24px; width: auto; display: block;
@@ -759,6 +772,39 @@ html:has(.nv) { scroll-behavior: smooth; }
 }
 .nv-nav.is-stuck .nv-logo img { height: 20px; }
 .nv-logo:hover img { opacity: 0.78; }
+
+/* --- rozbalovací seznam kategorií v liště -------------------------- */
+.nv-nav-products { position: relative; }
+.nv-nav-products summary {
+  display: flex; align-items: center; gap: 7px; cursor: pointer;
+  list-style: none; color: #fff; font-size: 12.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; font-variation-settings: "wght" 580, "wdth" 100;
+  padding: 8px 2px;
+}
+.nv-nav-products summary::-webkit-details-marker { display: none; }
+.nv-nav-products-arrow { width: 0.85em; height: 0.85em; transform: rotate(90deg); transition: transform 0.35s var(--nv-ease); }
+.nv-nav-products[open] .nv-nav-products-arrow { transform: rotate(-90deg); }
+.nv-nav-products summary:hover { color: var(--nv-yellow); }
+.nv-nav-products-panel {
+  position: absolute; top: calc(100% + 14px); left: 0; z-index: 95;
+  display: grid; grid-template-columns: repeat(2, minmax(170px, 1fr)); gap: 2px 22px;
+  background: var(--nv-ink-2); border: 1px solid var(--nv-line-l);
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.85);
+  padding: 18px 22px;
+  animation: nv-nav-products-in 0.22s var(--nv-ease) both;
+}
+@keyframes nv-nav-products-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.nv-nav-products-panel a {
+  display: block; padding: 9px 0; color: rgba(255, 255, 255, 0.82); text-decoration: none;
+  font-size: 13px; letter-spacing: 0.01em; white-space: nowrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: color 0.25s var(--nv-ease);
+}
+.nv-nav-products-panel a:hover, .nv-nav-products-panel a:focus-visible { color: var(--nv-yellow); }
+@media (max-width: 640px) {
+  .nv-nav-products-panel { grid-template-columns: 1fr; width: max(72vw, 220px); }
+}
+
 .nv-nav-right { display: flex; align-items: center; gap: 12px; }
 
 .nv-nav-phone {
@@ -855,6 +901,12 @@ html:has(.nv) { scroll-behavior: smooth; }
   display: flex; flex-wrap: wrap; gap: 12px; margin-top: clamp(26px, 4vh, 40px);
   animation: nv-rise 1s var(--nv-ease) 540ms both;
 }
+/* /nova2 — real trust numbers surfaced under the hero CTAs instead of only at the page close. */
+.nv-hero-proof {
+  margin-top: 16px; font-size: 12.5px; letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.6);
+  animation: nv-rise 1s var(--nv-ease) 600ms both;
+}
 @keyframes nv-rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 
 /* vstupní lišta — šest rodin hned na první obrazovce */
@@ -889,6 +941,127 @@ html:has(.nv) { scroll-behavior: smooth; }
   transition: color 0.35s var(--nv-ease), letter-spacing 0.6s var(--nv-ease);
 }
 .nv-entry a:hover > span, .nv-entry a:focus-visible > span { color: var(--nv-ink); letter-spacing: 0.18em; }
+
+/* --- /nova2 hero: tři asymetrické "prasklinové" panely --------------
+   Nahrazuje jednu fotku na pozadí + vstupní lištu třemi plnohodnotnými
+   vstupy — každý panel je celý klikatelný, má vlastní fotku a reálnou
+   cenu. Švy mezi panely nejsou rovné úhlopříčky, ale mají jeden zlom
+   (jako prasklina), a šířky jsou schválně nesymetrické — prostřední
+   panel (nafukovací/nůžkové stany) je nejširší rodina, dostává nejvíc
+   místa. Stejná paleta/pohyb jako zbytek webu, jen jiná kompozice. */
+.nv-hero3 {
+  position: relative; overflow: hidden;
+  min-height: 560px; height: calc(100svh - var(--nv-nav-h));
+  background: var(--nv-ink);
+}
+.nv-hero3-seams {
+  position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%;
+  pointer-events: none;
+}
+.nv-hero3-seams polyline {
+  fill: none; stroke: #000; stroke-width: 3.5; stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.nv-shard {
+  position: absolute; inset: 0; display: block; overflow: hidden;
+  text-decoration: none; color: #fff;
+}
+.nv-shard-photo {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: 50% 42%;
+  transform: scale(1.04);
+  transition: transform 8s var(--nv-ease-io);
+}
+/* Panel je úzký, takže potřebuje vlastní kotvu na fotce — bez toho by
+   klidně useklo právě ten motiv, který má ukázat. */
+.nv-shard-0 .nv-shard-photo { object-position: 26% 45%; }
+.nv-shard-1 .nv-shard-photo { object-position: 57% 40%; }
+.nv-shard-2 .nv-shard-photo { object-position: 70% 55%; }
+.nv-shard:hover .nv-shard-photo, .nv-shard:focus-visible .nv-shard-photo { transform: scale(1.1); }
+.nv-shard-shade {
+  position: absolute; inset: 0; z-index: 1;
+  /* Text teď sedí výš (kolem 30–46 % od spodu, viz .nv-shard-body), takže
+     ztmavený pruh musí sahat dál nahoru než dřív, aby popisky zůstaly
+     čitelné na jakékoli fotce — horní ~40 % panelu zůstává nedotčené. */
+  background: linear-gradient(180deg, rgba(8, 8, 10, 0) 0%, rgba(8, 8, 10, 0) 38%, rgba(8, 8, 10, 0.42) 62%, rgba(8, 8, 10, 0.9) 100%);
+  transition: background 0.4s var(--nv-ease);
+}
+.nv-shard:hover .nv-shard-shade, .nv-shard:focus-visible .nv-shard-shade {
+  background: linear-gradient(180deg, rgba(8, 8, 10, 0) 0%, rgba(8, 8, 10, 0) 38%, rgba(8, 8, 10, 0.34) 62%, rgba(8, 8, 10, 0.84) 100%);
+}
+.nv-shard-body {
+  position: absolute; left: 0; bottom: 16%; z-index: 2;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 0 24px;
+  max-width: 260px;
+}
+.nv-shard-badge {
+  align-self: flex-start;
+  background: var(--nv-yellow); color: var(--ink);
+  font-size: 11.5px; font-variation-settings: "wght" 700, "wdth" 96;
+  letter-spacing: 0.06em; padding: 5px 10px; margin-bottom: 2px;
+}
+.nv-shard-title {
+  font-size: clamp(24px, 2.7vw, 38px); line-height: 1.06;
+  font-variation-settings: "wght" 680, "wdth" 114; letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.nv-shard-price {
+  font-size: 16px; color: rgba(255, 255, 255, 0.92);
+}
+.nv-shard-price em {
+  font-style: normal; font-size: 12.5px; color: rgba(255, 255, 255, 0.62); margin-left: 2px;
+}
+.nv-shard-cta {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 6px;
+  font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-variation-settings: "wght" 600, "wdth" 96; color: var(--nv-yellow);
+}
+.nv-shard-cta .nv-arrow { width: 0.95em; height: 0.95em; transition: transform 0.4s var(--nv-ease); }
+.nv-shard:hover .nv-shard-cta .nv-arrow, .nv-shard:focus-visible .nv-shard-cta .nv-arrow { transform: translateX(4px); }
+
+/* Dvě NEZÁVISLÉ přímé švy — žádná umělá vodorovná čára. Šev A (0/1):
+   nahoře pevně na 58 %, dole posunutý na 8 % (strmější úhel, aby
+   prostřední panel dostal víc místa) — horní bod (vrchol/průsečík s
+   B) se neposouvá, mění se jen dolní. Šev B (1/2): 46 %/38 % → 82 %/
+   100 % přes celou výšku, kde přirozeně protne šev A (dopočteno, ne
+   ručně odhadnuto). Nad průsečíkem leží šev B pod šarží 0 (z-index),
+   takže se tam vůbec nezobrazí a celá ta plocha patří panelu 2
+   (Bannery a meshe); prostřední panel (1) je bez vlastního clip-path
+   a jen "prosvítá" ve zbylé mezeře mezi oběma švy. */
+.nv-shard-0 {
+  clip-path: polygon(0% 0%, 58% 0%, 8% 100%, 0% 100%);
+  z-index: 3;
+}
+.nv-shard-1 {
+  clip-path: none;
+  z-index: 1;
+}
+.nv-shard-1 .nv-shard-body {
+  left: 0; right: 0; bottom: 16%; align-items: center; text-align: center; max-width: none; padding: 0 24px;
+}
+.nv-shard-1 .nv-shard-title { font-size: clamp(19px, 2vw, 27px); }
+.nv-shard-2 {
+  clip-path: polygon(23.94% 0%, 100% 0%, 100% 100%, 82% 100%);
+  z-index: 2;
+}
+.nv-shard-2 .nv-shard-body { left: auto; right: 0; align-items: flex-end; text-align: right; padding: 0 24px; }
+.nv-shard-2 .nv-shard-badge { align-self: flex-end; }
+
+@media (max-width: 860px) {
+  .nv-hero3 { height: auto; min-height: 0; }
+  .nv-hero3-seams { display: none; }
+  .nv-shard {
+    position: relative; inset: auto; height: 46vh; min-height: 280px;
+    clip-path: none !important;
+  }
+  .nv-shard-body {
+    position: absolute; left: 0 !important; right: 0 !important; bottom: 0 !important; max-width: none !important;
+    align-items: flex-start !important; text-align: left !important;
+    padding: 0 var(--nv-pad) 28px !important;
+  }
+  .nv-shard-2 .nv-shard-badge { align-self: flex-start; }
+}
 
 /* --- odkrývání sekcí při scrollu ---------------------------------- */
 .nv-in [data-reveal] { animation: nv-rise 1s var(--nv-ease) var(--rd, 0ms) both; }
@@ -1054,6 +1227,51 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-how-d {
   font-size: clamp(14.5px, 1.12vw, 16.5px); line-height: 1.72;
   color: rgba(8, 8, 10, 0.64); max-width: 64ch;
+}
+
+/* --- registrace + sleva ------------------------------------------- */
+.nv-register {
+  background: var(--nv-yellow); color: var(--nv-ink);
+  padding: clamp(56px, 9vh, 100px) var(--nv-pad);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(30px, 6vw, 90px); align-items: center;
+}
+.nv-register-title {
+  font-size: clamp(26px, 3.4vw, 44px); line-height: 1.04;
+  font-variation-settings: "wght" 680, "wdth" 114; letter-spacing: -0.03em;
+  max-width: 14ch;
+}
+.nv-register-body {
+  margin-top: 12px; font-size: clamp(14.5px, 1.1vw, 16.5px); line-height: 1.6;
+  color: rgba(8, 8, 10, 0.72);
+}
+.nv-register-form { display: flex; flex-direction: column; gap: 16px; }
+.nv-register-fields {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+}
+.nv-register-field { display: flex; flex-direction: column; gap: 6px; }
+.nv-register-field span {
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  font-variation-settings: "wght" 620, "wdth" 96; color: rgba(8, 8, 10, 0.62);
+}
+.nv-register-field input {
+  border: 1.5px solid rgba(8, 8, 10, 0.28); background: rgba(255, 255, 255, 0.55);
+  color: var(--nv-ink); padding: 11px 12px; font-size: 14px; font-family: inherit;
+  transition: border-color 0.25s var(--nv-ease), background 0.25s var(--nv-ease);
+}
+.nv-register-field input:focus-visible {
+  outline: none; border-color: var(--nv-ink); background: #fff;
+}
+.nv-register-form .nv-btn { align-self: flex-start; }
+.nv-register-error { font-size: 13px; color: #7a1210; }
+.nv-register-done {
+  display: flex; align-items: center;
+  background: rgba(255, 255, 255, 0.55); border: 1.5px solid rgba(8, 8, 10, 0.28);
+  padding: 22px 24px; font-size: 15px; line-height: 1.55;
+}
+@media (max-width: 720px) {
+  .nv-register { grid-template-columns: 1fr; }
+  .nv-register-fields { grid-template-columns: 1fr; }
 }
 
 /* --- závěr -------------------------------------------------------- */

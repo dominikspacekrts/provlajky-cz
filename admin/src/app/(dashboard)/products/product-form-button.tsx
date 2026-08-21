@@ -54,9 +54,9 @@ const emptyVariant = (): ProductVariant => ({
   sellTrain: 0,
 });
 
-const emptyInput = (): ProductInput => ({
+const emptyInput = (defaultCategory: ProductCategory = "plazove-vlajky"): ProductInput => ({
   slug: "",
-  category: "plazove-vlajky",
+  category: defaultCategory,
   name: "",
   subtitle: "",
   description: "",
@@ -97,18 +97,36 @@ function variantCost(v: ProductVariant, mode: "air" | "train") {
 const fmt = (n: number) =>
   new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 0 }).format(Number.isFinite(n) ? n : 0) + " Kč";
 
-export default function ProductFormButton({ product }: { product?: Product }) {
+export default function ProductFormButton({
+  product,
+  defaultCategory,
+}: {
+  product?: Product;
+  defaultCategory?: ProductCategory;
+}) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState<ProductInput>(() => (product ? toInput(product) : emptyInput()));
+  const [value, setValue] = useState<ProductInput>(() => (product ? toInput(product) : emptyInput(defaultCategory)));
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Varianty (stany, nafukovací…) jsou často 4+ na produkt — plně rozbalené
+  // by z formuláře udělaly dlouhé rolovací menu. Rozbalené je jen to, na co
+  // admin klikl (nebo co právě přidal).
+  const [expandedVariants, setExpandedVariants] = useState<Set<string>>(new Set());
+  function toggleVariant(id: string) {
+    setExpandedVariants((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function set<K extends keyof ProductInput>(key: K, v: ProductInput[K]) {
     setValue((cur) => ({ ...cur, [key]: v }));
   }
 
   function openModal() {
-    setValue(product ? toInput(product) : emptyInput());
+    setValue(product ? toInput(product) : emptyInput(defaultCategory));
     setError(null);
     setOpen(true);
   }
@@ -162,6 +180,11 @@ export default function ProductFormButton({ product }: { product?: Product }) {
     setCustomFlag({ ...customFlag, materials: customFlag.materials.map((m) => (m.id === id ? { ...m, ...patch } : m)) });
   }
 
+  const costBySize = value.config.costBySize ?? { S: 0, M: 0, L: 0, XL: 0 };
+  function setCostBySize(next: NonNullable<ProductConfig["costBySize"]>) {
+    setValue((cur) => ({ ...cur, config: { ...cur.config, costBySize: next } }));
+  }
+
   function submit() {
     if (!value.name.trim()) {
       setError("Vyplň název produktu.");
@@ -177,6 +200,8 @@ export default function ProductFormButton({ product }: { product?: Product }) {
         ? { options }
         : value.kind === "custom_flag"
         ? { customFlag }
+        : value.kind === "configurable"
+        ? { costBySize }
         : value.kind === "simple"
         ? { buyPrice: value.config.buyPrice ?? 0 }
         : {};
@@ -318,7 +343,7 @@ export default function ProductFormButton({ product }: { product?: Product }) {
               {value.kind === "configurable" && (
                 <div>
                   <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 4 }}>
-                    Cena bez DPH podle velikosti (Kč)
+                    Prodejní cena bez DPH podle velikosti (Kč)
                   </div>
                   <div className="cost-grid">
                     {(["S", "M", "L", "XL"] as const).map((size) => (
@@ -337,6 +362,31 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                         </div>
                       </label>
                     ))}
+                  </div>
+
+                  <div style={{ fontSize: 13, color: "var(--color-gray-700)", margin: "14px 0 4px" }}>
+                    Náklad bez DPH podle velikosti (Kč) — pro odhad marže, pokud chybí dodavatelská faktura
+                  </div>
+                  <div className="cost-grid">
+                    {(["S", "M", "L", "XL"] as const).map((size) => {
+                      const cost = costBySize[size] ?? 0;
+                      const sell = value.price_by_size[size] ?? 0;
+                      return (
+                        <label key={size}>
+                          {size}
+                          <div className="cost-input">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={cost}
+                              onChange={(e) => setCostBySize({ ...costBySize, [size]: Number(e.target.value) || 0 })}
+                            />
+                            <span className="cur">Kč</span>
+                          </div>
+                          <small style={{ color: sell >= cost ? "#16a34a" : "#dc2626" }}>marže {fmt(sell - cost)}</small>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -476,10 +526,18 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                     <div style={{ fontSize: 13, color: "var(--color-gray-700)" }}>
                       Varianty — u každé zadej náklad (nákup, clo, doprava, transakce). Součet se dopočítá; podle něj
                       nastav prodejní cenu. Prodej letecky = dodání do 14 dní, prodej vlakem = dodání do 2 měsíců.
-                      Na eshopu se produkt automaticky rozdělí na karty podle „Rozměru". „Grafika (stěny)" určuje
+                      Na eshopu se produkt automaticky rozdělí na karty podle „Rozměru“. „Grafika (stěny)“ určuje
                       kreslený náhled stanu (u nůžkových stanů) — necháš-li Auto, odvodí se z popisu varianty.
                     </div>
-                    <button type="button" className="btn" onClick={() => setVariants([...variants, emptyVariant()])}>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        const v = emptyVariant();
+                        setVariants([...variants, v]);
+                        setExpandedVariants((cur) => new Set(cur).add(v.id));
+                      }}
+                    >
                       + Varianta
                     </button>
                   </div>
@@ -489,98 +547,123 @@ export default function ProductFormButton({ product }: { product?: Product }) {
                   {variants.map((v) => {
                     const costAir = variantCost(v, "air");
                     const costTrain = variantCost(v, "train");
+                    const isExpanded = expandedVariants.has(v.id);
                     return (
                       <div key={v.id} className="variant-card">
-                        <div className="variant-row">
-                          <label style={{ flex: 3 }}>
-                            Popis varianty
-                            <input value={v.label} onChange={(e) => patchVariant(v.id, { label: e.target.value })} />
-                          </label>
-                          <label style={{ flex: 1 }}>
-                            Rozměr
-                            <input
-                              value={v.size ?? ""}
-                              onChange={(e) => patchVariant(v.id, { size: e.target.value })}
-                            />
-                          </label>
-                          <label style={{ flex: 1.4 }}>
-                            Grafika (stěny)
-                            <select
-                              value={v.walls ?? ""}
-                              onChange={(e) =>
-                                patchVariant(v.id, { walls: (e.target.value || undefined) as TentWalls | undefined })
-                              }
-                            >
-                              <option value="">Auto (z popisu)</option>
-                              <option value="none">Bez stěn (jen rám + strop)</option>
-                              <option value="half">Poloviční stěny</option>
-                              <option value="full">Celé stěny</option>
-                            </select>
-                          </label>
+                        <div className="variant-card-summary-row">
                           <button
                             type="button"
-                            className="btn danger"
-                            style={{ alignSelf: "flex-end" }}
+                            className="variant-card-summary"
+                            onClick={() => toggleVariant(v.id)}
+                            aria-expanded={isExpanded}
+                          >
+                            <span className="variant-card-summary-arrow">{isExpanded ? "▾" : "▸"}</span>
+                            <span className="variant-card-summary-label">
+                              {v.label || v.size || "Nová varianta"}
+                              {v.size && v.label ? ` — ${v.size}` : ""}
+                            </span>
+                            <span className="variant-card-summary-price">
+                              {v.sellAir > 0 || v.sellTrain > 0
+                                ? `od ${fmt(Math.min(...[v.sellAir, v.sellTrain].filter((n) => n > 0)))}`
+                                : "cena nenastavena"}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn danger mini"
+                            style={{ marginRight: 10 }}
                             onClick={() => setVariants(variants.filter((x) => x.id !== v.id))}
                           >
                             Smazat
                           </button>
                         </div>
 
-                        <div className="variant-row">
-                          {(
-                            [
-                              ["cost", "Nákup / ks"],
-                              ["customs", "Clo"],
-                              ["airFreight", "Doprava letecky"],
-                              ["trainFreight", "Doprava vlakem"],
-                              ["transactionFee", "Cena z transakce"],
-                            ] as const
-                          ).map(([field, label]) => (
-                            <label key={field} style={{ flex: 1 }}>
-                              {label}
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={v[field]}
-                                onChange={(e) => patchVariant(v.id, { [field]: Number(e.target.value) || 0 })}
-                              />
-                            </label>
-                          ))}
-                        </div>
+                        {isExpanded && (
+                          <div className="variant-card-body">
+                            <div className="variant-row">
+                              <label style={{ flex: 3 }}>
+                                Popis varianty
+                                <input value={v.label} onChange={(e) => patchVariant(v.id, { label: e.target.value })} />
+                              </label>
+                              <label style={{ flex: 1 }}>
+                                Rozměr
+                                <input
+                                  value={v.size ?? ""}
+                                  onChange={(e) => patchVariant(v.id, { size: e.target.value })}
+                                />
+                              </label>
+                              <label style={{ flex: 1.4 }}>
+                                Grafika (stěny)
+                                <select
+                                  value={v.walls ?? ""}
+                                  onChange={(e) =>
+                                    patchVariant(v.id, { walls: (e.target.value || undefined) as TentWalls | undefined })
+                                  }
+                                >
+                                  <option value="">Auto (z popisu)</option>
+                                  <option value="none">Bez stěn (jen rám + strop)</option>
+                                  <option value="half">Poloviční stěny</option>
+                                  <option value="full">Celé stěny</option>
+                                </select>
+                              </label>
+                            </div>
 
-                        <div className="variant-sum">
-                          <span>
-                            Náklad <b>letecky:</b> {fmt(costAir)} &nbsp;·&nbsp; <b>vlakem:</b> {fmt(costTrain)}
-                          </span>
-                        </div>
+                            <div className="variant-row">
+                              {(
+                                [
+                                  ["cost", "Nákup / ks"],
+                                  ["customs", "Clo"],
+                                  ["airFreight", "Doprava letecky"],
+                                  ["trainFreight", "Doprava vlakem"],
+                                  ["transactionFee", "Cena z transakce"],
+                                ] as const
+                              ).map(([field, label]) => (
+                                <label key={field} style={{ flex: 1 }}>
+                                  {label}
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={v[field]}
+                                    onChange={(e) => patchVariant(v.id, { [field]: Number(e.target.value) || 0 })}
+                                  />
+                                </label>
+                              ))}
+                            </div>
 
-                        <div className="variant-row">
-                          <label style={{ flex: 1 }}>
-                            Prodejní cena — dodání do 14 dní (letecky)
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={v.sellAir}
-                              onChange={(e) => patchVariant(v.id, { sellAir: Number(e.target.value) || 0 })}
-                            />
-                            <small style={{ color: v.sellAir >= costAir ? "#16a34a" : "#dc2626" }}>
-                              marže {fmt(v.sellAir - costAir)}
-                            </small>
-                          </label>
-                          <label style={{ flex: 1 }}>
-                            Prodejní cena — dodání do 2 měsíců (vlakem)
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={v.sellTrain}
-                              onChange={(e) => patchVariant(v.id, { sellTrain: Number(e.target.value) || 0 })}
-                            />
-                            <small style={{ color: v.sellTrain >= costTrain ? "#16a34a" : "#dc2626" }}>
-                              marže {fmt(v.sellTrain - costTrain)}
-                            </small>
-                          </label>
-                        </div>
+                            <div className="variant-sum">
+                              <span>
+                                Náklad <b>letecky:</b> {fmt(costAir)} &nbsp;·&nbsp; <b>vlakem:</b> {fmt(costTrain)}
+                              </span>
+                            </div>
+
+                            <div className="variant-row">
+                              <label style={{ flex: 1 }}>
+                                Prodejní cena — dodání do 14 dní (letecky)
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={v.sellAir}
+                                  onChange={(e) => patchVariant(v.id, { sellAir: Number(e.target.value) || 0 })}
+                                />
+                                <small style={{ color: v.sellAir >= costAir ? "#16a34a" : "#dc2626" }}>
+                                  marže {fmt(v.sellAir - costAir)}
+                                </small>
+                              </label>
+                              <label style={{ flex: 1 }}>
+                                Prodejní cena — dodání do 2 měsíců (vlakem)
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={v.sellTrain}
+                                  onChange={(e) => patchVariant(v.id, { sellTrain: Number(e.target.value) || 0 })}
+                                />
+                                <small style={{ color: v.sellTrain >= costTrain ? "#16a34a" : "#dc2626" }}>
+                                  marže {fmt(v.sellTrain - costTrain)}
+                                </small>
+                              </label>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
