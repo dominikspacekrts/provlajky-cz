@@ -48,7 +48,13 @@ export async function updateOrderItem(
   revalidatePath("/orders");
 }
 
-export async function updateItemSleeveColor(itemId: string, orderId: string, sleeveColor: "white" | "black") {
+// HS = zákazník chce vlastní barvu tunelu; bez HS je tunel jen odstín
+// plachty a sleeveColor se při renderu ignoruje (viz eshop/src/lib/flagShapes.ts).
+export async function updateItemHsSleeve(
+  itemId: string,
+  orderId: string,
+  fields: { hs?: boolean; sleeveColor?: "white" | "black" }
+) {
   const supabase = await createClient();
   const { data: current, error: readErr } = await supabase
     .from("order_items")
@@ -56,7 +62,7 @@ export async function updateItemSleeveColor(itemId: string, orderId: string, sle
     .eq("id", itemId)
     .single();
   if (readErr) throw new Error(readErr.message);
-  const design = { ...(current?.design || {}), sleeveColor };
+  const design = { ...(current?.design || {}), ...fields };
   const { error } = await supabase.from("order_items").update({ design }).eq("id", itemId);
   if (error) throw new Error(error.message);
   revalidatePath(`/orders/${orderId}`);

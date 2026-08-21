@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   deleteOrderItem,
-  updateItemSleeveColor,
+  updateItemHsSleeve,
   updateOrderItem,
   updateOrderMoney,
   updateOrderStatus,
@@ -206,6 +206,9 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
   // by tvar/velikost selecty pro ně nedávaly smysl.
   const isFlag = !banner && item.shape != null;
   const lineTotal = (item.unit_price || 0) * (item.qty || 0);
+  // eshop.hs je starší úložiště z konfigurátoru na eshopu, hs je totéž pole
+  // zapisované adminem — čte se, co je nastavené.
+  const [hs, setHs] = useState(item.design?.hs ?? item.design?.eshop?.hs ?? false);
 
   function save(fields: Parameters<typeof updateOrderItem>[2]) {
     startTransition(() => updateOrderItem(item.id, orderId, fields));
@@ -247,17 +250,41 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
             </select>
           </div>
           <div className="field">
-            Rukáv (HS)
-            <select
-              defaultValue={item.design?.sleeveColor ?? "white"}
-              onChange={(e) =>
-                startTransition(() => updateItemSleeveColor(item.id, orderId, e.target.value as "white" | "black"))
-              }
-            >
-              <option value="white">bílá</option>
-              <option value="black">černá</option>
-            </select>
+            Rukáv
+            <label className="cb-line" style={{ height: 38 }}>
+              <input
+                type="checkbox"
+                checked={hs}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  setHs(next);
+                  startTransition(() =>
+                    updateItemHsSleeve(item.id, orderId, {
+                      hs: next,
+                      sleeveColor: next ? item.design?.sleeveColor ?? "white" : undefined,
+                    })
+                  );
+                }}
+              />
+              HS tunel
+            </label>
           </div>
+          {hs && (
+            <div className="field">
+              Barva rukávu
+              <select
+                defaultValue={item.design?.sleeveColor ?? "white"}
+                onChange={(e) =>
+                  startTransition(() =>
+                    updateItemHsSleeve(item.id, orderId, { sleeveColor: e.target.value as "white" | "black" })
+                  )
+                }
+              >
+                <option value="white">bílá</option>
+                <option value="black">černá</option>
+              </select>
+            </div>
+          )}
         </>
       ) : (
         <div className="field" style={{ flex: 2, minWidth: 220 }}>

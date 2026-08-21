@@ -20,7 +20,13 @@ export type Customer = {
 
 export type Design = {
   bgColor?: string;
+  // Bez HS (výchozí) je tunel jen odstín barvy plachty — sleeveColor se
+  // ignoruje. HS = zákazník/admin chce vlastní barvu tunelu (černá/bílá).
+  // eshop.hs je starší úložiště používané konfigurátorem na eshopu; hs je
+  // stejná hodnota, kterou zapisuje admin — čte se to, co je nastavené.
+  hs?: boolean;
   sleeveColor?: "white" | "black";
+  eshop?: { logoX: number; logoY: number; logoScale: number; shape: string; hs: boolean };
   logo?: { src: string; x: number; y: number; w: number; h: number; rotation: number } | null;
   fullArtwork?: {
     src: string;
