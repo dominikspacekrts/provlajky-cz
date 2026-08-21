@@ -17,6 +17,21 @@ const emptyAddr = (): CustomerAddress => ({
   isCompany: false,
 });
 
+// Naše vlastní firma — pro interní nákupy (testy, vlastní spotřeba), aby
+// se nemusela adresa pokaždé přepisovat ručně.
+const ownCompanyAddr = (): CustomerAddress => ({
+  company: "ACTUAL PRO S.R.O.",
+  name: "",
+  street: "nábřeží Míru 1055/82",
+  psc: "737 01",
+  city: "Český Těšín",
+  ico: "25882201",
+  dic: "",
+  email: "info@provlajky.cz",
+  phone: "+420605981155",
+  isCompany: true,
+});
+
 export default function NewOrderForm({ knownCustomers }: { knownCustomers: Customer[] }) {
   const [billing, setBilling] = useState<CustomerAddress>(emptyAddr());
   const [shipping, setShipping] = useState<CustomerAddress>(emptyAddr());
@@ -31,6 +46,12 @@ export default function NewOrderForm({ knownCustomers }: { knownCustomers: Custo
     setShipping({ ...emptyAddr(), ...c.shipping });
   }
 
+  function fillOwnCompany() {
+    const addr = ownCompanyAddr();
+    setBilling(addr);
+    setShipping(addr);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (billing.isCompany && !billing.ico?.trim()) {
@@ -43,19 +64,28 @@ export default function NewOrderForm({ knownCustomers }: { knownCustomers: Custo
 
   return (
     <form onSubmit={handleSubmit} className="form-col" style={{ maxWidth: 900 }}>
-      {knownCustomers.length > 0 && (
-        <label className="customer-picker-row">
-          Předvyplnit podle existujícího zákazníka
-          <select defaultValue="" onChange={(e) => pickCustomer(e.target.value)}>
-            <option value="">— vybrat —</option>
-            {knownCustomers.map((c, i) => (
-              <option key={i} value={i}>
-                {c.billing.company || c.billing.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
+      <div className="row-between" style={{ alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
+        {knownCustomers.length > 0 && (
+          <label className="customer-picker-row">
+            Předvyplnit podle existujícího zákazníka
+            <select defaultValue="" onChange={(e) => pickCustomer(e.target.value)}>
+              <option value="">— vybrat —</option>
+              {knownCustomers.map((c, i) => (
+                <option key={i} value={i}>
+                  {c.billing.company || c.billing.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <button type="button" className="btn" onClick={fillOwnCompany}>
+          Interní nákup (ACTUAL PRO)
+        </button>
+      </div>
+      <p className="muted" style={{ marginTop: -6, fontSize: 12 }}>
+        Interní nákup předvyplní adresu naší vlastní firmy. Položky pak v objednávce přidávej s přepínačem „Interní
+        nákup — nákupní cena“, ať se počítá nákupní, ne prodejní cena.
+      </p>
 
       <div className="two-col">
         <AddressFields title="Fakturační adresa" value={billing} onChange={setBilling} withCompanyInfo />

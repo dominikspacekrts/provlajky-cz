@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
-  addOrderItem,
   deleteOrderItem,
   updateItemSleeveColor,
   updateOrderItem,
@@ -11,26 +10,34 @@ import {
   updateOrderStatus,
 } from "@/lib/actions/orders";
 import { ALL_STATUSES, computeOrderTotals, customerLabel, fmtMoney, isBanner, statusClass, statusLabel } from "@/lib/domain";
-import type { Invoice, Order, OrderItem, SupplierInvoice } from "@/lib/types";
+import type { Invoice, Order, OrderItem, Product, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
 import SendSupplierButton from "./send-supplier-button";
 import SupplierPaidToggle from "./supplier-paid-toggle";
 import SupplierInvoices from "./supplier-invoices";
+import AddItemButton from "./add-item-button";
 
 const SHAPES = ["A", "B", "C", "D", "E", "F"];
 const SIZES = ["S", "M", "L", "XL"];
+
+// ACTUAL PRO S.R.O. je naše vlastní firma (viz patička eshopu) — pokud na
+// ni objednávka fakturuje, je to skoro jistě interní nákup, takže se
+// přepínač v Přidat položku rovnou zaškrtne (jde přepnout zpět).
+const OWN_ICO = "25882201";
 
 export default function OrderDetailClient({
   order,
   items,
   invoice,
   supplierInvoices,
+  products,
 }: {
   order: Order;
   items: OrderItem[];
   invoice: Invoice | null;
   supplierInvoices: SupplierInvoice[];
+  products: Product[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [discountPct, setDiscountPct] = useState(order.discount_pct || 0);
@@ -116,9 +123,7 @@ export default function OrderDetailClient({
         ))}
         {items.length === 0 && <p className="muted">Žádné položky.</p>}
       </div>
-      <button className="btn" onClick={() => startTransition(() => addOrderItem(order.id))}>
-        + Přidat položku
-      </button>
+      <AddItemButton orderId={order.id} products={products} defaultInternal={b.ico === OWN_ICO} />
 
       <div className="order-totals">
         <div className="totals-row">
@@ -138,6 +143,24 @@ export default function OrderDetailClient({
                 {p} %
               </button>
             ))}
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step="0.01"
+              defaultValue={discountPct}
+              key={discountPct}
+              onBlur={(e) => setDiscount(Number(e.target.value) || 0)}
+              style={{
+                width: 70,
+                height: 28,
+                padding: "0 8px",
+                border: "1px solid var(--color-border-input)",
+                borderRadius: 6,
+                marginLeft: 10,
+              }}
+            />
+            <span style={{ marginLeft: 2 }}>%</span>
           </span>
           <span>{discountPct ? "− " + fmtMoney(totals.discountEx, order.currency) : "—"}</span>
         </div>
@@ -178,6 +201,10 @@ export default function OrderDetailClient({
 function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string; currency: "CZK" | "EUR" }) {
   const [, startTransition] = useTransition();
   const banner = isBanner(item);
+  // Skutečná vlajka má vždycky nastavený tvar (viz addOrderItemFromProduct) —
+  // položky přidané z jiných produktů (stany, totemy…) shape nemají, takže
+  // by tvar/velikost selecty pro ně nedávaly smysl.
+  const isFlag = !banner && item.shape != null;
   const lineTotal = (item.unit_price || 0) * (item.qty || 0);
 
   function save(fields: Parameters<typeof updateOrderItem>[2]) {
@@ -197,7 +224,7 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
             <input type="number" defaultValue={item.height_cm ?? 0} onBlur={(e) => save({ height_cm: Number(e.target.value) || 0 })} />
           </div>
         </>
-      ) : (
+      ) : isFlag ? (
         <>
           <div className="field">
             Tvar
@@ -232,6 +259,14 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
             </select>
           </div>
         </>
+      ) : (
+        <div className="field" style={{ flex: 2, minWidth: 220 }}>
+          Položka
+          <input
+            defaultValue={item.wc_line_name ?? ""}
+            onBlur={(e) => save({ wc_line_name: e.target.value })}
+          />
+        </div>
       )}
       <div className="field">
         Ks
@@ -244,9 +279,11 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
       <div className="item-spacer" />
       <div className="item-linetotal">{fmtMoney(lineTotal, currency)}</div>
       <div className="item-actions">
-        <Link href={`/orders/${orderId}/design/${item.id}`} className="btn">
-          {item.design ? "Upravit design" : "Přidat design"}
-        </Link>
+        {isFlag && (
+          <Link href={`/orders/${orderId}/design/${item.id}`} className="btn">
+            {item.design ? "Upravit design" : "Přidat design"}
+          </Link>
+        )}
         <button className="btn danger" onClick={() => startTransition(() => deleteOrderItem(item.id, orderId))}>
           Smazat
         </button>
