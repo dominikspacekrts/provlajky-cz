@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import {
@@ -22,9 +23,15 @@ import {
   flagPathD,
   type FlagDesign,
 } from "@/lib/flagShapes";
-import FlagWave from "./FlagWave";
-import FlagEditorModal from "./FlagEditorModal";
 import { CheckMark, PenMark } from "@/components/Icons";
+
+// FlagWave táhne celé three.js jen kvůli animaci vlání — na první vykreslení
+// stránky to nepotřebujeme, takže jde do vlastního JS chunku a načte se až
+// po hlavním obsahu (žádané zrychlení načtení). Do doby, než dorazí, stojí
+// místo ní tichý obrys tvaru (viz ShapeIcon níž), který pak plynule
+// prokřížfaduje do živé 3D plachty.
+const FlagWave = dynamic(() => import("./FlagWave"), { ssr: false });
+const FlagEditorModal = dynamic(() => import("./FlagEditorModal"), { ssr: false });
 
 function ShapeIcon({ shape, size = 44 }: { shape: FlagShape; size?: number }) {
   const h = 100;
@@ -142,15 +149,11 @@ export default function FlagConfigurator({ product }: { product: Product }) {
   }
 
   return (
-    <div className="container config-page">
-      <div className="page-panel">
-      <div className="config-hero">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" />
-      </div>
-
-      <div className="configurator reveal-stagger">
-      <div className="config-stage">
+    <div className="fc-page">
+      <div className="fc-stage">
+        <div className="fc-stage-shape" aria-hidden="true">
+          <ShapeIcon shape={shape} size={220} />
+        </div>
         <FlagWave
           shape={shape}
           color={design ? design.bgColor : "#c9ccd1"}
@@ -162,8 +165,11 @@ export default function FlagConfigurator({ product }: { product: Product }) {
         <span className="stage-hint">Najeďte myší — vlajka se rozvlaje</span>
       </div>
 
-      <div className="reveal-stagger">
-        <h1 style={{ fontSize: 30 }}>{product.name}</h1>
+      <aside className="fc-panel reveal-stagger">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
+
+        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
         <div className="option-label">Tvar vlajky</div>
@@ -246,7 +252,20 @@ export default function FlagConfigurator({ product }: { product: Product }) {
 
         <div className="qty-row">
           <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} />
+          <div className="qty-stepper">
+            <button
+              type="button"
+              aria-label="Ubrat kus"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              disabled={qty <= 1}
+            >
+              −
+            </button>
+            <span className="qty-value">{qty}</span>
+            <button type="button" aria-label="Přidat kus" onClick={() => setQty((q) => q + 1)}>
+              +
+            </button>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -265,7 +284,7 @@ export default function FlagConfigurator({ product }: { product: Product }) {
             {product.description}
           </p>
         )}
-      </div>
+      </aside>
 
       {editorOpen && (
         <FlagEditorModal
@@ -302,8 +321,6 @@ export default function FlagConfigurator({ product }: { product: Product }) {
           </div>
         </div>
       )}
-      </div>
-      </div>
-      </div>
+    </div>
   );
 }
