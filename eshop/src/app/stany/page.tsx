@@ -3,15 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase";
 import { fmtMoney, minVariantSell } from "@/lib/money";
-import {
-  PRODUCT_CATEGORIES,
-  TENT_CATEGORIES,
-  variantSizes,
-  tentRealImage,
-  INFLATABLE_TENT_IMAGE,
-  type Product,
-  type ProductCategory,
-} from "@/lib/types";
+import { PRODUCT_CATEGORIES, TENT_CATEGORIES, variantSizes, type Product, type ProductCategory } from "@/lib/types";
 import TentFold from "@/components/TentFold";
 
 export const dynamic = "force-dynamic";
@@ -20,12 +12,6 @@ export const metadata: Metadata = {
   title: "Nůžkové a nafukovací stany s potiskem — PROVLAJKY.CZ",
   description: "Skládací nůžkové stany a nafukovací stany s plnobarevným potiskem na míru.",
 };
-
-// Kategorie, které rozdělujeme na karty podle velikosti (každá velikost = vlastní karta).
-const SPLIT_BY_SIZE: ReadonlySet<ProductCategory> = new Set<ProductCategory>([
-  "nuzkove-stany",
-  "nafukovaci-stany",
-]);
 
 export default async function StanyPage() {
   const supabase = createClient();
@@ -87,16 +73,9 @@ export default async function StanyPage() {
           <section key={cat} id={cat} className="stany-section reveal-stagger">
             <h2>{PRODUCT_CATEGORIES[cat]}</h2>
             <div className="category-grid">
-              {SPLIT_BY_SIZE.has(cat)
-                ? items.flatMap((p) => {
-                    const sizes = variantSizes(p);
-                    // Bez rozměrů (např. kompresor) → jedna karta jako dřív.
-                    if (sizes.length === 0) return [<ProductCard key={p.id} product={p} category={cat} />];
-                    return sizes.map((size) => (
-                      <SizeCard key={`${p.id}-${size}`} product={p} category={cat} size={size} />
-                    ));
-                  })
-                : items.map((p) => <ProductCard key={p.id} product={p} category={cat} />)}
+              {items.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
             </div>
           </section>
         );
@@ -112,53 +91,7 @@ export default async function StanyPage() {
   );
 }
 
-// Karta pro jednu velikost daného produktu (split podle velikosti).
-function SizeCard({ product, category, size }: { product: Product; category: ProductCategory; size: string }) {
-  const variantsOfSize = (product.config?.variants ?? []).filter((v) => (v.size ?? "").trim() === size);
-  const from = minVariantSell(variantsOfSize);
-  const isNuzkovy = category === "nuzkove-stany";
-  const isNafukovaci = category === "nafukovaci-stany";
-  return (
-    <Link href={`/produkt/${product.slug}?size=${encodeURIComponent(size)}`} className="category-card">
-      <div className="thumb">
-        {isNuzkovy || isNafukovaci ? (
-          <Image
-            src={isNuzkovy ? tentRealImage("full") : INFLATABLE_TENT_IMAGE}
-            alt={`${product.name} ${size}`}
-            width={480}
-            height={360}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            unoptimized
-          />
-        ) : product.images?.[0] ? (
-          <Image
-            src={product.images[0]}
-            alt={`${product.name} ${size}`}
-            width={320}
-            height={320}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            unoptimized
-          />
-        ) : (
-          <span style={{ fontSize: 46 }}>⛺</span>
-        )}
-      </div>
-      <div className="body">
-        <div className="name">{`${product.name} ${size}`}</div>
-        <div className="price">
-          {from != null ? (
-            <>od {fmtMoney(from)} <span className="vat">bez DPH</span></>
-          ) : (
-            "cena na dotaz"
-          )}
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-// Klasická karta produktu (kategorie bez rozdělení podle velikosti).
-function ProductCard({ product }: { product: Product; category: ProductCategory }) {
+function ProductCard({ product }: { product: Product }) {
   const from = minVariantSell(product.config?.variants);
   return (
     <Link href={`/produkt/${product.slug}`} className="category-card">
