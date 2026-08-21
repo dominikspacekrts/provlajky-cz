@@ -23,10 +23,11 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const products = (data || []) as Product[];
 
   // Vybrané kategorie nemají výpis — jde se rovnou do konfigurátoru (jako plážové vlajky).
+  // pvc-bannery má teď 2 produkty (PVC / mesh), takže se nepřeskakuje — zákazník musí
+  // nejdřív vybrat, který materiál chce.
   const DIRECT_TO_CONFIG: Partial<Record<ProductCategory, Product["kind"]>> = {
     "plazove-vlajky": "configurable",
     "vlajky-na-zakazku": "custom_flag",
-    "pvc-bannery": "banner_m2",
   };
   const directKind = DIRECT_TO_CONFIG[cat];
   if (directKind) {
