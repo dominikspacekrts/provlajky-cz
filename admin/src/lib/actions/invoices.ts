@@ -93,7 +93,8 @@ export async function setInvoicePaid(invoiceId: string, paid: boolean) {
   const supabase = await createClient();
   const { error } = await supabase.from("invoices").update({ paid }).eq("id", invoiceId);
   if (error) throw new Error(error.message);
-  revalidatePath("/finance");
+  revalidatePath("/faktury");
+  revalidatePath("/statistika");
 }
 
 // Base64 PDF bytes for e-mail attachments (used by SendInvoiceButton) — generating

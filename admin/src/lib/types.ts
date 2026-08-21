@@ -274,6 +274,7 @@ export type ProductConfig = {
   options?: ProductOption[]; // kind 'options' — volby s cenou (hmotnost apod.)
   customFlag?: CustomFlagConfig; // kind 'custom_flag' — vlajky na zakázku
   buyPrice?: number; // kind 'simple' — nákupní cena (jen pro přehled marže v adminu)
+  costBySize?: { S: number; M: number; L: number; XL: number }; // kind 'configurable' — náklad pro odhad marže
 };
 
 export type Product = {
@@ -306,3 +307,19 @@ export const PRODUCT_CATEGORIES: Record<ProductCategory, string> = {
   "nafukovaci-brany": "Nafukovací brány",
   "nahradni-dily": "Náhradní díly a příslušenství",
 };
+
+// Skupiny pro přehled na /products — stejné rozdělení jako v navigaci
+// eshopu (dev.provlajky.cz). Raw kategorie v databázi se neruší, jen se
+// v adminu vizuálně sloučí pod jednu sekci (stany, brány/totemy).
+// nahradni-dily má v eshopu vlastní sekci (mimo hlavní navigaci), tady
+// zůstává samostatně viditelná stejně jako dřív.
+export type NavGroup = { id: string; label: string; categories: ProductCategory[] };
+export const NAV_GROUPS: NavGroup[] = [
+  { id: "plazove-vlajky", label: "Plážové vlajky", categories: ["plazove-vlajky"] },
+  { id: "vlajky-na-zakazku", label: "Vlajky na zakázku", categories: ["vlajky-na-zakazku"] },
+  { id: "pvc-bannery", label: "PVC bannery a meshe", categories: ["pvc-bannery"] },
+  { id: "stany", label: "Nůžkové a nafukovací stany", categories: ["nuzkove-stany", "nafukovaci-stany"] },
+  { id: "brany-a-totemy", label: "Nafukovací brány a totemy", categories: ["nafukovaci-brany", "totemy"] },
+  { id: "prislusenstvi", label: "Příslušenství", categories: ["prislusenstvi"] },
+  { id: "nahradni-dily", label: "Náhradní díly a příslušenství", categories: ["nahradni-dily"] },
+];

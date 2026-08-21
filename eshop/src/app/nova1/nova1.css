@@ -1,0 +1,281 @@
+/* =====================================================================
+   /nova1 — signální řada. Vlajka není odkaz na motorsport, je to samotný
+   produkt: mezinárodní signální kód (plné pole, pruh, kříž, rám, čtvrcení)
+   nese kategorie, skutečná 3D vlajka (FlagWave) je hlavním exponátem heru
+   místo fotografie, a CTA má tvar praporku (vlaštovčí zástřih), ne
+   obdélníku. Paleta je plná, ne zdrženlivá: námořní modř, signální
+   červená a zlatá nesou celé plochy, bílá jen kontrastuje.
+
+   Pohyb: jeden gesto v heru (vlajka reaguje na najetí myší přes FlagWave),
+   jinak jen odkrývání při scrollu — žádné efekty navíc.
+   ===================================================================== */
+.n1 {
+  --n1-ink: #0a0e16;
+  --n1-navy: #0f2547;
+  --n1-navy-2: #16335f;
+  --n1-red: #d81410;
+  --n1-red-2: #a80f0c;
+  --n1-gold: #ffbe0b;
+  --n1-white: #f7f6f2;
+  --n1-line: rgba(247, 246, 242, 0.22);
+  --n1-line-dark: rgba(10, 14, 22, 0.16);
+  --n1-pad: clamp(20px, 5.5vw, 88px);
+  --n1-nav-h: 74px;
+  --n1-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  background: var(--n1-white);
+  color: var(--n1-ink);
+  font-family: var(--font-signal-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.n1 * { box-sizing: border-box; }
+.n1 ul { list-style: none; margin: 0; padding: 0; }
+.n1 p { margin: 0; }
+.n1 a { color: inherit; }
+.n1 :focus-visible { outline: 2px solid var(--n1-gold); outline-offset: 3px; }
+/* Specificity note: the shared body carries class "nv" (root layout), so
+   globals.css's unscoped `.nv h1,h2,h3,h4{letter-spacing:-0.02em}` (0,1,1)
+   would otherwise beat a bare `.n1-display` (0,1,0) on every heading here.
+   Scoping through `.n1` (0,2,0) wins cleanly regardless of load order. */
+.n1 .n1-display {
+  font-family: var(--font-signal-display), var(--font-signal-body), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+html:has(.n1) { scroll-behavior: smooth; }
+
+.n1-container { max-width: 1400px; margin: 0 auto; padding: 0 var(--n1-pad); }
+
+/* --- odkrývání při scrollu (stejný princip jako hlavní web) -------- */
+.n1-in [data-reveal] { animation: n1-rise 0.9s var(--n1-ease) var(--rd, 0ms) both; }
+@keyframes n1-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* --- vlastní lišta -------------------------------------------------- */
+.n1-nav {
+  position: sticky; top: 0; z-index: 90; height: var(--n1-nav-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(16px, 3.4vw, 34px);
+  background: var(--n1-ink); border-bottom: 1px solid var(--n1-line);
+}
+.n1-nav-logo { display: block; }
+.n1-nav-logo img { height: 22px; width: auto; display: block; }
+.n1-nav-right { display: flex; align-items: center; gap: 10px; }
+.n1-nav-back {
+  color: var(--n1-white); text-decoration: none; font-size: 12px;
+  letter-spacing: 0.08em; opacity: 0.68; padding: 8px 10px;
+  transition: opacity 0.3s var(--n1-ease);
+}
+.n1-nav-back:hover { opacity: 1; }
+
+/* --- praporkové tlačítko: vlaštovčí zástřih vpravo ------------------ */
+.n1-btn {
+  position: relative; display: inline-flex; align-items: center; gap: 10px;
+  padding: 16px 40px 16px 26px; border: 0; text-decoration: none;
+  font-family: var(--font-signal-display), sans-serif;
+  font-weight: 700; font-size: 15px; letter-spacing: 0.02em; text-transform: uppercase;
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 0 100%);
+  transition: transform 0.3s var(--n1-ease), filter 0.3s var(--n1-ease);
+}
+.n1-btn:hover { transform: translateX(4px); }
+.n1-btn:active { transform: translateX(1px) scale(0.98); }
+.n1-btn-gold { background: var(--n1-gold); color: var(--n1-ink); }
+.n1-btn-gold:hover { filter: brightness(1.08); }
+.n1-btn-outline {
+  background: rgba(247, 246, 242, 0.12); color: var(--n1-white);
+}
+.n1-btn-outline:hover { background: rgba(247, 246, 242, 0.22); }
+.n1-btn-arrow { width: 16px; height: 16px; flex: none; transition: transform 0.3s var(--n1-ease); }
+.n1-btn:hover .n1-btn-arrow { transform: translateX(3px); }
+
+/* --- hero ------------------------------------------------------------
+   Námořní modř přes celou plochu, signální červený praporek zaklíněný
+   v pravém dolním rohu (clip-path), skutečná 3D vlajka vpravo. */
+.n1-hero {
+  position: relative; overflow: hidden;
+  min-height: 640px; height: calc(100svh - var(--n1-nav-h));
+  background: var(--n1-navy);
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: stretch;
+}
+.n1-hero::before {
+  /* signální praporek v pozadí — čistě dekorativní geometrie */
+  content: ""; position: absolute; z-index: 0;
+  right: -8%; bottom: -18%; width: 62%; height: 78%;
+  background: var(--n1-red);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%, 62% 46%);
+  opacity: 0.94;
+}
+.n1-hero-grain {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0.4; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.09'/></svg>");
+  background-size: 140px 140px;
+}
+.n1-hero-body {
+  position: relative; z-index: 2; color: var(--n1-white);
+  display: flex; flex-direction: column; justify-content: center; gap: clamp(18px, 2.6vh, 30px);
+  padding: clamp(100px, 14vh, 150px) clamp(20px, 5vw, 64px) clamp(48px, 6vh, 70px) var(--n1-pad);
+}
+.n1-hero-title {
+  font-size: clamp(38px, 6.2vw, 92px); line-height: 0.92; font-weight: 800;
+  max-width: 15ch;
+}
+.n1-hero-title em { font-style: normal; color: var(--n1-gold); }
+.n1-hero-sub {
+  max-width: 46ch; font-size: clamp(15px, 1.25vw, 18px); line-height: 1.6;
+  color: rgba(247, 246, 242, 0.82);
+}
+.n1-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+.n1-hero-proof {
+  margin-top: 10px; font-size: 12.5px; letter-spacing: 0.03em; color: rgba(247, 246, 242, 0.6);
+}
+.n1-hero-flag {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(24px, 4vh, 48px);
+}
+.n1-hero-flag-stage { width: min(92%, 560px); aspect-ratio: 4 / 3; }
+.n1-hero-flag-hint {
+  position: absolute; bottom: clamp(28px, 5vh, 56px); left: 50%; transform: translateX(-50%);
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(247, 246, 242, 0.55);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .n1-hero { grid-template-columns: 1fr; height: auto; min-height: 0; }
+  .n1-hero-body { padding-top: clamp(64px, 10vh, 96px); }
+  .n1-hero-flag { padding-top: 0; padding-bottom: clamp(40px, 8vh, 72px); }
+  .n1-hero-flag-stage { width: min(78%, 380px); }
+}
+
+/* --- signální kód: šest rodin jako šest vlajkových vzorů ------------ */
+.n1-code {
+  background: var(--n1-white); padding: clamp(72px, 11vh, 140px) var(--n1-pad);
+}
+.n1-code-head { max-width: 62ch; margin-bottom: clamp(36px, 5vh, 64px); }
+.n1-code-title {
+  font-size: clamp(28px, 3.6vw, 48px); line-height: 1.02; font-weight: 800; margin-bottom: 14px;
+}
+.n1-code-body { font-size: clamp(15px, 1.1vw, 17px); line-height: 1.6; color: rgba(10, 14, 22, 0.68); max-width: 58ch; }
+
+.n1-swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--n1-line-dark); }
+@media (max-width: 720px) { .n1-swatches { grid-template-columns: repeat(2, 1fr); } }
+
+.n1-swatch {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  aspect-ratio: 5 / 4; background: var(--n1-white); text-decoration: none; color: var(--n1-ink);
+}
+.n1-swatch-pattern { position: absolute; inset: 0; z-index: 0; }
+.n1-swatch-badge {
+  position: absolute; top: 14px; right: 14px; z-index: 2;
+  background: var(--n1-gold); color: var(--n1-ink);
+  font-family: var(--font-signal-display), sans-serif; font-size: 11px; font-weight: 800;
+  letter-spacing: 0.05em; padding: 4px 9px;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 0 100%);
+}
+.n1-swatch-foot {
+  position: relative; z-index: 1; padding: 18px clamp(16px, 2vw, 24px) 20px;
+  background: linear-gradient(0deg, rgba(10, 14, 22, 0.88) 0%, rgba(10, 14, 22, 0.5) 62%, rgba(10, 14, 22, 0) 100%);
+}
+.n1-swatch-t {
+  font-family: var(--font-signal-display), sans-serif; font-weight: 800; font-size: clamp(16px, 1.6vw, 21px);
+  color: var(--n1-white); text-transform: uppercase; line-height: 1.04;
+}
+.n1-swatch-n {
+  margin-top: 6px; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; letter-spacing: 0.08em; color: rgba(247, 246, 242, 0.78);
+}
+.n1-swatch-arrow { width: 12px; height: 12px; transition: transform 0.35s var(--n1-ease); }
+.n1-swatch:hover .n1-swatch-arrow { transform: translateX(4px); }
+.n1-swatch:hover .n1-swatch-pattern { transform: scale(1.04); }
+.n1-swatch-pattern { transition: transform 0.6s var(--n1-ease); }
+
+/* šest vzorů — plné pole, pruh, kříž, rám, čtvrcení, diagonála */
+.n1-pat-solid-red { background: var(--n1-red); }
+.n1-pat-solid-navy { background: var(--n1-navy); }
+.n1-pat-stripe {
+  background: repeating-linear-gradient(0deg, var(--n1-gold) 0 22%, var(--n1-white) 22% 44%, var(--n1-red) 44% 66%, var(--n1-white) 66% 88%, var(--n1-gold) 88% 100%);
+}
+.n1-pat-cross {
+  background: var(--n1-white);
+  background-image:
+    linear-gradient(var(--n1-red), var(--n1-red)), linear-gradient(var(--n1-red), var(--n1-red));
+  background-size: 100% 30%, 30% 100%;
+  background-position: center, center;
+  background-repeat: no-repeat;
+}
+.n1-pat-quarter {
+  background:
+    linear-gradient(90deg, var(--n1-navy) 50%, var(--n1-gold) 50%) top left / 100% 50% no-repeat,
+    linear-gradient(90deg, var(--n1-gold) 50%, var(--n1-navy) 50%) bottom left / 100% 50% no-repeat;
+}
+.n1-pat-diagonal {
+  background: linear-gradient(135deg, var(--n1-red) 0 48%, var(--n1-white) 48% 52%, var(--n1-navy) 52% 100%);
+}
+.n1-pat-border {
+  background: var(--n1-navy);
+  box-shadow: inset 0 0 0 14px var(--n1-white), inset 0 0 0 20px var(--n1-navy);
+}
+
+/* --- legenda: postup ve třech krocích -------------------------------- */
+.n1-legend { background: var(--n1-white); padding: 0 var(--n1-pad) clamp(80px, 11vh, 140px); }
+.n1-legend-title {
+  font-size: clamp(24px, 3vw, 38px); font-weight: 800; margin-bottom: clamp(32px, 4.5vh, 52px);
+}
+.n1-legend-rows { border-top: 1.5px solid var(--n1-ink); }
+.n1-legend-row {
+  display: grid; grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: clamp(16px, 3vw, 40px); align-items: baseline;
+  padding: clamp(22px, 3vh, 32px) 0; border-bottom: 1.5px solid var(--n1-ink);
+}
+@media (max-width: 720px) { .n1-legend-row { grid-template-columns: 56px 1fr; } .n1-legend-row > :last-child { grid-column: 1 / -1; } }
+.n1-legend-n {
+  font-family: var(--font-signal-display), sans-serif; font-weight: 800; font-size: clamp(30px, 3.4vw, 46px);
+  color: var(--n1-red); line-height: 1;
+}
+.n1-legend-t { font-family: var(--font-signal-display), sans-serif; font-weight: 700; font-size: clamp(17px, 1.6vw, 22px); text-transform: uppercase; }
+.n1-legend-d { font-size: 14.5px; line-height: 1.55; color: rgba(10, 14, 22, 0.66); }
+
+/* --- uzávěr: čísla + volání k akci, praporková geometrie ------------- */
+.n1-close { position: relative; overflow: hidden; background: var(--n1-red); color: var(--n1-white); }
+.n1-close::before {
+  content: ""; position: absolute; z-index: 0; left: -10%; top: -30%; width: 55%; height: 120%;
+  background: var(--n1-red-2); clip-path: polygon(0 0, 100% 0, 38% 100%, 0 100%); opacity: 0.6;
+}
+.n1-proof {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 4vw, 40px);
+  padding: clamp(60px, 9vh, 100px) var(--n1-pad) clamp(40px, 6vh, 64px);
+  border-bottom: 1px solid rgba(247, 246, 242, 0.28);
+}
+@media (max-width: 720px) { .n1-proof { grid-template-columns: 1fr; text-align: center; } }
+.n1-proof-num {
+  font-family: var(--font-signal-display), sans-serif; font-weight: 800;
+  font-size: clamp(40px, 5vw, 66px); line-height: 1;
+}
+.n1-proof-label { margin-top: 8px; font-size: 13px; letter-spacing: 0.03em; color: rgba(247, 246, 242, 0.82); }
+
+.n1-cta { position: relative; z-index: 1; padding: clamp(56px, 8vh, 96px) var(--n1-pad) clamp(64px, 9vh, 108px); }
+.n1-cta-title { font-size: clamp(30px, 4vw, 56px); font-weight: 800; max-width: 16ch; margin-bottom: 16px; }
+.n1-cta-body { font-size: clamp(15px, 1.2vw, 18px); line-height: 1.6; max-width: 52ch; color: rgba(247, 246, 242, 0.86); margin-bottom: 30px; }
+.n1-cta-actions { display: flex; flex-wrap: wrap; gap: 14px; }
+
+/* --- vlastní patička -------------------------------------------------- */
+.n1-foot { background: var(--n1-ink); color: rgba(247, 246, 242, 0.72); }
+.n1-foot-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(28px, 5vw, 60px); padding: clamp(52px, 7vh, 84px) var(--n1-pad) clamp(32px, 4vh, 48px);
+}
+@media (max-width: 720px) { .n1-foot-grid { grid-template-columns: 1fr; } }
+.n1-foot h4 {
+  font-family: var(--font-signal-display), sans-serif; font-weight: 700; font-size: 12px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--n1-white); margin-bottom: 14px;
+}
+.n1-foot a { text-decoration: none; }
+.n1-foot a:hover { color: var(--n1-white); }
+.n1-foot ul li { margin-bottom: 8px; font-size: 13.5px; }
+.n1-foot-reg { margin-top: 12px; font-size: 12px; line-height: 1.7; opacity: 0.7; }
+.n1-foot-logo { height: 20px; width: auto; margin-bottom: 14px; opacity: 0.85; }
+.n1-bottom {
+  padding: 16px var(--n1-pad) 28px; font-size: 11.5px; letter-spacing: 0.03em; opacity: 0.5;
+  border-top: 1px solid rgba(247, 246, 242, 0.1);
+}

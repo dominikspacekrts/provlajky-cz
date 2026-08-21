@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f5f7;
-  --foreground: #1a1a1a;
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-dark: #1f2937;
+  /* Značkové barvy PROVLAJKY.CZ — stejné hodnoty jako eshop (--nv-ink / --nv-yellow / --nv-paper). */
+  --background: #f2f1ed;
+  --foreground: #08080a;
+  --color-primary: #08080a;
+  --color-primary-dark: #000000;
+  --color-accent: #ffe701;
+  --color-accent-ink: #08080a;
+  --color-dark: #08080a;
   --color-gray-700: #374151;
   --color-gray-500: #6b7280;
-  --color-border: #e5e7eb;
-  --color-border-input: #d1d5db;
-  --color-bg-soft: #f9fafb;
-  --color-bg-tint: #f0f5ff;
+  --color-border: #e5e2d8;
+  --color-border-input: #d6d2c4;
+  --color-bg-soft: #f8f7f3;
+  --color-bg-tint: #fffbe0;
 }
 
 @theme inline {
@@ -32,31 +35,81 @@ main {
   padding: 24px;
   max-width: 1280px;
   margin: 0 auto;
+  animation: page-in 0.28s ease both;
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  main { animation: none; }
+}
+
+/* Pravé menu */
+.app-sidebar {
+  width: 220px; flex-shrink: 0;
+  padding: 24px 16px;
+  display: flex; flex-direction: column; gap: 2px;
+  border-right: 1px solid var(--color-border);
+}
+.app-sidebar a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  color: var(--color-gray-700); text-decoration: none; font-size: 14px; font-weight: 500;
+  position: relative;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.app-sidebar a .icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+.app-sidebar a:hover { background: var(--color-bg-soft); transform: translateX(2px); }
+.app-sidebar a.active {
+  background: var(--color-dark); color: white; font-weight: 700;
+}
+.app-sidebar a.active::before {
+  content: ""; position: absolute; right: -17px; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 20px; border-radius: 4px 0 0 4px; background: var(--color-accent);
+}
+@media (max-width: 860px) {
+  .app-shell { flex-direction: column; }
+  .app-sidebar {
+    width: auto; flex-direction: row; flex-wrap: wrap; gap: 6px;
+    border-right: none; border-bottom: 1px solid var(--color-border);
+    padding: 12px 16px;
+  }
+  .app-sidebar a.active::before { display: none; }
 }
 
 /* Header / nav */
 header.app-header {
   background: var(--color-dark);
   color: white;
-  padding: 16px 24px;
+  padding: 14px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 2px solid var(--color-accent);
 }
 header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 .app-logo {
   font-size: 20px; font-weight: 800; letter-spacing: 0.5px;
   color: white; text-decoration: none; white-space: nowrap;
+  display: inline-flex; align-items: center;
+  transition: opacity 0.15s;
 }
-.app-logo span { color: #60a5fa; }
-.app-logo:hover { opacity: 0.85; }
+.app-logo img { height: 22px; width: auto; display: block; }
+.app-logo span { color: var(--color-accent); }
+.app-logo:hover { opacity: 0.82; }
 .back-btn {
   width: 34px; height: 34px; padding: 0; border-radius: 8px;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 18px; line-height: 1;
   background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.16); color: white;
+  transition: background 0.15s, transform 0.15s;
 }
-.back-btn:hover:not(:disabled) { background: rgba(255,255,255,0.16); }
+.back-btn:hover:not(:disabled) { background: rgba(255,255,255,0.16); transform: translateX(-2px); }
+
+/* Layout: hlavní obsah + pravé menu */
+.app-shell { display: flex; min-height: calc(100vh - 55px); }
+.app-shell > main { flex: 1; min-width: 0; }
 
 /* Home tiles */
 .home-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; }
@@ -65,8 +118,9 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
   padding: 32px 24px; cursor: pointer; text-align: left;
   transition: all 0.15s; display: flex; flex-direction: column; gap: 6px;
 }
-.home-tile:hover { border-color: var(--color-primary); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
-.tile-icon { font-size: 34px; }
+.home-tile:hover { border-color: var(--color-accent); transform: translateY(-3px); box-shadow: 0 10px 24px rgba(8,8,10,0.1); }
+.home-tile:hover .tile-icon { transform: scale(1.12) rotate(-4deg); }
+.tile-icon { font-size: 34px; transition: transform 0.2s var(--ease, ease-out); display: inline-block; }
 .tile-title { font-size: 20px; font-weight: 700; }
 .tile-sub { color: var(--color-gray-500); font-size: 14px; }
 
@@ -78,8 +132,10 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 }
 .btn:hover:not(:disabled) { background: #f3f4f6; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn.primary { background: var(--color-primary); color: white; border-color: var(--color-primary); }
-.btn.primary:hover { background: var(--color-primary-dark); }
+.btn.primary { background: var(--color-accent); color: var(--color-accent-ink); border-color: var(--color-accent); font-weight: 700; }
+.btn.primary:hover { background: #f5dc00; }
+.btn { transition: background 0.15s, transform 0.1s, box-shadow 0.15s; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
 .btn.danger { background: white; color: #dc2626; border-color: #fecaca; }
 .btn.danger:hover { background: #fee2e2; }
 .btn.mini { padding: 4px 10px; font-size: 12px; }
@@ -93,7 +149,7 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
   padding: 16px; cursor: pointer; display: flex; justify-content: space-between;
   align-items: center; transition: all 0.15s; text-decoration: none; color: inherit;
 }
-.order-card:hover { border-color: var(--color-primary); box-shadow: 0 2px 8px rgba(37,99,235,0.1); }
+.order-card:hover { border-color: var(--color-primary); box-shadow: 0 2px 10px rgba(8,8,10,0.1); transform: translateY(-1px); }
 .order-card .meta { font-size: 13px; color: var(--color-gray-500); margin-top: 4px; }
 .order-card .title { font-weight: 600; font-size: 16px; }
 .order-money { text-align: right; line-height: 1.25; }
@@ -182,7 +238,8 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 
 /* Stats */
 .stats-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.stat-card { background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 18px 20px; }
+.stat-card { background: white; border: 1px solid var(--color-border); border-radius: 12px; padding: 18px 20px; transition: box-shadow 0.15s, transform 0.15s; }
+.stat-card:hover { box-shadow: 0 8px 20px rgba(8,8,10,0.08); transform: translateY(-2px); }
 .stat-card .label { color: var(--color-gray-500); font-size: 13px; }
 .stat-card .value { font-size: 26px; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; }
 
@@ -233,7 +290,7 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
   border-radius: 50%; cursor: pointer; padding: 0;
 }
 .swatch:hover { border-color: var(--color-primary); transform: scale(1.1); }
-.swatch.active { border-color: var(--color-primary); box-shadow: 0 0 0 2px #bfdbfe; }
+.swatch.active { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-bg-tint); }
 .stage-wrapper {
   position: relative; background: white; border-radius: 8px; padding: 16px;
   display: flex; justify-content: center; min-height: 300px; border: 1px solid var(--color-border);
@@ -329,9 +386,39 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 /* Editor variant / banneru na m² v produktovém formuláři */
 .modal-wide { max-width: 860px; }
 .variant-block { border: 1px solid var(--color-gray-200); border-radius: 10px; padding: 12px; background: #fafafa; }
-.variant-card { border: 1px solid var(--color-gray-200); border-radius: 10px; padding: 12px; background: #fff; margin-bottom: 12px; }
+.variant-card { border: 1px solid var(--color-gray-200); border-radius: 10px; background: #fff; margin-bottom: 10px; overflow: hidden; }
 .variant-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 8px; }
 .variant-row > label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--color-gray-700); min-width: 110px; }
 .variant-row input { width: 100%; padding: 7px 8px; border: 1px solid var(--color-gray-300); border-radius: 7px; font-size: 13px; }
 .variant-row small { font-size: 11px; margin-top: 2px; }
 .variant-sum { font-size: 13px; color: var(--color-gray-700); background: #f3f4f6; border-radius: 7px; padding: 6px 10px; margin: 4px 0 10px; }
+
+/* Varianta jako accordion — "stan 2x2" rozklikneš a teprve pak vidíš pole,
+   jinak by produkt se 4+ variantami byl jedno dlouhé rolovací menu. */
+.variant-card-summary-row { display: flex; align-items: center; }
+.variant-card-summary {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: none; border: none; cursor: pointer;
+  font: inherit; text-align: left; color: inherit;
+}
+.variant-card-summary:hover { background: var(--color-bg-soft); }
+.variant-card-summary-arrow { color: var(--color-gray-500); width: 12px; flex-shrink: 0; }
+.variant-card-summary-label { font-weight: 600; flex: 1; }
+.variant-card-summary-price { font-size: 13px; color: var(--color-gray-500); font-variant-numeric: tabular-nums; }
+.variant-card-body { padding: 4px 12px 12px; border-top: 1px solid var(--color-border); animation: page-in 0.15s ease both; }
+
+/* Produkty: sbalovací skupiny podle kategorií */
+.product-group { border: 1px solid var(--color-border); border-radius: 12px; padding: 0 18px 18px; margin-top: 18px; background: white; }
+.product-group-summary {
+  list-style: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 0; margin: 0 -2px;
+}
+.product-group-summary::-webkit-details-marker { display: none; }
+.product-group-summary h3 { margin: 0; display: flex; align-items: center; }
+.product-group-summary h3::before {
+  content: "▸"; display: inline-block; margin-right: 10px; color: var(--color-gray-500);
+  transition: transform 0.15s;
+}
+.product-group[open] > .product-group-summary h3::before { transform: rotate(90deg); }
+.flag-cost-block { background: var(--color-bg-tint); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }

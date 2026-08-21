@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import EmailPreviewProvider from "@/components/email/EmailPreviewProvider";
 import BackButton from "./back-button";
 import SignOutButton from "./sign-out-button";
+import Sidebar from "./sidebar";
 
 export default async function DashboardLayout({
   children,
@@ -27,7 +28,8 @@ export default async function DashboardLayout({
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <BackButton />
           <Link href="/" className="app-logo">
-            PROVLAJKY<span>.CZ</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo/logo-bile.png" alt="PROVLAJKY.CZ" />
           </Link>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -35,7 +37,10 @@ export default async function DashboardLayout({
           <SignOutButton />
         </div>
       </header>
-      <main>{children}</main>
+      <div className="app-shell">
+        <Sidebar />
+        <main>{children}</main>
+      </div>
     </EmailPreviewProvider>
   );
 }

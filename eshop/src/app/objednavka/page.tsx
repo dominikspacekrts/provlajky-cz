@@ -26,6 +26,7 @@ export default function CheckoutPage() {
   const [sameAsShipping, setSameAsShipping] = useState(true);
   const [shipping, setShipping] = useState<CustomerAddress>(emptyAddr());
   const [note, setNote] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +62,7 @@ export default function CheckoutPage() {
           shipping: sameAsShipping ? billing : shipping,
           note,
           lines,
+          discountCode: discountCode.trim() || undefined,
         }),
       });
       const json = await res.json();
@@ -206,6 +208,20 @@ export default function CheckoutPage() {
               <span>{fmtMoney(l.unitPrice * l.qty)}</span>
             </div>
           ))}
+          <div className="form-grid" style={{ marginBottom: 14 }}>
+            <label className="full-width">
+              Slevový kód
+              <input
+                value={discountCode}
+                onChange={(e) => setDiscountCode(e.target.value)}
+                placeholder="Např. z registrace"
+              />
+            </label>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--gray)", marginTop: -8, marginBottom: 14 }}>
+            Kód ověříme a slevu odečteme po odeslání objednávky — do celkové ceny níže se zatím nepromítá.
+          </p>
+
           <div className="cart-summary" style={{ marginLeft: 0 }}>
             <div className="row">
               <span>Mezisoučet bez DPH</span>

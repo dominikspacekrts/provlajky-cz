@@ -11,11 +11,18 @@ import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { SALE } from "@/lib/sale";
 import { NovaArrow } from "@/components/NovaReveal";
+import { NAV_GROUPS } from "@/lib/types";
+
+const PROMO_DISMISSED_KEY = "provlajky-promo-dismissed";
 
 export default function Header() {
   const { count } = useCart();
   const pathname = usePathname();
   const [stuck, setStuck] = useState(false);
+  // Výchozí true (skrytý), dokud efekt neověří sessionStorage — na serveru
+  // ani při prvním renderu na klientu nevíme, jestli uživatel pruh už
+  // zavřel, takže ho ukážeme až po zjištění stavu (žádné bliknutí).
+  const [promoDismissed, setPromoDismissed] = useState(true);
 
   useEffect(() => {
     const onScroll = () => setStuck(window.scrollY > 40);
@@ -24,27 +31,68 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of dismissal state on mount
+      setPromoDismissed(sessionStorage.getItem(PROMO_DISMISSED_KEY) === "1");
+    } catch {
+      setPromoDismissed(false);
+    }
+  }, []);
+
+  function dismissPromo() {
+    setPromoDismissed(true);
+    try {
+      sessionStorage.setItem(PROMO_DISMISSED_KEY, "1");
+    } catch {
+      // soukromé prohlížení / zakázaný storage — pruh zmizí jen pro tuhle stránku
+    }
+  }
+
   const isHome = pathname === "/";
 
   return (
     <>
-      {SALE.active && (
-        <Link href={SALE.href} className="nv-promo">
-          <span className="nv-promo-l">
+      {SALE.active && !promoDismissed && (
+        <div className="nv-promo">
+          <Link href={SALE.href} className="nv-promo-l">
             <b>Letní akce</b>
             <span>
               Sleva {SALE.percent} % na {SALE.what} — do {SALE.until}.
             </span>
             <NovaArrow />
-          </span>
-        </Link>
+          </Link>
+          <button
+            type="button"
+            className="nv-promo-close"
+            onClick={dismissPromo}
+            aria-label="Zavřít nabídku letní akce"
+          >
+            ×
+          </button>
+        </div>
       )}
 
       <header className={`nv-nav${stuck ? " is-stuck" : ""}`}>
-        <Link href="/" className="nv-logo" aria-label="PROVLAJKY.CZ — úvodní strana">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo/logo-bile.png" alt="PROVLAJKY.CZ" />
-        </Link>
+        <div className="nv-nav-left">
+          <Link href="/" className="nv-logo" aria-label="PROVLAJKY.CZ — úvodní strana">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo/logo-bile.png" alt="PROVLAJKY.CZ" />
+          </Link>
+          <details className="nv-nav-products">
+            <summary>
+              Produkty
+              <NovaArrow className="nv-arrow nv-nav-products-arrow" />
+            </summary>
+            <div className="nv-nav-products-panel">
+              {NAV_GROUPS.map((g) => (
+                <Link key={g.id} href={g.href}>
+                  {g.label}
+                </Link>
+              ))}
+            </div>
+          </details>
+        </div>
         <div className="nv-nav-right">
           <a href={isHome ? "#produkty" : "/#produkty"} className="nv-btn nv-btn-yellow">
             <span className="nv-btn-l">Vyberte si svůj produkt</span>

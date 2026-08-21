@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { updatePartner } from "@/lib/actions/partners";
-import { testSmtp, updateCostPerSize, updateMailSettings } from "@/lib/actions/settings";
+import { testSmtp, updateMailSettings } from "@/lib/actions/settings";
 import type { AllowedUser, Partner, Settings } from "@/lib/types";
 
-const TABS = ["Náklady", "Partneři", "Maily", "Uživatelé"] as const;
+const TABS = ["Partneři", "Maily", "Uživatelé"] as const;
 
 export default function SettingsForm({
   settings,
@@ -16,7 +16,7 @@ export default function SettingsForm({
   partners: Partner[];
   allowedUsers: AllowedUser[];
 }) {
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Náklady");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("Partneři");
 
   return (
     <div>
@@ -29,52 +29,10 @@ export default function SettingsForm({
       </div>
 
       <div className="set-panel">
-        {tab === "Náklady" && <CostPerSizeTab initial={settings.cost_per_size} />}
         {tab === "Partneři" && <PartnersTab partners={partners} />}
         {tab === "Maily" && <MailTab initial={settings.mail} />}
         {tab === "Uživatelé" && <UsersTab users={allowedUsers} />}
       </div>
-    </div>
-  );
-}
-
-function CostPerSizeTab({ initial }: { initial: Settings["cost_per_size"] }) {
-  const [values, setValues] = useState(initial);
-  const [isPending, startTransition] = useTransition();
-  const [saved, setSaved] = useState(false);
-
-  return (
-    <div>
-      <p className="muted">Náklad na vlajku bez DPH podle velikosti — používá se pro odhad zisku, pokud chybí dodavatelská faktura.</p>
-      <div className="cost-grid">
-        {(["S", "M", "L", "XL"] as const).map((size) => (
-          <label key={size}>
-            {size}
-            <div className="cost-input">
-              <input
-                type="number"
-                step="0.01"
-                value={values[size]}
-                onChange={(e) => setValues({ ...values, [size]: Number(e.target.value) || 0 })}
-              />
-              <span className="cur">Kč</span>
-            </div>
-          </label>
-        ))}
-      </div>
-      <button
-        className="btn primary"
-        disabled={isPending}
-        onClick={() =>
-          startTransition(async () => {
-            await updateCostPerSize(values);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 1500);
-          })
-        }
-      >
-        {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
-      </button>
     </div>
   );
 }

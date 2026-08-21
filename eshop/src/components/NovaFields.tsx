@@ -13,7 +13,6 @@
 // Panel bez fotky se vykreslí jako označený slot s cestou, kam fotku nahrát.
 
 import Link from "next/link";
-import FlagWave from "./FlagWave";
 import { NovaArrow, useInView } from "./NovaReveal";
 
 type Tile = {
@@ -23,9 +22,11 @@ type Tile = {
   href: string;
   cta: string;
   tone: "scene" | "studio" | "stage";
-  /** místo fotky vlající 3D vlajka jako dřív v katalogu */
-  visual?: "flag-b" | "flag-classic";
   fit?: "contain" | "cover";
+  /** Kotva fotky uvnitř rámu (CSS object-position) — u "scene" dlaždic
+   * s reálnou fotkou z akce potřebujeme vycentrovat na produkt (vlajky),
+   * ne na střed kompozice. */
+  objectPosition?: string;
   /** null = fotka zatím není, vykreslí se označený slot */
   img: string | null;
   slotPath?: string;
@@ -39,9 +40,9 @@ const TILES: Tile[] = [
     note: "Šest tvarů, potisk na míru, žerď i základna podle terénu.",
     href: "/plazove-vlajky",
     cta: "Vybrat vlajku",
-    tone: "stage",
-    visual: "flag-b",
-    img: null,
+    tone: "scene",
+    img: "/fotky/foto-01.jpg",
+    objectPosition: "28% 30%",
   },
   {
     id: "vlajky-na-zakazku",
@@ -49,9 +50,9 @@ const TILES: Tile[] = [
     note: "Státní i vlastní grafika, libovolný rozměr, oka podle potřeby.",
     href: "/vlajky-na-zakazku",
     cta: "Vybrat vlajku",
-    tone: "stage",
-    visual: "flag-classic",
-    img: null,
+    tone: "scene",
+    img: "/fotky/foto-02.jpg",
+    objectPosition: "50% 32%",
   },
   {
     id: "pvc-bannery",
@@ -80,7 +81,7 @@ const TILES: Tile[] = [
     href: "/nuzkove-stany",
     cta: "Vybrat stan",
     tone: "studio",
-    fit: "cover",
+    fit: "contain",
     img: "/stany/real-full.jpg",
   },
   {
@@ -90,7 +91,7 @@ const TILES: Tile[] = [
     href: "/nahradni-dily",
     cta: "Prohlédnout díly",
     tone: "studio",
-    fit: "cover",
+    fit: "contain",
     img: "/produkty/dily-vlajky.jpg",
   },
 ];
@@ -112,9 +113,7 @@ export default function NovaFields({
         <section
           key={t.id}
           id={t.id}
-          className={`nv-tile is-${t.tone}${t.fit ? ` fit-${t.fit}` : ""}${
-            t.img || t.visual ? "" : " is-slot"
-          }`}
+          className={`nv-tile is-${t.tone}${t.fit ? ` fit-${t.fit}` : ""}${t.img ? "" : " is-slot"}`}
           style={{ "--d": `${(i % 2) * 90 + Math.floor(i / 2) * 40}ms` } as React.CSSProperties}
         >
           <div className="nv-tile-head">
@@ -128,18 +127,16 @@ export default function NovaFields({
           </div>
 
           <div className="nv-tile-media">
-            {t.visual ? (
-              <FlagWave
-                shape={t.visual === "flag-b" ? "B" : "D"}
-                classic={t.visual === "flag-classic"}
-                color="#ffe701"
-                logoSrc="/logo/logo-tmave.png"
-                logoPlate
-                wind={0.14}
-              />
-            ) : t.img ? (
+            {t.img ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={t.img} alt="" draggable={false} loading="lazy" decoding="async" />
+              <img
+                src={t.img}
+                alt=""
+                draggable={false}
+                loading="lazy"
+                decoding="async"
+                style={t.objectPosition ? { objectPosition: t.objectPosition } : undefined}
+              />
             ) : (
               <p className="nv-slot-note">
                 <b>Místo pro fotku</b>

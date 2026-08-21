@@ -12,7 +12,7 @@ export async function addPayout(partnerId: string, partnerName: string, amount: 
     date: new Date().toISOString().slice(0, 10),
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/finance");
+  revalidatePath("/platby");
 }
 
 export async function addSupplierInvoice(fields: {
@@ -31,7 +31,7 @@ export async function addSupplierInvoice(fields: {
     amount_czk: fields.amount * fields.exchange_rate,
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/finance");
+  revalidatePath("/statistika");
   if (fields.order_id) revalidatePath(`/orders/${fields.order_id}`);
 }
 
@@ -39,6 +39,6 @@ export async function deleteSupplierInvoice(id: string, orderId?: string | null)
   const supabase = await createClient();
   const { error } = await supabase.from("supplier_invoices").delete().eq("id", id);
   if (error) throw new Error(error.message);
-  revalidatePath("/finance");
+  revalidatePath("/statistika");
   if (orderId) revalidatePath(`/orders/${orderId}`);
 }

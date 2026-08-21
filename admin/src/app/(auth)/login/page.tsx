@@ -62,7 +62,13 @@ function LoginForm() {
           maxWidth: 360,
         }}
       >
-        <h1 style={{ margin: "0 0 4px", fontSize: 22 }}>PROVLAJKY admin</h1>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo/logo-tmave.png"
+          alt="PROVLAJKY.CZ"
+          style={{ height: 28, width: "auto", marginBottom: 6, alignSelf: "flex-start" }}
+        />
+        <h1 style={{ margin: "0 0 4px", fontSize: 22 }}>Admin</h1>
         <p className="muted" style={{ margin: "0 0 16px", fontSize: 13 }}>
           Přihlaš se svým účtem.
         </p>

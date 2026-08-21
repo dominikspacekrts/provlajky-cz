@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { fmtMoney } from "@/lib/domain";
-import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
+import { PRODUCT_CATEGORIES, NAV_GROUPS, type Product, type ProductCategory } from "@/lib/types";
 import ActiveToggle from "./active-toggle";
 import ProductFormButton from "./product-form-button";
 import DeleteProductButton from "./delete-product-button";
@@ -46,46 +46,63 @@ export default async function ProductsPage() {
 
   return (
     <div>
-      <div className="row-between">
-        <h2>Produkty</h2>
-        <ProductFormButton />
-      </div>
+      <h2>Produkty</h2>
       <p className="muted">
         Produkty, které se zobrazují na eshopu (dev.provlajky.cz). Přepínačem „Aktivní“ rozhodneš, jestli je produkt
-        na eshopu vidět.
+        na eshopu vidět. Klikni na název skupiny a sbal ji, ať se v seznamu líp orientuješ.
       </p>
 
-      {Array.from(byCategory.entries()).map(([cat, items]) => (
-        <div key={cat} style={{ marginTop: 28 }}>
-          <h3>{PRODUCT_CATEGORIES[cat]}</h3>
-          {items.length === 0 && <p className="muted">Zatím žádné produkty v této kategorii.</p>}
-          <div className="product-grid">
-            {items.map((p) => (
-              <div key={p.id} className="product-card">
-                <div className="product-thumb">
-                  {p.images?.[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.images[0]} alt={p.name} />
-                  ) : (
-                    <span className="product-thumb-empty">🏳️</span>
+      {NAV_GROUPS.map((g) => {
+        const groupItems = g.categories.flatMap((cat) => byCategory.get(cat) ?? []);
+        return (
+          <details key={g.id} open className="product-group">
+            <summary className="product-group-summary">
+              <h3>
+                {g.label} <span className="muted" style={{ fontWeight: 400, fontSize: 14 }}>({groupItems.length})</span>
+              </h3>
+              <ProductFormButton defaultCategory={g.categories[0]} />
+            </summary>
+
+            {groupItems.length === 0 && <p className="muted">Zatím žádné produkty v této kategorii.</p>}
+            {g.categories.map((cat) => {
+              const items = byCategory.get(cat) ?? [];
+              if (items.length === 0) return null;
+              return (
+                <div key={cat} style={{ marginTop: g.categories.length > 1 ? 14 : 0 }}>
+                  {g.categories.length > 1 && (
+                    <h4 style={{ color: "var(--gray)", fontSize: 14, marginBottom: 8 }}>{PRODUCT_CATEGORIES[cat]}</h4>
                   )}
-                </div>
-                <div className="product-info">
-                  <div className="product-name">{p.name}</div>
-                  <div className="product-price">{priceLabel(p)}</div>
-                </div>
-                <div className="product-actions">
-                  <ActiveToggle productId={p.id} active={p.active} />
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <ProductFormButton product={p} />
-                    <DeleteProductButton productId={p.id} name={p.name} />
+                  <div className="product-grid">
+                    {items.map((p) => (
+                      <div key={p.id} className="product-card">
+                        <div className="product-thumb">
+                          {p.images?.[0] ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={p.images[0]} alt={p.name} />
+                          ) : (
+                            <span className="product-thumb-empty">🏳️</span>
+                          )}
+                        </div>
+                        <div className="product-info">
+                          <div className="product-name">{p.name}</div>
+                          <div className="product-price">{priceLabel(p)}</div>
+                        </div>
+                        <div className="product-actions">
+                          <ActiveToggle productId={p.id} active={p.active} />
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <ProductFormButton product={p} />
+                            <DeleteProductButton productId={p.id} name={p.name} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+              );
+            })}
+          </details>
+        );
+      })}
     </div>
   );
 }

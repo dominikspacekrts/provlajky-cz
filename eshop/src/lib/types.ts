@@ -90,13 +90,25 @@ export const PRODUCT_CATEGORIES: Record<ProductCategory, string> = {
   "nahradni-dily": "Náhradní díly a příslušenství",
 };
 
-// Kategorie, které se vypisují na landing stránce /stany (pod nůžkovými stany).
-export const TENT_CATEGORIES: ProductCategory[] = [
-  "nuzkove-stany",
-  "nafukovaci-stany",
-  "totemy",
-  "nafukovaci-brany",
-  "nahradni-dily",
+// Kategorie, které se vypisují na landing stránce /stany — jen stany
+// (totemy a brány mají vlastní stránku /brany-a-totemy, náhradní díly
+// nejsou v hlavní navigaci, ale zůstávají dostupné přes /nahradni-dily).
+export const TENT_CATEGORIES: ProductCategory[] = ["nuzkove-stany", "nafukovaci-stany"];
+
+// Kategorie, které se vypisují na landing stránce /brany-a-totemy.
+export const GATE_TOTEM_CATEGORIES: ProductCategory[] = ["nafukovaci-brany", "totemy"];
+
+// Skupiny v navigaci "Produkty" — víc raw kategorií se sloučí pod jednu
+// položku (stany, brány/totemy), zbytek je 1:1. nahradni-dily záměrně
+// chybí — nejsou v hlavní navigaci, jen dostupné přes přímý odkaz.
+export type NavGroup = { id: string; label: string; href: string; categories: ProductCategory[] };
+export const NAV_GROUPS: NavGroup[] = [
+  { id: "plazove-vlajky", label: "Plážové vlajky", href: "/plazove-vlajky", categories: ["plazove-vlajky"] },
+  { id: "vlajky-na-zakazku", label: "Vlajky na zakázku", href: "/vlajky-na-zakazku", categories: ["vlajky-na-zakazku"] },
+  { id: "pvc-bannery", label: "PVC bannery a meshe", href: "/pvc-bannery", categories: ["pvc-bannery"] },
+  { id: "stany", label: "Nůžkové a nafukovací stany", href: "/stany", categories: TENT_CATEGORIES },
+  { id: "brany-a-totemy", label: "Nafukovací brány a totemy", href: "/brany-a-totemy", categories: GATE_TOTEM_CATEGORIES },
+  { id: "prislusenstvi", label: "Příslušenství", href: "/prislusenstvi", categories: ["prislusenstvi"] },
 ];
 
 // ── Stany: odvození grafiky a seskupení podle velikosti ──────────────────────
