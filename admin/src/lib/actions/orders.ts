@@ -38,6 +38,7 @@ export async function updateOrderItem(
     vat_rate: number;
     width_cm: number | null;
     height_cm: number | null;
+    wc_line_name: string | null;
   }>
 ) {
   const supabase = await createClient();
@@ -72,6 +73,32 @@ export async function addOrderItem(orderId: string) {
     unit_price: 0,
     vat_rate: 0.21,
   });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/orders/${orderId}`);
+}
+
+// Ruční přidání položky z reálného katalogu (AddItemButton) — na rozdíl od
+// addOrderItem umí libovolný typ produktu (stany, bannery, totemy…), ne jen
+// vlajky. wc_line_name nese plný popis (produkt + varianta/rozměr), shape a
+// size se nastavují jen u skutečných vlajek (kind: configurable) — pro
+// ostatní typy zůstávají null, takže je OrderDetailClient vykreslí bez
+// (nesmyslných) tvar/velikost selectů pro vlajky.
+export async function addOrderItemFromProduct(
+  orderId: string,
+  fields: {
+    type: "flag" | "banner";
+    shape: string | null;
+    size: string | null;
+    width_cm: number | null;
+    height_cm: number | null;
+    qty: number;
+    unit_price: number;
+    vat_rate: number;
+    wc_line_name: string;
+  }
+) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("order_items").insert({ order_id: orderId, ...fields });
   if (error) throw new Error(error.message);
   revalidatePath(`/orders/${orderId}`);
 }
