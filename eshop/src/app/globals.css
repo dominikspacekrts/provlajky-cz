@@ -250,6 +250,10 @@ label:has(input[type="checkbox"]), .cb-line {
   text-transform: uppercase; color: var(--gray-light);
   font-variation-settings: "wght" 540, "wdth" 94;
 }
+.fc-stage .stage-hint {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 28px; margin-top: 0;
+  color: rgba(255, 255, 255, 0.5);
+}
 .config-price {
   display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
   padding: 22px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
@@ -306,7 +310,56 @@ label:has(input[type="checkbox"]), .cb-line {
 .qty-row label { flex: none; }
 .qty-row input { width: 88px; flex: none; text-align: center; }
 
+/* Krokové tlačítko místo číselného pole — jen kliky, žádné psaní/rolování. */
+.qty-stepper {
+  display: inline-flex; align-items: center; border: 1px solid var(--border);
+}
+.qty-stepper button {
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  background: #fff; border: none; cursor: pointer; font-size: 18px; line-height: 1;
+  color: var(--ink); transition: background 0.2s var(--nv-ease), color 0.2s var(--nv-ease);
+}
+.qty-stepper button:hover:not(:disabled) { background: var(--ink); color: #fff; }
+.qty-stepper button:disabled { opacity: 0.3; cursor: not-allowed; }
+.qty-stepper .qty-value {
+  width: 44px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums;
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border); height: 40px;
+  display: flex; align-items: center; justify-content: center;
+}
+
 .card-sub { color: var(--gray); font-size: 14.5px; line-height: 1.65; max-width: 62ch; }
+
+/* --- konfigurátor vlajek: přes celou obrazovku, panel jen s tlačítky ---- */
+.fc-page {
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(380px, 460px);
+  height: calc(100svh - var(--nv-nav-h));
+  background: var(--ink);
+}
+.fc-stage {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  animation: fc-stage-in 0.7s var(--nv-ease) both;
+}
+@keyframes fc-stage-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+.fc-stage-shape {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: rgba(255, 255, 255, 0.06);
+  animation: fc-skeleton-pulse 1.8s ease-in-out infinite;
+}
+@keyframes fc-skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.fc-stage canvas { position: relative; z-index: 1; }
+.fc-panel {
+  background: #fff; overflow-y: auto;
+  padding: clamp(24px, 3vw, 44px);
+}
+@media (max-width: 860px) {
+  .fc-page { grid-template-columns: 1fr; height: auto; }
+  .fc-stage { height: 46vh; min-height: 280px; }
+  .fc-panel { overflow-y: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fc-stage, .fc-stage-shape { animation: none; }
+}
 
 /* --- konfigurátor vlajek na zakázku --------------------------------- */
 .country-picker { position: relative; max-width: 420px; }
