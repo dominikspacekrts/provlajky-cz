@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
       .eq("discount_code", normalizedCode)
       .maybeSingle();
     if (lookupError) {
-      return NextResponse.json({ error: lookupError.message }, { status: 500 });
+      console.error("objednavka: discount code lookup failed", lookupError);
+      return NextResponse.json({ error: "Nepodařilo se ověřit slevový kód, zkuste to prosím znovu." }, { status: 500 });
     }
     if (!customer || customer.used_at) {
       return NextResponse.json({ error: "Slevový kód je neplatný nebo už byl použitý." }, { status: 400 });
@@ -69,7 +70,8 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (orderError || !order) {
-    return NextResponse.json({ error: orderError?.message || "Nepodařilo se založit objednávku." }, { status: 500 });
+    if (orderError) console.error("objednavka: order insert failed", orderError);
+    return NextResponse.json({ error: "Nepodařilo se založit objednávku, zkuste to prosím znovu." }, { status: 500 });
   }
 
   if (discountCustomer) {
@@ -93,7 +95,8 @@ export async function POST(req: NextRequest) {
 
   const { error: itemsError } = await supabase.from("order_items").insert(itemsPayload);
   if (itemsError) {
-    return NextResponse.json({ error: itemsError.message }, { status: 500 });
+    console.error("objednavka: order_items insert failed", itemsError);
+    return NextResponse.json({ error: "Nepodařilo se uložit položky objednávky, zkuste to prosím znovu." }, { status: 500 });
   }
 
   return NextResponse.json({ orderId: order.id });

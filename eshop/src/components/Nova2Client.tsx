@@ -28,12 +28,22 @@
 import Link from "next/link";
 import NovaFields from "@/components/NovaFields";
 import { NovaArrow, useInView } from "@/components/NovaReveal";
-import CountUp from "@/components/CountUp";
 import RegisterForm from "@/components/RegisterForm";
 import { SALE, saleBadge } from "@/lib/sale";
 import { HERO_GROUPS } from "@/lib/heroGroups";
 import { fmtMoney } from "@/lib/money";
 import type { ProductCategory } from "@/lib/types";
+
+// Reálná čísla za rodinu — jedno na dlaždici (viz PRODUCT.md, potvrzeno uživatelem).
+const HERO_STATS: Record<string, string> = {
+  vlajky: "300+ dodaných plážových vlajek",
+  stany: "60+ nůžkových a nafukovacích stanů",
+  bannery: "1300+ m² reklamní plochy",
+};
+
+// foto-01/foto-02 se používají jako fotky dlaždic v NovaFields níž na téže stránce —
+// tady jen ty dvě, co se jinde neopakují, ať se galerie nekryje se stejnými snímky.
+const GALLERY_PHOTOS = ["/fotky/foto-03.jpg", "/fotky/foto-04.jpg"];
 
 const STEPS = [
   {
@@ -53,17 +63,11 @@ const STEPS = [
   },
 ];
 
-const SCORE = [
-  { target: 3500, label: "vyrobených reklamních vlajek" },
-  { target: 10000, label: "m² vyrobené reklamní plochy" },
-  { target: 250, label: "spokojených zákazníků" },
-];
-
 export default function Nova2Client({ prices }: { prices: Record<string, number | null> }) {
   const lead = useInView<HTMLElement>();
+  const gallery = useInView<HTMLElement>();
   const how = useInView<HTMLElement>();
   const register = useInView<HTMLElement>();
-  const score = useInView<HTMLDivElement>(0.3);
   const call = useInView<HTMLDivElement>();
 
   return (
@@ -101,6 +105,7 @@ export default function Nova2Client({ prices }: { prices: Record<string, number 
                     "cena na dotaz"
                   )}
                 </span>
+                {HERO_STATS[g.id] && <span className="nv-shard-stat">{HERO_STATS[g.id]}</span>}
                 <span className="nv-shard-cta">
                   Konfigurovat
                   <NovaArrow className="nv-arrow" />
@@ -119,6 +124,28 @@ export default function Nova2Client({ prices }: { prices: Record<string, number 
           Všechno si nakonfigurujete online — tvar, rozměr, materiál i vlastní grafiku. Cenu vidíte hned, žádná
           poptávka ani čekání na nabídku.
         </p>
+      </section>
+
+      <section ref={gallery.ref} className={`nv-gallery${gallery.inView ? " nv-in" : ""}`}>
+        <div className="nv-gallery-head" data-reveal>
+          <span className="nv-gallery-kicker">Vlajky v akci</span>
+          <p className="nv-gallery-note">
+            Fotky přímo z akcí, kam jsme vlajky dodali — Zápal to!, Race the Streets a Dolní Vítkovice.
+          </p>
+        </div>
+        <div className="nv-gallery-grid">
+          {GALLERY_PHOTOS.map((src, i) => (
+            <div
+              key={src}
+              className="nv-gallery-item"
+              data-reveal
+              style={{ "--rd": `${i * 90}ms` } as React.CSSProperties}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt="Vlajky PROVLAJKY.CZ nasazené na motoristické akci" loading="lazy" />
+            </div>
+          ))}
+        </div>
       </section>
 
       <NovaFields saleBadge={saleBadge} saleId={SALE.tileId} />
@@ -143,7 +170,7 @@ export default function Nova2Client({ prices }: { prices: Record<string, number 
         </div>
       </section>
 
-      <section ref={register.ref} className={`nv-register${register.inView ? " nv-in" : ""}`}>
+      <section id="registrace" ref={register.ref} className={`nv-register${register.inView ? " nv-in" : ""}`}>
         <div className="nv-register-copy">
           <h2 className="nv-register-title" data-reveal>
             Zaregistrujte se a získejte 10 % slevu.
@@ -158,17 +185,6 @@ export default function Nova2Client({ prices }: { prices: Record<string, number 
       {/* Tmavý závěr homepage — plynule navazuje na patičku v layoutu. */}
       <section className="nv-close nv-close-lead">
         <div className="nv-grain" aria-hidden="true" />
-
-        <div ref={score.ref} className="nv-score">
-          {SCORE.map((s) => (
-            <div key={s.label} className="nv-score-item">
-              <div className="nv-score-num">
-                {score.inView ? <CountUp target={s.target} duration={1500} /> : <div className="num">&nbsp;</div>}
-              </div>
-              <div className="nv-score-label">{s.label}</div>
-            </div>
-          ))}
-        </div>
 
         <div ref={call.ref} className={`nv-call${call.inView ? " nv-in" : ""}`}>
           <h2 className="nv-call-title" data-reveal>
