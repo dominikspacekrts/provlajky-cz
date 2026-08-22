@@ -252,7 +252,7 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 .fc-stage .stage-hint {
   position: absolute; z-index: 2; left: 0; right: 0; bottom: 28px; margin-top: 0;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--gray-light);
 }
 .config-price {
   display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
@@ -268,6 +268,7 @@ label:has(input[type="checkbox"]), .cb-line {
 .option-row { padding: 22px 0; border-bottom: 1px solid var(--border); }
 .option-row:last-of-type { border-bottom: 0; }
 .option-label {
+  position: relative; z-index: 60;
   display: flex; align-items: center; gap: 9px; margin-bottom: 14px;
   font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gray);
   font-variation-settings: "wght" 600, "wdth" 94;
@@ -332,30 +333,30 @@ label:has(input[type="checkbox"]), .cb-line {
 /* --- konfigurátor vlajek: přes celou obrazovku, panel jen s tlačítky ---- */
 .fc-page {
   display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(380px, 460px);
-  height: calc(100svh - var(--nv-nav-h));
-  background: var(--ink);
+  min-height: calc(100svh - var(--nv-nav-h));
+  background: #fff;
 }
 .fc-stage {
   position: relative; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
+  background: #fff; border-right: 1px solid var(--border);
   animation: fc-stage-in 0.7s var(--nv-ease) both;
 }
 @keyframes fc-stage-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
 .fc-stage-shape {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  color: rgba(255, 255, 255, 0.06);
+  color: rgba(8, 8, 10, 0.05);
   animation: fc-skeleton-pulse 1.8s ease-in-out infinite;
 }
 @keyframes fc-skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 .fc-stage canvas { position: relative; z-index: 1; }
 .fc-panel {
-  background: #fff; overflow-y: auto;
+  background: #fff;
   padding: clamp(24px, 3vw, 44px);
 }
 @media (max-width: 860px) {
-  .fc-page { grid-template-columns: 1fr; height: auto; }
-  .fc-stage { height: 46vh; min-height: 280px; }
-  .fc-panel { overflow-y: visible; }
+  .fc-page { grid-template-columns: 1fr; }
+  .fc-stage { height: 46vh; min-height: 280px; border-right: 0; border-bottom: 1px solid var(--border); }
 }
 @media (prefers-reduced-motion: reduce) {
   .fc-stage, .fc-stage-shape { animation: none; }
@@ -589,7 +590,8 @@ label:has(input[type="checkbox"]), .cb-line {
 /* --- nápověda u pole ------------------------------------------------- */
 /* Nápověda je <span tabIndex>, ne <button> — rámeček proto nese sám .info-tip. */
 .info-tip {
-  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  position: relative; isolation: isolate; z-index: 50;
+  display: inline-flex; align-items: center; justify-content: center;
   width: 19px; height: 19px; flex: none; cursor: help;
   border: 1px solid var(--border); color: var(--gray);
   font-size: 10.5px; letter-spacing: 0; text-transform: none;
