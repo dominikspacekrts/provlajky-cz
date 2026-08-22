@@ -162,7 +162,8 @@ export default function FlagConfigurator({ product }: { product: Product }) {
           drawDesign={drawDesign}
           wind={0.3}
         />
-        <span className="stage-hint">Najeďte myší — vlajka se rozvlaje</span>
+        <span className="stage-hint stage-hint-hover">Najeďte myší — vlajka se rozvlaje</span>
+        <span className="stage-hint stage-hint-touch">Vlajka se rozvlaje při doteku</span>
       </div>
 
       <aside className="fc-panel reveal-stagger">
@@ -225,7 +226,7 @@ export default function FlagConfigurator({ product }: { product: Product }) {
         )}
 
         <div style={{ marginTop: 22 }}>
-          <button className="btn-outline btn-design" onClick={() => setEditorOpen(true)}>
+          <button className={`btn-outline btn-design${design ? "" : " btn-design-required"}`} onClick={() => setEditorOpen(true)}>
             <PenMark className="btn-mark" />
             {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
           </button>
@@ -236,8 +237,9 @@ export default function FlagConfigurator({ product }: { product: Product }) {
           )}
         </div>
         <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
-          Návrh není podmínkou — pokud grafiku nenahrajete, připravíme vizualizaci po objednávce my a pošleme
-          vám ji ke schválení.
+          {design
+            ? "Návrh je uložený a propíše se do objednávky."
+            : "Povinný krok — zadejte barvu podkladu a nahrajte logo, ať víme, jak má vlajka vypadat."}
         </p>
 
         <div className="config-price">
@@ -269,13 +271,18 @@ export default function FlagConfigurator({ product }: { product: Product }) {
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
+          <button className="btn-yellow" disabled={unitPrice <= 0 || !design?.logoDataUrl} onClick={handleAdd}>
             Přidat do košíku
           </button>
         </div>
         {unitPrice <= 0 && (
           <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
             Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
+          </p>
+        )}
+        {unitPrice > 0 && !design?.logoDataUrl && (
+          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+            Nejdřív navrhněte vlajku (barva podkladu + logo) — pak půjde přidat do košíku.
           </p>
         )}
 
@@ -293,10 +300,7 @@ export default function FlagConfigurator({ product }: { product: Product }) {
           sleeveColor={sleeveColor}
           initial={design}
           onSleeveColor={setSleeveColor}
-          onSave={(d) => {
-            setDesign(d);
-            setEditorOpen(false);
-          }}
+          onSave={(d) => setDesign(d)}
           onClose={() => setEditorOpen(false)}
         />
       )}

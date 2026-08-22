@@ -34,8 +34,12 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+
 function registrationEmailHtml(name: string | undefined, code: string): string {
-  const greeting = name ? `Ahoj ${name},` : "Ahoj,";
+  const greeting = name ? `Ahoj ${escapeHtml(name)},` : "Ahoj,";
   return `
     <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto;">
       <p>${greeting}</p>
@@ -94,7 +98,8 @@ export async function POST(req: NextRequest) {
         discountCode = generateCode();
         attempts++;
       } else {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("registrace: customer insert failed", error);
+        return NextResponse.json({ error: "Nepodařilo se dokončit registraci, zkuste to prosím znovu." }, { status: 500 });
       }
     }
     if (!inserted) {

@@ -9,9 +9,7 @@ import { useState } from "react";
 type Status = "idle" | "loading" | "done" | "error";
 
 export default function RegisterForm() {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -28,7 +26,7 @@ export default function RegisterForm() {
       const res = await fetch("/api/registrace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() || undefined, email: email.trim(), phone: phone.trim() || undefined }),
+        body: JSON.stringify({ email: email.trim() }),
       });
       const json = await res.json();
       if (!res.ok || json.error) {
@@ -60,22 +58,15 @@ export default function RegisterForm() {
     <form className="nv-register-form" onSubmit={submit}>
       <div className="nv-register-fields">
         <label className="nv-register-field">
-          <span>Jméno</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-        </label>
-        <label className="nv-register-field">
-          <span>E-mail *</span>
+          <span>E-mail</span>
           <input
             type="email"
             required
+            placeholder="vas@email.cz"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
           />
-        </label>
-        <label className="nv-register-field">
-          <span>Telefon</span>
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
         </label>
       </div>
       {message && status === "error" && <p className="nv-register-error">{message}</p>}

@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { Archivo } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 import SiteChrome from "@/components/SiteChrome";
 
-// Archivo má proměnnou osu šířky (wdth) — rozšířený řez nese titulky,
-// úzký drobné popisky u trati. Jeden font na celý web.
-const archivo = Archivo({
+// Space Grotesk — technický, mírně atypický grotesk s proměnnou vahou (wght),
+// nahrazuje původní příliš generický Archivo. Jeden font na celý web.
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin", "latin-ext"],
-  axes: ["wdth"],
-  variable: "--font-archivo",
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -25,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="cs" className={archivo.variable}>
+    <html lang="cs" className={spaceGrotesk.variable}>
       <body className="nv">
         <CartProvider>
           <SiteChrome>{children}</SiteChrome>

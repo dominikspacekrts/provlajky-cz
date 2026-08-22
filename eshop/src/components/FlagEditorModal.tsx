@@ -24,11 +24,21 @@ type Props = {
   onClose: () => void;
 };
 
+// Doba zavírací animace (viz .editor-backdrop.closing / .editor-panel.closing v CSS) —
+// onClose reálně odpojí modal až po jejím doběhnutí, jinak by se řezalo.
+const CLOSE_MS = 220;
+
 export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSleeveColor, onSave, onClose }: Props) {
   const [design, setDesign] = useState<FlagDesign>(initial ?? DEFAULT_DESIGN);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
+  const [closing, setClosing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dragRef = useRef(false);
+
+  const requestClose = useCallback(() => {
+    setClosing(true);
+    setTimeout(onClose, CLOSE_MS);
+  }, [onClose]);
 
   // načtení loga z dataURL
   useEffect(() => {
@@ -54,7 +64,7 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
 
   // zavření Escape + zámek scrollu
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && requestClose();
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -62,7 +72,7 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose]);
+  }, [requestClose]);
 
   const moveLogo = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -111,11 +121,11 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
   }
 
   return (
-    <div className="editor-backdrop" onClick={onClose}>
-      <div className="editor-panel" role="dialog" aria-modal="true" aria-label="Editor vlastní vlajky" onClick={(e) => e.stopPropagation()}>
+    <div className={`editor-backdrop${closing ? " closing" : ""}`} onClick={requestClose}>
+      <div className={`editor-panel${closing ? " closing" : ""}`} role="dialog" aria-modal="true" aria-label="Editor vlastní vlajky" onClick={(e) => e.stopPropagation()}>
         <div className="editor-head">
           <h2>Navrhněte si vlastní vlajku</h2>
-          <button className="editor-close" onClick={onClose} aria-label="Zavřít">✕</button>
+          <button className="editor-close" onClick={requestClose} aria-label="Zavřít">✕</button>
         </div>
 
         <div className="editor-body">
@@ -186,9 +196,21 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
               </>
             )}
 
+            {!design.logoDataUrl && (
+              <p className="editor-note editor-note-warn">Nahrajte prosím logo — bez něj návrh nejde uložit.</p>
+            )}
             <div className="editor-actions">
-              <button className="btn-yellow" onClick={() => onSave(design)}>Uložit návrh</button>
-              <button className="btn-outline" onClick={onClose}>Zrušit</button>
+              <button
+                className="btn-yellow"
+                disabled={!design.logoDataUrl}
+                onClick={() => {
+                  onSave(design);
+                  requestClose();
+                }}
+              >
+                Uložit návrh
+              </button>
+              <button className="btn-outline" onClick={requestClose}>Zrušit</button>
             </div>
           </div>
         </div>

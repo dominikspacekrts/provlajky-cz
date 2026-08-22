@@ -95,7 +95,7 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
   display: inline-flex; align-items: center;
   transition: opacity 0.15s;
 }
-.app-logo img { height: 22px; width: auto; display: block; }
+.app-logo img { height: 26px; width: auto; max-width: none; display: block; flex-shrink: 0; }
 .app-logo span { color: var(--color-accent); }
 .app-logo:hover { opacity: 0.82; }
 .back-btn {

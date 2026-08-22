@@ -79,23 +79,17 @@ export default function Header() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo/logo-bile.png" alt="PROVLAJKY.CZ" />
           </Link>
-          <details className="nv-nav-products">
-            <summary>
-              Produkty
-              <NovaArrow className="nv-arrow nv-nav-products-arrow" />
-            </summary>
-            <div className="nv-nav-products-panel">
-              {NAV_GROUPS.map((g) => (
-                <Link key={g.id} href={g.href}>
-                  {g.label}
-                </Link>
-              ))}
-            </div>
-          </details>
+          <nav className="nv-nav-groups" aria-label="Kategorie produktů">
+            {NAV_GROUPS.map((g) => (
+              <Link key={g.id} href={g.href}>
+                {g.label}
+              </Link>
+            ))}
+          </nav>
         </div>
         <div className="nv-nav-right">
-          <a href={isHome ? "#produkty" : "/#produkty"} className="nv-btn nv-btn-yellow">
-            <span className="nv-btn-l">Vyberte si svůj produkt</span>
+          <a href={isHome ? "#registrace" : "/#registrace"} className="nv-btn nv-btn-yellow">
+            <span className="nv-btn-l">Registrace · sleva 10 %</span>
           </a>
           <Link href="/kosik" className="nv-nav-cart">
             <span className="nv-btn-l">
