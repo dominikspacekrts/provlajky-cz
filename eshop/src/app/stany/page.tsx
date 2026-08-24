@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase";
-import { variantSizes, type Product } from "@/lib/types";
-import TentFold from "@/components/TentFold";
 
 export const dynamic = "force-dynamic";
 
@@ -35,53 +32,9 @@ const GROUPS = [
   },
 ] as const;
 
-export default async function StanyPage() {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("products")
-    .select("*")
-    .eq("category", "nuzkove-stany")
-    .eq("active", true)
-    .order("sort_order")
-    .limit(1);
-  const firstNuzkovy = (data?.[0] as Product | undefined) ?? undefined;
-  const firstNuzkovySize = firstNuzkovy ? variantSizes(firstNuzkovy)[0] : undefined;
-
+export default function StanyPage() {
   return (
     <div className="container stany-page">
-      <section className="stany-hero reveal-stagger">
-        <div className="stany-hero-copy">
-          <h1>Nůžkové stany s potiskem</h1>
-          <p>
-            Skládací pop-up stany s hliníkovou nůžkovou konstrukcí a plnobarevným potiskem střechy, valance i bočnic.
-            Vyber velikost, pak konfiguraci stěn — rozloží se za minutu bez nářadí.
-          </p>
-          <div className="stany-hero-cta">
-            {firstNuzkovy ? (
-              <Link
-                href={`/produkt/${firstNuzkovy.slug}${firstNuzkovySize ? `?size=${encodeURIComponent(firstNuzkovySize)}` : ""}`}
-                className="btn-yellow"
-              >
-                Sestavit stan →
-              </Link>
-            ) : (
-              <a href="mailto:info@provlajky.cz?subject=Poptávka – nůžkový stan" className="btn-yellow">
-                Poptat stan na míru
-              </a>
-            )}
-            <a href="tel:+420605981155" className="btn-outline">Zavolat nám</a>
-          </div>
-          <div className="stany-fold">
-            <TentFold />
-            <span>Nůžková konstrukce — složí a rozloží se za minutu</span>
-          </div>
-        </div>
-        <div className="stany-hero-photo">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/stan-hero.jpg" alt="Nůžkový stan s potiskem" />
-        </div>
-      </section>
-
       <section className="stany-groups reveal-stagger">
         {GROUPS.map((g) => (
           <Link key={g.href} href={g.href} className="group-tile">

@@ -108,7 +108,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: "vlajky-na-zakazku", label: "Vlajky na zakázku", href: "/vlajky-na-zakazku", categories: ["vlajky-na-zakazku"] },
   { id: "pvc-bannery", label: "PVC bannery a meshe", href: "/pvc-bannery", categories: ["pvc-bannery"] },
   { id: "stany", label: "Nůžkové a nafukovací stany", href: "/stany", categories: TENT_CATEGORIES },
-  { id: "brany-a-totemy", label: "Nafukovací brány a totemy", href: "/brany-a-totemy", categories: GATE_TOTEM_CATEGORIES },
+  { id: "brany-a-totemy", label: "Nafukovací reklama", href: "/brany-a-totemy", categories: GATE_TOTEM_CATEGORIES },
   { id: "prislusenstvi", label: "Příslušenství", href: "/prislusenstvi", categories: ["prislusenstvi"] },
 ];
 

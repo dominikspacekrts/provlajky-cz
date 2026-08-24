@@ -1,44 +1,44 @@
 "use client";
 
 /*
- * DIRECTION CONTRACT (/nova2 — refinement of the committed homepage `/`)
- *
- * THESIS: Keep the incumbent world (paddock signage, deep black, signal
- *   yellow, Archivo, liquid-glass buttons) exactly as it is, but replace
- *   the single full-bleed photo hero with three asymmetric fractured
- *   panels — one per major product family — each a direct, credible
- *   entry point: real photo, real starting price from Supabase, one
- *   click to the category. No more single CTA + a 6-column nav strip
- *   underneath it; the hero itself IS the navigation.
- * OWN-WORLD: unchanged palette/type/motion/components (Header, Footer,
- *   NovaFields, liquid-glass .nv-btn) — only the hero region is new.
- * STORY: visitor lands, sees three real product scenes split by
- *   diagonal "crack" seams, each labelled with its family and a real
- *   "od X Kč" price, picks one, lands in that category/config flow.
- * FIRST VIEWPORT: full-bleed hero split into 3 trapezoid shards
- *   (asymmetric: middle "Nafukovací a nůžkové stany" widest), each a
- *   full-height clickable link with its own photo + shade + label.
- * FORM: extension of the incumbent world per user's explicit direction
- *   ("zachovej vizuál původní hero stránky") — no concept roll, no new
- *   type/color system introduced.
- * FINISH: unreviewed and undocumented is unfinished; this build ends
- *   with the finish review, the verdict, and DESIGN.md.
+ * Homepage (`/`) — jednoduchý hero: nadpis "Vyberte, nahrajte logo,
+ * hotovo." + text vpravo, pod tím reálné fotky z akcí ("Vlajky v akci"),
+ * a hned pod tím tři ostré dlaždice pro hlavní produktové rodiny (stejný
+ * vzor .group-tile jako na /stany — žádné diagonální švy, jen fotka +
+ * titulek + CTA). Zbytek stránky (NovaFields mřížka, jak-na-to kroky,
+ * registrace, závěrečná výzva) je beze změny.
  */
 
 import Link from "next/link";
 import NovaFields from "@/components/NovaFields";
 import { NovaArrow, useInView } from "@/components/NovaReveal";
 import RegisterForm from "@/components/RegisterForm";
-import { HERO_GROUPS } from "@/lib/heroGroups";
-import { fmtMoney } from "@/lib/money";
 import type { ProductCategory } from "@/lib/types";
 
-// Reálná čísla za rodinu — jedno na dlaždici (viz PRODUCT.md, potvrzeno uživatelem).
-const HERO_STATS: Record<string, string> = {
-  vlajky: "300+ dodaných plážových vlajek",
-  stany: "60+ nůžkových a nafukovacích stanů",
-  bannery: "1300+ m² reklamní plochy",
-};
+// Tři hlavní produktové rodiny — ostré vstupní dlaždice hned pod herem.
+const HOME_GROUPS = [
+  {
+    id: "vlajky",
+    title: "Plážové vlajky",
+    href: "/plazove-vlajky",
+    note: "Šest tvarů, potisk na míru, cenu vidíte hned v konfigurátoru.",
+    img: "/hero/plazove-vlajky.jpg",
+  },
+  {
+    id: "bannery",
+    title: "Bannery a meshe",
+    href: "/pvc-bannery",
+    note: "PVC i mesh, cena za m², oka po obvodu.",
+    img: "/hero/bannery.jpg",
+  },
+  {
+    id: "stany",
+    title: "Nůžkové a nafukovací stany",
+    href: "/stany",
+    note: "Skládací i nafukovací konstrukce s potiskem na míru.",
+    img: "/hero/nafukovaci-stan.jpg",
+  },
+] as const;
 
 // foto-01/foto-02 se používají jako fotky dlaždic v NovaFields níž na téže stránce —
 // tady jen ty dvě, co se jinde neopakují, ať se galerie nekryje se stejnými snímky.
@@ -63,12 +63,8 @@ const STEPS = [
 ];
 
 export default function Nova2Client({
-  prices,
-  heroSalePct,
   salePctByCategory,
 }: {
-  prices: Record<string, number | null>;
-  heroSalePct: Record<string, number>;
   salePctByCategory: Partial<Record<ProductCategory, number>>;
 }) {
   const lead = useInView<HTMLElement>();
@@ -79,53 +75,10 @@ export default function Nova2Client({
 
   return (
     <>
-      <section className="nv-hero3" aria-label="Hlavní produktové rodiny">
-        <div className="nv-grain" aria-hidden="true" />
-        {/* Tlusté černé švy — šev A přes celou výšku (58 %→8 %, strmější
-            úhel než dřív, prostřední panel má víc místa), šev B jen od
-            průsečíku s A dolů (42,2 %/31,5 % → 82 %/100 %); nad
-            průsečíkem leží šev B pod panelem 0, takže tam není vidět a
-            nekreslí se. Clip-path sám o sobě žádnou hranici nekreslí,
-            takže se kreslí samostatně jako overlay nad fotkami. */}
-        <svg className="nv-hero3-seams" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <polyline points="58,0 8,100" />
-          <polyline points="42.24,31.52 82,100" />
-        </svg>
-        {HERO_GROUPS.map((g, i) => {
-          const price = prices[g.id];
-          const salePct = heroSalePct[g.id] || 0;
-          return (
-            <Link key={g.id} href={g.href} className={`nv-shard nv-shard-${i}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={g.image} alt="" className="nv-shard-photo" draggable={false} loading={i === 0 ? "eager" : "lazy"} />
-              <span className="nv-shard-shade" aria-hidden="true" />
-              <span className="nv-shard-body">
-                {salePct > 0 && <span className="nv-shard-badge">−{salePct} %</span>}
-                <span className="nv-shard-title">{g.title}</span>
-                <span className="nv-shard-price">
-                  {price != null ? (
-                    <>
-                      od {fmtMoney(price)} <em>bez DPH</em>
-                    </>
-                  ) : (
-                    "cena na dotaz"
-                  )}
-                </span>
-                {HERO_STATS[g.id] && <span className="nv-shard-stat">{HERO_STATS[g.id]}</span>}
-                <span className="nv-shard-cta">
-                  Konfigurovat
-                  <NovaArrow className="nv-arrow" />
-                </span>
-              </span>
-            </Link>
-          );
-        })}
-      </section>
-
       <section ref={lead.ref} className={`nv-lead${lead.inView ? " nv-in" : ""}`}>
-        <h2 className="nv-lead-title" data-reveal>
+        <h1 className="nv-lead-title" data-reveal>
           Vyberte, nahrajte logo, hotovo.
-        </h2>
+        </h1>
         <p className="nv-lead-body" data-reveal style={{ "--rd": "120ms" } as React.CSSProperties}>
           Všechno si nakonfigurujete online — tvar, rozměr, materiál i vlastní grafiku. Cenu vidíte hned, žádná
           poptávka ani čekání na nabídku.
@@ -150,6 +103,32 @@ export default function Nova2Client({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={src} alt="Vlajky PROVLAJKY.CZ nasazené na motoristické akci" loading="lazy" />
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="nv-groups">
+        <div className="nv-groups-grid reveal-stagger">
+          {HOME_GROUPS.map((g) => (
+            <Link key={g.id} href={g.href} className="group-tile">
+              <div className="group-tile-photo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={g.img}
+                  alt={g.title}
+                  loading="lazy"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              </div>
+              <div className="group-tile-body">
+                <div className="group-tile-title">{g.title}</div>
+                <p className="group-tile-note">{g.note}</p>
+                <span className="group-tile-cta">
+                  Zobrazit
+                  <NovaArrow className="nv-arrow" />
+                </span>
+              </div>
+            </Link>
           ))}
         </div>
       </section>
