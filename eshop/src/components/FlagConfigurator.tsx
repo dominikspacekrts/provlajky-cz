@@ -24,6 +24,7 @@ import {
   type FlagDesign,
 } from "@/lib/flagShapes";
 import { CheckMark, PenMark } from "@/components/Icons";
+import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 
 // FlagWave táhne celé three.js jen kvůli animaci vlání — na první vykreslení
 // stránky to nepotřebujeme, takže jde do vlastního JS chunku a načte se až
@@ -43,7 +44,13 @@ function ShapeIcon({ shape, size = 44 }: { shape: FlagShape; size?: number }) {
   );
 }
 
-export default function FlagConfigurator({ product }: { product: Product }) {
+export default function FlagConfigurator({
+  product,
+  galleryPhotos,
+}: {
+  product: Product;
+  galleryPhotos?: { id: string; image: string }[];
+}) {
   const { addLine } = useCart();
   const router = useRouter();
 
@@ -149,7 +156,7 @@ export default function FlagConfigurator({ product }: { product: Product }) {
   }
 
   return (
-    <div className="fc-page">
+    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
       <div className="fc-stage">
         <div className="fc-stage-shape" aria-hidden="true">
           <ShapeIcon shape={shape} size={220} />
@@ -292,6 +299,8 @@ export default function FlagConfigurator({ product }: { product: Product }) {
           </p>
         )}
       </aside>
+
+      <ConfiguratorGallery photos={galleryPhotos ?? []} />
 
       {editorOpen && (
         <FlagEditorModal

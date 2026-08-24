@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase";
-import { fmtMoney, minVariantSell } from "@/lib/money";
-import { PRODUCT_CATEGORIES, TENT_CATEGORIES, variantSizes, type Product, type ProductCategory } from "@/lib/types";
+import { variantSizes, type Product } from "@/lib/types";
 import TentFold from "@/components/TentFold";
 
 export const dynamic = "force-dynamic";
@@ -13,22 +12,39 @@ export const metadata: Metadata = {
   description: "Skládací nůžkové stany a nafukovací stany s plnobarevným potiskem na míru.",
 };
 
+// Tři samostatné vstupy — klikem na dlaždici se otevře jen ta jedna skupina
+// (přes existující /[category] výpis), ne všechno naráz pod sebou.
+const GROUPS = [
+  {
+    href: "/nuzkove-stany",
+    title: "Nůžkové stany",
+    note: "Skládací hliníková konstrukce, rozložený za minutu.",
+    img: "/stany/real-full.jpg",
+  },
+  {
+    href: "/nafukovaci-stany",
+    title: "Nafukovací stany",
+    note: "Postaví jeden člověk, plnobarevný potisk stěn i střechy.",
+    img: "/produkty/nafukovaci-stan.jpg",
+  },
+  {
+    href: "/nahradni-dily",
+    title: "Náhradní díly",
+    note: "Rámy, plachty, dmychadla a další příslušenství ke stanům.",
+    img: "/produkty/dily-stany.jpg",
+  },
+] as const;
+
 export default async function StanyPage() {
   const supabase = createClient();
   const { data } = await supabase
     .from("products")
     .select("*")
-    .in("category", TENT_CATEGORIES)
+    .eq("category", "nuzkove-stany")
     .eq("active", true)
-    .order("category")
-    .order("sort_order");
-  const products = (data || []) as Product[];
-
-  const byCategory = new Map<ProductCategory, Product[]>();
-  for (const cat of TENT_CATEGORIES) byCategory.set(cat, []);
-  for (const p of products) byCategory.get(p.category)?.push(p);
-
-  const firstNuzkovy = byCategory.get("nuzkove-stany")?.[0];
+    .order("sort_order")
+    .limit(1);
+  const firstNuzkovy = (data?.[0] as Product | undefined) ?? undefined;
   const firstNuzkovySize = firstNuzkovy ? variantSizes(firstNuzkovy)[0] : undefined;
 
   return (
@@ -66,60 +82,27 @@ export default async function StanyPage() {
         </div>
       </section>
 
-      {TENT_CATEGORIES.map((cat) => {
-        const items = byCategory.get(cat) ?? [];
-        if (items.length === 0) return null;
-        return (
-          <section key={cat} id={cat} className="stany-section reveal-stagger">
-            <h2>{PRODUCT_CATEGORIES[cat]}</h2>
-            <div className="category-grid">
-              {items.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
+      <section className="stany-groups reveal-stagger">
+        {GROUPS.map((g) => (
+          <Link key={g.href} href={g.href} className="group-tile">
+            <div className="group-tile-photo">
+              <Image
+                src={g.img}
+                alt={g.title}
+                width={640}
+                height={480}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                unoptimized
+              />
             </div>
-          </section>
-        );
-      })}
-
-      {products.length === 0 && (
-        <p className="muted" style={{ color: "var(--gray)", marginTop: 24 }}>
-          Katalog stanů právě plníme. Napište nám na <a href="mailto:info@provlajky.cz">info@provlajky.cz</a> a
-          připravíme nabídku na míru.
-        </p>
-      )}
+            <div className="group-tile-body">
+              <div className="group-tile-title">{g.title}</div>
+              <p className="group-tile-note">{g.note}</p>
+              <span className="group-tile-cta">Zobrazit →</span>
+            </div>
+          </Link>
+        ))}
+      </section>
     </div>
-  );
-}
-
-function ProductCard({ product }: { product: Product }) {
-  const from = minVariantSell(product.config?.variants);
-  return (
-    <Link href={`/produkt/${product.slug}`} className="category-card">
-      <div className="thumb">
-        {product.images?.[0] ? (
-          <Image
-            src={product.images[0]}
-            alt={product.name}
-            width={320}
-            height={320}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            unoptimized
-          />
-        ) : (
-          <span style={{ fontSize: 46 }}>⛺</span>
-        )}
-      </div>
-      <div className="body">
-        <div className="name">{product.name}</div>
-        {product.subtitle && <div className="card-sub">{product.subtitle}</div>}
-        <div className="price">
-          {from != null ? (
-            <>od {fmtMoney(from)} <span className="vat">bez DPH</span></>
-          ) : (
-            "cena na dotaz"
-          )}
-        </div>
-      </div>
-    </Link>
   );
 }

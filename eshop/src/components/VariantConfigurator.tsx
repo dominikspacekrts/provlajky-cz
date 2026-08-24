@@ -41,6 +41,12 @@ export default function VariantConfigurator({ product, size }: { product: Produc
   const isNafukovaci = product.category === "nafukovaci-stany";
   const title = size ? `${product.name} ${size}` : product.name;
 
+  // Když je velikost už daná (viz filtr variants výš), je zbytečné ji
+  // opakovat v každém štítku ("3×3 m · rám + strop..." pro každou volbu) —
+  // ať jde vidět jen to, čím se možnosti liší.
+  const stripSizePrefix = (label: string) =>
+    size ? label.replace(new RegExp(`^\\s*${size.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*·\\s*`), "") : label;
+
   const [variantId, setVariantId] = useState<string>(variants[0]?.id ?? "");
   const selected = variants.find((v) => v.id === variantId) ?? variants[0];
 
@@ -86,8 +92,8 @@ export default function VariantConfigurator({ product, size }: { product: Produc
   }
 
   return (
-    <div className="configurator">
-      <div className="config-preview">
+    <div className="fc-page">
+      <div className="fc-stage">
         {(isNuzkovy || isNafukovaci) && selected ? (
           <Image
             src={isNuzkovy ? tentRealImage(wallsFromVariant(selected)) : INFLATABLE_TENT_IMAGE}
@@ -111,22 +117,25 @@ export default function VariantConfigurator({ product, size }: { product: Produc
         )}
       </div>
 
-      <div>
-        <h1 style={{ fontSize: 30 }}>{title}</h1>
+      <aside className="fc-panel reveal-stagger">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
+
+        <h1 style={{ fontSize: 28 }}>{title}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
         <div className="option-label">{isNuzkovy ? "Konfigurace stěn" : "Varianta"}</div>
-        <select
-          className="variant-select"
-          value={selected?.id}
-          onChange={(e) => setVariantId(e.target.value)}
-        >
+        <div className="option-row">
           {variants.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.label}
-            </option>
+            <button
+              key={v.id}
+              className={`option-chip${selected?.id === v.id ? " active" : ""}`}
+              onClick={() => setVariantId(v.id)}
+            >
+              {stripSizePrefix(v.label)}
+            </button>
           ))}
-        </select>
+        </div>
 
         {speeds.length > 0 && (
           <>
@@ -157,12 +166,15 @@ export default function VariantConfigurator({ product, size }: { product: Produc
 
         <div className="qty-row">
           <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <input
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-          />
+          <div className="qty-stepper">
+            <button type="button" aria-label="Ubrat kus" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}>
+              −
+            </button>
+            <span className="qty-value">{qty}</span>
+            <button type="button" aria-label="Přidat kus" onClick={() => setQty((q) => q + 1)}>
+              +
+            </button>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -185,7 +197,7 @@ export default function VariantConfigurator({ product, size }: { product: Produc
             {product.description}
           </p>
         )}
-      </div>
+      </aside>
     </div>
   );
 }

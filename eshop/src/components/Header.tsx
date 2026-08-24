@@ -5,7 +5,7 @@
 // Na homepage leží lišta nad hero fotkou, na podstránkách nad papírovým
 // podkladem — proto má vždycky plnou tmavou výplň, ne průhlednou.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
@@ -23,6 +23,7 @@ export default function Header() {
   // ani při prvním renderu na klientu nevíme, jestli uživatel pruh už
   // zavřel, takže ho ukážeme až po zjištění stavu (žádné bliknutí).
   const [promoDismissed, setPromoDismissed] = useState(true);
+  const promoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setStuck(window.scrollY > 40);
@@ -40,6 +41,19 @@ export default function Header() {
     }
   }, []);
 
+  // Skutečná výška promo pruhu jako CSS proměnná — konfigurátor (.fc-page)
+  // z ní počítá, kolik místa nahoře doopravdy zbývá, ať se vejde na obrazovku
+  // celý bez scrollu. 0, když je pruh pryč/skrytý/žádná akce neběží.
+  useEffect(() => {
+    const setVar = () => {
+      const h = !promoDismissed && promoRef.current ? promoRef.current.getBoundingClientRect().height : 0;
+      document.documentElement.style.setProperty("--nv-promo-h", `${h}px`);
+    };
+    setVar();
+    window.addEventListener("resize", setVar);
+    return () => window.removeEventListener("resize", setVar);
+  }, [promoDismissed]);
+
   function dismissPromo() {
     setPromoDismissed(true);
     try {
@@ -54,7 +68,7 @@ export default function Header() {
   return (
     <>
       {SALE.active && !promoDismissed && (
-        <div className="nv-promo">
+        <div className="nv-promo" ref={promoRef}>
           <Link href={SALE.href} className="nv-promo-l">
             <b>Letní akce</b>
             <span>
