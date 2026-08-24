@@ -402,7 +402,9 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 
 /* --- konfigurátor: pravý sloupec s galerií hotových realizací -------- */
-.fc-page-3col { grid-template-columns: minmax(0, 1.05fr) minmax(360px, 420px) minmax(200px, 240px); }
+/* Galerie vlevo, pak stage, pak panel — order místo přeskládání JSX. */
+.fc-page-3col { grid-template-columns: minmax(200px, 240px) minmax(0, 1.05fr) minmax(360px, 420px); }
+.fc-page-3col .fc-gallery { order: -1; }
 .fc-gallery {
   position: relative; overflow: hidden auto; border-radius: 22px;
   background: rgba(255, 255, 255, 0.55);
@@ -638,22 +640,6 @@ label:has(input[type="checkbox"]), .cb-line {
 
 /* --- /stany ---------------------------------------------------------- */
 .stany-page { padding-bottom: clamp(50px, 8vh, 90px); }
-.stany-hero {
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: clamp(30px, 5vh, 56px);
-}
-.stany-hero-copy { background: var(--ink); color: #fff; padding: clamp(28px, 5vw, 58px); }
-.stany-hero-copy h1 { font-size: clamp(28px, 3.6vw, 52px); letter-spacing: -0.035em;
-  font-variation-settings: "wght" 680, "wdth" 116; }
-.stany-hero-copy p { margin-top: 16px; color: rgba(255, 255, 255, 0.78); line-height: 1.7; max-width: 46ch; }
-.stany-hero-cta { margin-top: 26px; display: flex; gap: 10px; flex-wrap: wrap; }
-.stany-hero-cta .btn-outline { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
-.stany-hero-cta .btn-outline::before { background: #fff; }
-.stany-hero-cta .btn-outline:hover { color: var(--ink); border-color: #fff; }
-.stany-hero-photo { background: #fff; display: flex; align-items: center; justify-content: center;
-  overflow: hidden; min-height: 280px; }
-.stany-hero-photo img { width: 100%; height: 100%; object-fit: cover; }
-.stany-fold { display: flex; justify-content: center; padding: clamp(16px, 3vh, 32px) 0; }
 
 /* --- /stany: tři vstupní dlaždice (nůžkové/nafukovací/díly) ---------- */
 .stany-groups {
@@ -680,33 +666,7 @@ label:has(input[type="checkbox"]), .cb-line {
   transition: transform 0.3s var(--nv-ease);
 }
 .group-tile:hover .group-tile-cta { transform: translateX(4px); }
-.tentfold, .tentgraphic { max-width: 100%; height: auto; }
-
-/* Skládací nůžkový stan (TentFold) — leží na tmavém panelu, proto světlá
-   konstrukce a bílá valance; stín je světlý, aby nezmizel v černé. */
-.tentfold .tf-shadow { fill: #fff; opacity: 0.1; }
-.tentfold .tf-frame line { stroke: #d3d7dd; stroke-width: 4.5; stroke-linecap: round; }
-.tentfold .tf-frame .tf-x { stroke: #9aa0a8; stroke-width: 3.2; }
-.tentfold .tf-roof { fill: var(--yellow); }
-.tentfold .tf-roof-shade { fill: #e6cf00; }
-.tentfold .tf-valance { fill: #fff; stroke: #d9dbdf; stroke-width: 1; }
-.tentfold .tf-tent { transform-box: fill-box; transform-origin: 50% 100%; }
-.tentfold .tf-canopy { transform-box: fill-box; transform-origin: 50% 100%; }
-@media (prefers-reduced-motion: no-preference) {
-  .tentfold .tf-tent { animation: tentFold 5s cubic-bezier(0.6, 0, 0.3, 1) infinite; }
-  .tentfold .tf-canopy { animation: canopyDrop 5s cubic-bezier(0.6, 0, 0.3, 1) infinite; }
-  .stany-fold:hover .tf-tent, .stany-fold:hover .tf-canopy { animation-duration: 2.4s; }
-}
-@keyframes tentFold {
-  0%, 20% { transform: scaleX(1); }
-  46%, 60% { transform: scaleX(0.13); }
-  86%, 100% { transform: scaleX(1); }
-}
-@keyframes canopyDrop {
-  0%, 20% { transform: translateY(0); }
-  46%, 60% { transform: translateY(48px) scaleY(0.72); }
-  86%, 100% { transform: translateY(0) scaleY(1); }
-}
+.tentgraphic { max-width: 100%; height: auto; }
 .category-card .thumb .tentgraphic { width: 82%; height: auto; }
 .config-preview .tentgraphic { width: 88%; height: auto; }
 
@@ -761,7 +721,6 @@ label:has(input[type="checkbox"]), .cb-line {
 @media (max-width: 1000px) {
   .configurator { grid-template-columns: 1fr; }
   .editor-body { grid-template-columns: 1fr; }
-  .stany-hero { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
   .form-grid { grid-template-columns: 1fr; }
@@ -1108,137 +1067,6 @@ html:has(.nv) { scroll-behavior: smooth; }
 }
 .nv-entry a:hover > span, .nv-entry a:focus-visible > span { color: var(--nv-ink); letter-spacing: 0.18em; }
 
-/* --- /nova2 hero: tři asymetrické "prasklinové" panely --------------
-   Nahrazuje jednu fotku na pozadí + vstupní lištu třemi plnohodnotnými
-   vstupy — každý panel je celý klikatelný, má vlastní fotku a reálnou
-   cenu. Švy mezi panely nejsou rovné úhlopříčky, ale mají jeden zlom
-   (jako prasklina), a šířky jsou schválně nesymetrické — prostřední
-   panel (nafukovací/nůžkové stany) je nejširší rodina, dostává nejvíc
-   místa. Stejná paleta/pohyb jako zbytek webu, jen jiná kompozice. */
-.nv-hero3 {
-  position: relative; overflow: hidden;
-  min-height: 560px; height: calc(100svh - var(--nv-nav-h));
-  background: var(--nv-ink);
-}
-.nv-hero3-seams {
-  position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%;
-  pointer-events: none;
-}
-.nv-hero3-seams polyline {
-  fill: none; stroke: #000; stroke-width: 3.5; stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-.nv-shard {
-  position: absolute; inset: 0; display: block; overflow: hidden;
-  text-decoration: none; color: #fff;
-}
-.nv-shard-photo {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; object-position: 50% 42%;
-  transform: scale(1.04);
-  transition: transform 8s var(--nv-ease-io);
-}
-/* Panel je úzký, takže potřebuje vlastní kotvu na fotce — bez toho by
-   klidně useklo právě ten motiv, který má ukázat. */
-.nv-shard-0 .nv-shard-photo { object-position: 26% 45%; }
-.nv-shard-1 .nv-shard-photo { object-position: 57% 36%; }
-.nv-shard-2 .nv-shard-photo { object-position: 70% 82%; }
-.nv-shard:hover .nv-shard-photo, .nv-shard:focus-visible .nv-shard-photo { transform: scale(1.1); }
-.nv-shard-shade {
-  position: absolute; inset: 0; z-index: 1;
-  /* Text teď sedí výš (kolem 30–46 % od spodu, viz .nv-shard-body), takže
-     ztmavený pruh musí sahat dál nahoru než dřív, aby popisky zůstaly
-     čitelné na jakékoli fotce — horní ~40 % panelu zůstává nedotčené. */
-  background: linear-gradient(180deg, rgba(8, 8, 10, 0) 0%, rgba(8, 8, 10, 0) 38%, rgba(8, 8, 10, 0.42) 62%, rgba(8, 8, 10, 0.9) 100%);
-  transition: background 0.4s var(--nv-ease);
-}
-.nv-shard:hover .nv-shard-shade, .nv-shard:focus-visible .nv-shard-shade {
-  background: linear-gradient(180deg, rgba(8, 8, 10, 0) 0%, rgba(8, 8, 10, 0) 38%, rgba(8, 8, 10, 0.34) 62%, rgba(8, 8, 10, 0.84) 100%);
-}
-/* Text vycentrovaný uvnitř své dlaždice. Prostřední panel (shard-1) nemá
-   vlastní clip-path (spans celou šířku hera), takže se centruje na celou
-   šířku. Levý a pravý panel jsou ale u paty úzké klíny (viz komentář u
-   švů níž) — kdyby se centrovaly na celou šířku hera jako shard-1, jejich
-   vlastní bod centrování by ležel MIMO jejich zúženou viditelnou plochu a
-   text by ho ořezal clip-path úplně pryč. Proto mají shard-0/shard-2
-   vlastní, užší box ukotvený u svého okraje (viz jejich override níž) —
-   v NĚM je text vystředěný, ne v celé šířce hera. */
-.nv-shard-body {
-  position: absolute; left: 0; right: 0; bottom: 16%; z-index: 2;
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 0 24px; text-align: center;
-  max-width: 260px; margin: 0 auto;
-}
-.nv-shard-badge {
-  background: var(--nv-yellow); color: var(--ink);
-  font-size: 11.5px; font-variation-settings: "wght" 700, "wdth" 96;
-  letter-spacing: 0.06em; padding: 5px 10px; margin-bottom: 2px;
-}
-.nv-shard-title {
-  font-size: clamp(22px, 2.5vw, 34px); line-height: 1.06;
-  font-variation-settings: "wght" 680, "wdth" 114; letter-spacing: -0.025em;
-  text-wrap: balance;
-}
-.nv-shard-price {
-  font-size: 16px; color: rgba(255, 255, 255, 0.92);
-}
-.nv-shard-price em {
-  font-style: normal; font-size: 12.5px; color: rgba(255, 255, 255, 0.62); margin-left: 2px;
-}
-.nv-shard-stat {
-  font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--nv-yellow); font-variation-settings: "wght" 620, "wdth" 100;
-}
-.nv-shard-cta {
-  display: inline-flex; align-items: center; gap: 8px; margin-top: 6px;
-  font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
-  font-variation-settings: "wght" 600, "wdth" 96; color: var(--nv-yellow);
-}
-.nv-shard-cta .nv-arrow { width: 0.95em; height: 0.95em; transition: transform 0.4s var(--nv-ease); }
-.nv-shard:hover .nv-shard-cta .nv-arrow, .nv-shard:focus-visible .nv-shard-cta .nv-arrow { transform: translateX(4px); }
-
-/* Dvě NEZÁVISLÉ přímé švy — žádná umělá vodorovná čára. Šev A (0/1):
-   nahoře pevně na 58 %, dole posunutý na 8 % (strmější úhel, aby
-   prostřední panel dostal víc místa) — horní bod (vrchol/průsečík s
-   B) se neposouvá, mění se jen dolní. Šev B (1/2): 46 %/38 % → 82 %/
-   100 % přes celou výšku, kde přirozeně protne šev A (dopočteno, ne
-   ručně odhadnuto). Nad průsečíkem leží šev B pod šarží 0 (z-index),
-   takže se tam vůbec nezobrazí a celá ta plocha patří panelu 2
-   (Bannery a meshe); prostřední panel (1) je bez vlastního clip-path
-   a jen "prosvítá" ve zbylé mezeře mezi oběma švy. */
-.nv-shard-0 {
-  clip-path: polygon(0% 0%, 58% 0%, 8% 100%, 0% 100%);
-  z-index: 3;
-}
-.nv-shard-0 .nv-shard-body { left: 0; right: auto; width: 220px; max-width: 220px; margin: 0; }
-.nv-shard-1 {
-  clip-path: none;
-  z-index: 1;
-}
-/* Viditelná šířka prostředního panelu dole je jen ~56 % hera — bez
-   vlastního max-width by titulek nevěděl, kdy se zalomit, a nechal by
-   se prostě uříznout klipovací hranicí místo přechodu na 2. řádek. */
-.nv-shard-1 .nv-shard-body { max-width: 400px; }
-.nv-shard-2 {
-  clip-path: polygon(23.94% 0%, 100% 0%, 100% 100%, 82% 100%);
-  z-index: 2;
-}
-.nv-shard-2 .nv-shard-body { left: auto; right: 0; width: 220px; max-width: 220px; margin: 0; }
-@media (max-width: 860px) {
-  .nv-hero3 { height: auto; min-height: 0; }
-  .nv-hero3-seams { display: none; }
-  .nv-shard {
-    position: relative; inset: auto; height: 46vh; min-height: 280px;
-    clip-path: none !important;
-  }
-  .nv-shard-body {
-    position: absolute; left: 0 !important; right: 0 !important; bottom: 0 !important; max-width: none !important;
-    align-items: flex-start !important; text-align: left !important;
-    padding: 0 var(--nv-pad) 28px !important;
-  }
-  .nv-shard-2 .nv-shard-badge { align-self: flex-start; }
-}
-
 /* --- odkrývání sekcí při scrollu ---------------------------------- */
 .nv-in [data-reveal] { animation: nv-rise 1s var(--nv-ease) var(--rd, 0ms) both; }
 
@@ -1287,6 +1115,18 @@ html:has(.nv) { scroll-behavior: smooth; }
 @media (max-width: 720px) {
   .nv-gallery-grid { grid-template-columns: 1fr; }
   .nv-gallery-item { aspect-ratio: 4 / 3; }
+}
+
+/* --- tři ostré vstupní dlaždice pod herem (hlavní produktové rodiny) --
+   Stejný vzor jako .group-tile na /stany, jen ve full-bleed sekci s
+   --nv-pad odsazením místo .container. */
+.nv-groups {
+  background: var(--nv-paper);
+  padding: 0 var(--nv-pad) clamp(70px, 11vh, 140px);
+}
+.nv-groups-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
 }
 
 /* --- produktová mřížka: dva sloupce velkých panelů ---------------- */
