@@ -75,6 +75,7 @@ export type Product = {
   images: string[];
   active: boolean;
   sort_order: number;
+  sale_pct: number;
   config: ProductConfig;
 };
 
@@ -177,6 +178,10 @@ export type OrderItemDesign = {
   // metadata navíc (admin je ignoruje): odkud návrh přišel a přesné hodnoty z eshop editoru
   source?: "eshop";
   eshop?: { logoX: number; logoY: number; logoScale: number; shape: string; hs: boolean };
+  // Veřejná URL nahrané grafiky ve Supabase Storage (viz /api/objednavka) —
+  // uložená vedle base64 polí výše, nenahrazuje je (ta pořád čte vizualizace
+  // a editor v adminu), slouží jen ke stažení originálu k výrobě.
+  artworkUrl?: string;
 };
 
 export type CartLine = {

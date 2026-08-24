@@ -90,9 +90,18 @@ export type FlagDesign = {
   logoY: number;
   /** šířka loga jako podíl šířky vlajky, 0–1 */
   logoScale: number;
+  /** otočení loga ve stupních, kolem jeho středu */
+  logoRotation: number;
 };
 
-export const DEFAULT_DESIGN: FlagDesign = { bgColor: "#ffe701", logoDataUrl: null, logoX: 0.55, logoY: 0.4, logoScale: 0.55 };
+export const DEFAULT_DESIGN: FlagDesign = {
+  bgColor: "#ffe701",
+  logoDataUrl: null,
+  logoX: 0.55,
+  logoY: 0.4,
+  logoScale: 0.55,
+  logoRotation: 0,
+};
 
 export type FlagTextureOptions = {
   shape: FlagShape;
@@ -295,7 +304,13 @@ export function designPainter(design: FlagDesign, logoImg: HTMLImageElement | nu
     if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
       const lw = w * design.logoScale;
       const lh = lw * (logoImg.naturalHeight / logoImg.naturalWidth);
-      ctx.drawImage(logoImg, design.logoX * w - lw / 2, design.logoY * h - lh / 2, lw, lh);
+      const cx = design.logoX * w;
+      const cy = design.logoY * h;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(((design.logoRotation || 0) * Math.PI) / 180);
+      ctx.drawImage(logoImg, -lw / 2, -lh / 2, lw, lh);
+      ctx.restore();
     }
   };
 }

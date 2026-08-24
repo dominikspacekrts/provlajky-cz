@@ -3,7 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Customer, Design } from "@/lib/types";
+import { generateVisualPdf } from "@/lib/pdf/visual";
+import type { Customer, Design, Order, OrderItem } from "@/lib/types";
+
+// Base64 PDF bytes pro přílohu e-mailu "Odeslat vizualizaci" — generuje se
+// server-side ze stejných dat, co vidí objednávka v adminu (ne z prohlížeče).
+export async function getVisualPdfBase64(orderId: string): Promise<string> {
+  const supabase = await createClient();
+  const [{ data: order, error: orderErr }, { data: items, error: itemsErr }] = await Promise.all([
+    supabase.from("orders").select("*").eq("id", orderId).single(),
+    supabase.from("order_items").select("*").eq("order_id", orderId),
+  ]);
+  if (orderErr || !order) throw new Error(orderErr?.message || "Objednávka nenalezena.");
+  if (itemsErr) throw new Error(itemsErr.message);
+  const bytes = await generateVisualPdf(order as Order, (items || []) as OrderItem[]);
+  return Buffer.from(bytes).toString("base64");
+}
 
 export async function updateOrderStatus(orderId: string, status: string) {
   const supabase = await createClient();

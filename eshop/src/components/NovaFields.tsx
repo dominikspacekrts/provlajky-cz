@@ -14,6 +14,14 @@
 
 import Link from "next/link";
 import { NovaArrow, useInView } from "./NovaReveal";
+import type { ProductCategory } from "@/lib/types";
+
+// Většina dlaždic má id shodné s reálnou kategorií produktu — jen "nafukovaci"
+// je souhrn tří kategorií (brány, totemy, nafukovací stany), takže potřebuje
+// vlastní mapování, aby šlo dohledat, jestli má ukázat slevovou plaketu.
+const TILE_CATEGORIES: Record<string, ProductCategory[]> = {
+  nafukovaci: ["nafukovaci-brany", "totemy", "nafukovaci-stany"],
+};
 
 type Tile = {
   id: string;
@@ -97,19 +105,19 @@ const TILES: Tile[] = [
 ];
 
 export default function NovaFields({
-  /** Text plakety u produktu v akci, např. „−10 %". null = žádná akce. */
-  saleBadge = null,
-  /** Id panelu, na kterém se plaketa ukáže. */
-  saleId,
+  /** Sleva (%) podle reálné kategorie (nastavuje se v adminu u produktu). */
+  salePctByCategory,
 }: {
-  saleBadge?: string | null;
-  saleId?: string;
+  salePctByCategory: Partial<Record<ProductCategory, number>>;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>(0.05);
 
   return (
     <div ref={ref} id="produkty" className={`nv-grid${inView ? " is-in" : ""}`}>
-      {TILES.map((t, i) => (
+      {TILES.map((t, i) => {
+        const categories = TILE_CATEGORIES[t.id] || [t.id as ProductCategory];
+        const salePct = Math.max(0, ...categories.map((c) => salePctByCategory[c] || 0));
+        return (
         <section
           key={t.id}
           id={t.id}
@@ -117,7 +125,7 @@ export default function NovaFields({
           style={{ "--d": `${(i % 2) * 90 + Math.floor(i / 2) * 40}ms` } as React.CSSProperties}
         >
           <div className="nv-tile-head">
-            {saleBadge && t.id === saleId && <span className="nv-tile-badge">{saleBadge}</span>}
+            {salePct > 0 && <span className="nv-tile-badge">−{salePct} %</span>}
             <h3 className="nv-tile-title">{t.title}</h3>
             <p className="nv-tile-note">{t.note}</p>
             <span className="nv-tile-cta">
@@ -149,7 +157,8 @@ export default function NovaFields({
           <span className="nv-tile-frame" aria-hidden="true" />
           <Link href={t.href} className="nv-tile-hit" aria-label={`${t.title} — ${t.cta}`} />
         </section>
-      ))}
+        );
+      })}
     </div>
   );
 }

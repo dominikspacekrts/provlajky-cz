@@ -6,18 +6,6 @@ import { computeOrderTotals, isBanner } from "@/lib/domain";
 import { generateInvoicePdf } from "@/lib/pdf/invoice";
 import type { Invoice, Order, OrderItem } from "@/lib/types";
 
-async function nextInvoiceNumber(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const year = new Date().getFullYear();
-  const prefix = String(year);
-  const { data } = await supabase.from("invoices").select("number").ilike("number", `${prefix}%`);
-  let max = 0;
-  for (const row of data || []) {
-    const seq = parseInt(String(row.number).slice(prefix.length), 10);
-    if (seq > max) max = seq;
-  }
-  return prefix + String(max + 1).padStart(4, "0");
-}
-
 // Mirrors buildInvoiceFromOrder() from app.js:4221 — returns the row to insert.
 function buildInvoiceRow(order: Order, items: OrderItem[], number: string) {
   const totals = computeOrderTotals(order, items);
@@ -81,8 +69,12 @@ export async function getOrCreateInvoiceForOrder(orderId: string): Promise<Invoi
   ]);
   if (orderErr || !order) throw new Error(orderErr?.message || "Objednávka nenalezena.");
   if (itemsErr) throw new Error(itemsErr.message);
+  // Číslo faktury = číslo objednávky = variabilní symbol platby — objednávka
+  // dostává číslo z DB triggeru (viz 2026-08-order-numbering.sql) hned při
+  // vzniku, takže tu v normálním provozu vždy je.
+  const number = (order as Order).order_number;
+  if (!number) throw new Error("Objednávka nemá přidělené číslo, fakturu nelze vystavit.");
 
-  const number = await nextInvoiceNumber(supabase);
   const row = buildInvoiceRow(order as Order, (items || []) as OrderItem[], number);
   const { data: inserted, error: insErr } = await supabase.from("invoices").insert(row).select("*").single();
   if (insErr) throw new Error(insErr.message);

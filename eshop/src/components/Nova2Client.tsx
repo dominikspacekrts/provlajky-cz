@@ -29,7 +29,6 @@ import Link from "next/link";
 import NovaFields from "@/components/NovaFields";
 import { NovaArrow, useInView } from "@/components/NovaReveal";
 import RegisterForm from "@/components/RegisterForm";
-import { SALE, saleBadge } from "@/lib/sale";
 import { HERO_GROUPS } from "@/lib/heroGroups";
 import { fmtMoney } from "@/lib/money";
 import type { ProductCategory } from "@/lib/types";
@@ -63,7 +62,15 @@ const STEPS = [
   },
 ];
 
-export default function Nova2Client({ prices }: { prices: Record<string, number | null> }) {
+export default function Nova2Client({
+  prices,
+  heroSalePct,
+  salePctByCategory,
+}: {
+  prices: Record<string, number | null>;
+  heroSalePct: Record<string, number>;
+  salePctByCategory: Partial<Record<ProductCategory, number>>;
+}) {
   const lead = useInView<HTMLElement>();
   const gallery = useInView<HTMLElement>();
   const how = useInView<HTMLElement>();
@@ -86,15 +93,14 @@ export default function Nova2Client({ prices }: { prices: Record<string, number 
         </svg>
         {HERO_GROUPS.map((g, i) => {
           const price = prices[g.id];
-          const showSaleBadge =
-            SALE.active && !!SALE.tileId && g.categories.includes(SALE.tileId as ProductCategory);
+          const salePct = heroSalePct[g.id] || 0;
           return (
             <Link key={g.id} href={g.href} className={`nv-shard nv-shard-${i}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={g.image} alt="" className="nv-shard-photo" draggable={false} loading={i === 0 ? "eager" : "lazy"} />
               <span className="nv-shard-shade" aria-hidden="true" />
               <span className="nv-shard-body">
-                {showSaleBadge && <span className="nv-shard-badge">−{SALE.percent} %</span>}
+                {salePct > 0 && <span className="nv-shard-badge">−{salePct} %</span>}
                 <span className="nv-shard-title">{g.title}</span>
                 <span className="nv-shard-price">
                   {price != null ? (
@@ -148,7 +154,7 @@ export default function Nova2Client({ prices }: { prices: Record<string, number 
         </div>
       </section>
 
-      <NovaFields saleBadge={saleBadge} saleId={SALE.tileId} />
+      <NovaFields salePctByCategory={salePctByCategory} />
 
       <section ref={how.ref} className={`nv-how${how.inView ? " nv-in" : ""}`}>
         <h2 className="nv-how-title" data-reveal>
