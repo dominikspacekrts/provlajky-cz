@@ -13,9 +13,17 @@ import OptionsConfigurator from "./OptionsConfigurator";
 import CustomFlagConfigurator from "./CustomFlagConfigurator";
 import { CheckMark, FlagMark } from "@/components/Icons";
 
-export default function ProductDetail({ product, size }: { product: Product; size?: string }) {
-  if (product.kind === "configurable") return <FlagConfigurator product={product} />;
-  if (product.kind === "custom_flag") return <CustomFlagConfigurator product={product} />;
+export default function ProductDetail({
+  product,
+  size,
+  galleryPhotos,
+}: {
+  product: Product;
+  size?: string;
+  galleryPhotos?: { id: string; image: string }[];
+}) {
+  if (product.kind === "configurable") return <FlagConfigurator product={product} galleryPhotos={galleryPhotos} />;
+  if (product.kind === "custom_flag") return <CustomFlagConfigurator product={product} galleryPhotos={galleryPhotos} />;
   if (product.kind === "banner_m2") return <BannerConfigurator product={product} />;
   if (product.kind === "variant") return <VariantConfigurator product={product} size={size} />;
   if (product.kind === "options") return <OptionsConfigurator product={product} />;

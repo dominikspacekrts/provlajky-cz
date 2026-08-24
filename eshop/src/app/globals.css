@@ -345,7 +345,8 @@ label:has(input[type="checkbox"]), .cb-line {
 /* --- konfigurátor vlajek: přes celou obrazovku, panel jen s tlačítky ---- */
 .fc-page {
   display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(380px, 460px);
-  min-height: calc(100svh - var(--nv-nav-h));
+  height: calc(100svh - var(--nv-nav-h) - var(--nv-promo-h, 0px));
+  min-height: 420px;
   gap: clamp(10px, 1.4vw, 20px);
   padding: clamp(10px, 1.4vw, 20px);
   background:
@@ -380,11 +381,67 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 @keyframes fc-panel-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @media (max-width: 860px) {
-  .fc-page { grid-template-columns: 1fr; }
+  .fc-page { grid-template-columns: 1fr; height: auto; min-height: 0; }
   .fc-stage { height: 46vh; min-height: 280px; }
+  .fc-panel { max-height: none; }
+}
+/* Nižší monitor/okno (šířka OK, výška ne) — konfigurátor musí pořád jít
+   vidět celý bez posouvání stránky; sevřenější odstupy v panelu udělají
+   místo, ať je "Přidat do košíku" vidět bez scrollu i tady. */
+@media (max-height: 760px) and (min-width: 861px) {
+  .fc-panel { padding: 18px 24px; }
+  .fc-panel .option-row { padding: 12px 0; }
+  .fc-panel .option-label { margin-bottom: 8px; }
+  .fc-panel .config-price { padding: 12px 0; margin: 14px 0; }
+  .fc-panel .shape-btn { width: 46px; height: 58px; }
+  .fc-panel .config-hero-logo { margin-bottom: 10px !important; }
+  .fc-panel h1 { font-size: 22px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fc-stage, .fc-stage-shape, .fc-panel { animation: none; }
+}
+
+/* --- konfigurátor: pravý sloupec s galerií hotových realizací -------- */
+.fc-page-3col { grid-template-columns: minmax(0, 1.05fr) minmax(360px, 420px) minmax(200px, 240px); }
+.fc-gallery {
+  position: relative; overflow: hidden auto; border-radius: 22px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px) saturate(1.3);
+  border: 1px solid rgba(8, 8, 10, 0.08);
+  box-shadow: 0 30px 70px -46px rgba(8, 8, 10, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  padding: 18px;
+  animation: fc-panel-in 0.7s 0.18s var(--nv-ease) both;
+}
+.fc-gallery-head {
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);
+  font-variation-settings: "wght" 620, "wdth" 96;
+  margin-bottom: 12px;
+}
+.fc-gallery-grid { display: flex; flex-direction: column; gap: 10px; }
+.fc-gallery-item {
+  display: block; width: 100%; aspect-ratio: 4 / 3; padding: 0; border: 0; border-radius: 12px;
+  overflow: hidden; cursor: zoom-in; background: var(--border);
+}
+.fc-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s var(--nv-ease); }
+.fc-gallery-item:hover img { transform: scale(1.06); }
+.fc-lightbox {
+  position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center;
+  padding: clamp(16px, 4vw, 60px); background: rgba(8, 8, 10, 0.86); backdrop-filter: blur(6px);
+  animation: fc-lightbox-in 0.25s var(--nv-ease) both;
+}
+@keyframes fc-lightbox-in { from { opacity: 0; } to { opacity: 1; } }
+.fc-lightbox-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.7); }
+.fc-lightbox-close {
+  position: absolute; top: clamp(12px, 3vw, 28px); right: clamp(12px, 3vw, 28px);
+  width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1;
+  transition: background 0.25s var(--nv-ease), transform 0.25s var(--nv-ease);
+}
+.fc-lightbox-close:hover { background: rgba(255, 255, 255, 0.2); transform: rotate(90deg); }
+@media (max-width: 1180px) {
+  .fc-page-3col { grid-template-columns: minmax(0, 1.35fr) minmax(380px, 460px); }
+  .fc-page-3col .fc-gallery { display: none; }
 }
 
 /* --- konfigurátor vlajek na zakázku --------------------------------- */
@@ -596,9 +653,33 @@ label:has(input[type="checkbox"]), .cb-line {
 .stany-hero-photo { background: #fff; display: flex; align-items: center; justify-content: center;
   overflow: hidden; min-height: 280px; }
 .stany-hero-photo img { width: 100%; height: 100%; object-fit: cover; }
-.stany-section { margin-top: clamp(34px, 5vh, 60px); }
-.stany-section h2 { font-size: clamp(20px, 2.2vw, 30px); margin-bottom: clamp(18px, 2.6vh, 28px); }
 .stany-fold { display: flex; justify-content: center; padding: clamp(16px, 3vh, 32px) 0; }
+
+/* --- /stany: tři vstupní dlaždice (nůžkové/nafukovací/díly) ---------- */
+.stany-groups {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+  margin-top: clamp(34px, 5vh, 60px);
+}
+.group-tile {
+  position: relative; display: flex; flex-direction: column; overflow: hidden;
+  background: #fff; text-decoration: none; color: inherit;
+}
+.group-tile-photo { aspect-ratio: 4 / 3; overflow: hidden; background: var(--ink); }
+.group-tile-photo img { transition: transform 1s var(--nv-ease); }
+.group-tile:hover .group-tile-photo img { transform: scale(1.06); }
+.group-tile-body { padding: 22px 24px 26px; border-top: 1px solid var(--border); }
+.group-tile-title {
+  font-size: clamp(19px, 1.8vw, 24px); letter-spacing: -0.025em;
+  font-variation-settings: "wght" 680, "wdth" 112;
+}
+.group-tile-note { margin-top: 8px; color: var(--gray); font-size: 14px; line-height: 1.55; }
+.group-tile-cta {
+  display: inline-block; margin-top: 14px; font-size: 12px; letter-spacing: 0.08em;
+  text-transform: uppercase; font-variation-settings: "wght" 620, "wdth" 100;
+  transition: transform 0.3s var(--nv-ease);
+}
+.group-tile:hover .group-tile-cta { transform: translateX(4px); }
 .tentfold, .tentgraphic { max-width: 100%; height: auto; }
 
 /* Skládací nůžkový stan (TentFold) — leží na tmavém panelu, proto světlá

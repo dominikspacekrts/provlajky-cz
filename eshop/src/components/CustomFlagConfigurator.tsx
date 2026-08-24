@@ -19,13 +19,20 @@ import {
 import FlagWave from "./FlagWave";
 import EyeletIcon from "./EyeletIcon";
 import { CheckMark } from "@/components/Icons";
+import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 
 type FlagType = "state" | "custom";
 
 const norm = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export default function CustomFlagConfigurator({ product }: { product: Product }) {
+export default function CustomFlagConfigurator({
+  product,
+  galleryPhotos,
+}: {
+  product: Product;
+  galleryPhotos?: { id: string; image: string }[];
+}) {
   const { addLine } = useCart();
   const router = useRouter();
 
@@ -145,8 +152,8 @@ export default function CustomFlagConfigurator({ product }: { product: Product }
   }
 
   return (
-    <div className="configurator">
-      <div className="config-preview config-preview-flag">
+    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+      <div className="fc-stage">
         <FlagWave
           shape="B"
           classic
@@ -158,8 +165,11 @@ export default function CustomFlagConfigurator({ product }: { product: Product }
         />
       </div>
 
-      <div>
-        <h1 style={{ fontSize: 30 }}>{product.name}</h1>
+      <aside className="fc-panel reveal-stagger">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
+
+        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
         {/* Typ vlajky */}
@@ -357,7 +367,9 @@ export default function CustomFlagConfigurator({ product }: { product: Product }
             <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.
           </p>
         )}
-      </div>
+      </aside>
+
+      <ConfiguratorGallery photos={galleryPhotos ?? []} />
     </div>
   );
 }
