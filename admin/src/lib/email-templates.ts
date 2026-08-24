@@ -91,13 +91,19 @@ export function buildSupplierBodyText(
       if (isBanner(it)) {
         return `• PVC banner — ${it.width_cm || 0}×${it.height_cm || 0} cm — quantity: ${it.qty} pcs`;
       }
+      // eshop.hs je starší úložiště z konfigurátoru, hs je stejné pole zapisované
+      // adminem — čte se, co je nastavené (stejný vzor jako order-detail-client.tsx).
+      const hs = it.design?.hs ?? it.design?.eshop?.hs ?? false;
       const bg = it.design?.bgColor
         ? "background colour: " + it.design.bgColor.toUpperCase()
         : "background: as per the attached graphic";
-      const sleeve = it.design?.sleeveColor === "black" ? "BLACK" : "WHITE";
+      const sleeveLine = hs
+        ? ` — pole sleeve colour: ${it.design?.sleeveColor === "black" ? "BLACK" : "WHITE"}`
+        : "";
       const links = [...(it.artwork_images || []), ...(it.artwork_files || [])];
       const linksLine = links.length ? `\n  artwork: ${links.join(", ")}` : "";
-      return `• HS beach flag — shape ${it.shape}, size ${it.size} — ${bg} — pole sleeve colour: ${sleeve} — quantity: ${it.qty} pcs${linksLine}`;
+      const label = hs ? "HS beach flag" : "standard beach flag";
+      return `• ${label} — shape ${it.shape}, size ${it.size} — ${bg}${sleeveLine} — quantity: ${it.qty} pcs${linksLine}`;
     })
     .join("\n");
 
@@ -108,7 +114,7 @@ export function buildSupplierBodyText(
       ? "please prepare the following items:"
       : hasBanners
         ? "please prepare the following PVC banners:"
-        : "please prepare the following HS beach flags:";
+        : "please prepare the following beach flags:";
 
   return `Hello,
 

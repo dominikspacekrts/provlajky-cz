@@ -67,6 +67,7 @@ const emptyInput = (defaultCategory: ProductCategory = "plazove-vlajky"): Produc
   images: [],
   active: false,
   sort_order: 0,
+  sale_pct: 0,
   config: {},
 });
 
@@ -84,6 +85,7 @@ function toInput(p: Product): ProductInput {
     images: p.images || [],
     active: p.active,
     sort_order: p.sort_order,
+    sale_pct: p.sale_pct || 0,
     config: p.config || {},
   };
 }
@@ -696,6 +698,18 @@ export default function ProductFormButton({
                   ))}
                 </div>
               )}
+
+              <label>
+                Sleva (%) — 0 = žádná, jinak se ukáže plaketa „−X %“ (cena zůstává, jak je nastavená výše)
+                <input
+                  type="number"
+                  min={0}
+                  max={99}
+                  step="1"
+                  value={value.sale_pct}
+                  onChange={(e) => set("sale_pct", Number(e.target.value) || 0)}
+                />
+              </label>
 
               <label className="cb-line">
                 <input type="checkbox" checked={value.active} onChange={(e) => set("active", e.target.checked)} />

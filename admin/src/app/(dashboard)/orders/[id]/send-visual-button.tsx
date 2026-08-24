@@ -2,16 +2,11 @@
 
 import { useState } from "react";
 import { useEmailPreview } from "@/components/email/EmailPreviewProvider";
+import { getVisualPdfBase64 } from "@/lib/actions/orders";
 import { getMailTemplatesForClient } from "@/lib/actions/settings";
 import { computeOrderTotals, customerEmail, fmtMoney } from "@/lib/domain";
 import { DEFAULT_MAIL_TPL_VISUAL, fillTemplate, wrapEmailHtml } from "@/lib/email-templates";
 import type { Order, OrderItem } from "@/lib/types";
-
-function dataUrlToAttachment(dataUrl: string, filename: string) {
-  const m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
-  if (!m) return null;
-  return { filename, contentBase64: m[2], contentType: m[1] };
-}
 
 export default function SendVisualButton({ order, items }: { order: Order; items: OrderItem[] }) {
   const { openEmailPreview } = useEmailPreview();
@@ -40,9 +35,10 @@ export default function SendVisualButton({ order, items }: { order: Order; items
         tpl.signName,
         tpl.signPhone
       );
-      const attachments = designed
-        .map((it, i) => dataUrlToAttachment(it.design!.thumb!, `navrh_${it.shape || i + 1}_${it.size || ""}.png`))
-        .filter((a): a is NonNullable<typeof a> => Boolean(a));
+      const base64 = await getVisualPdfBase64(order.id);
+      const attachments = [
+        { filename: `vizualizace_${order.order_number || order.id.slice(0, 8)}.pdf`, contentBase64: base64, contentType: "application/pdf" },
+      ];
 
       openEmailPreview({
         kind: "visual",

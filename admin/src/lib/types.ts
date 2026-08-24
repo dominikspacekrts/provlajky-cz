@@ -40,6 +40,10 @@ export type Design = {
   } | null;
   thumb?: string | null;
   flagBounds?: { x: number; y: number; w: number; h: number; pr: number } | null;
+  // Veřejná URL nahrané grafiky ve Supabase Storage (nahrává eshop /api/objednavka
+  // do bucketu grafika_plazove_vlajky / grafika_bannery / grafika_vlajky, ve
+  // složce pojmenované číslem objednávky) — originál k výrobě ke stažení.
+  artworkUrl?: string;
 };
 
 export type Order = {
@@ -297,6 +301,9 @@ export type Product = {
   images: string[];
   active: boolean;
   sort_order: number;
+  // 0 = bez slevy, jinak procento pro plaketu "−X %" na eshopu (cena už
+  // slevu odráží — nastavuje se ručně vedle sale_pct, viz eshop/src/lib/sale.ts).
+  sale_pct: number;
   config: ProductConfig;
   created_at: string;
   updated_at: string;

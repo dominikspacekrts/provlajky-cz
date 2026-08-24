@@ -113,7 +113,7 @@ export default function FlagConfigurator({ product }: { product: Product }) {
         y: design.logoY - h / 2,
         w,
         h,
-        rotation: 0,
+        rotation: design.logoRotation || 0,
       };
     }
     return {

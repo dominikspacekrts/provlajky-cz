@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
-import type { CartLine, CustomerAddress } from "@/lib/types";
+import type { CartLine, CustomerAddress, ProductCategory } from "@/lib/types";
 
 type Body = {
   billing: CustomerAddress;
@@ -12,6 +12,29 @@ type Body = {
 
 function isNonEmpty(s: string | undefined) {
   return typeof s === "string" && s.trim().length > 0;
+}
+
+// Bucket pro nahranou grafiku podle kategorie produktu (buckety založené
+// ručně v Supabase Storage — public, bez size limitu).
+const CATEGORY_BUCKET: Partial<Record<ProductCategory, string>> = {
+  "plazove-vlajky": "grafika_plazove_vlajky",
+  "vlajky-na-zakazku": "grafika_vlajky",
+  "pvc-bannery": "grafika_bannery",
+};
+
+const EXT_BY_MIME: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/svg+xml": "svg",
+  "image/webp": "webp",
+};
+
+function decodeDataUrl(dataUrl: string): { buffer: Buffer; contentType: string; ext: string } | null {
+  const m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
+  if (!m) return null;
+  const contentType = m[1];
+  const ext = EXT_BY_MIME[contentType] || "bin";
+  return { buffer: Buffer.from(m[2], "base64"), contentType, ext };
 }
 
 export async function POST(req: NextRequest) {
@@ -81,17 +104,55 @@ export async function POST(req: NextRequest) {
       .eq("id", discountCustomer.id);
   }
 
-  const itemsPayload = lines.map((l) => ({
-    order_id: order.id,
-    type: l.type === "product" ? "flag" : l.type,
-    shape: l.shape,
-    size: l.size,
-    qty: l.qty,
-    unit_price: l.unitPrice,
-    vat_rate: l.vatRate,
-    wc_line_name: [l.name, l.note].filter(Boolean).join(" — "),
-    design: l.design ?? null,
-  }));
+  // Nahraná grafika (logo u vlajek, artwork u banneru/vlajky na zakázku) se
+  // navíc uloží do Supabase Storage pod číslem objednávky — base64 v design
+  // JSONu se nemaže (pořád ho čte vizualizace/editor v adminu), tohle je jen
+  // veřejná URL originálu k výrobě (viz Design.artworkUrl).
+  const productIds = [...new Set(lines.map((l) => l.productId).filter(Boolean))];
+  const categoryById = new Map<string, ProductCategory>();
+  if (productIds.length) {
+    const { data: products } = await supabase.from("products").select("id, category").in("id", productIds);
+    for (const p of products || []) categoryById.set(p.id, p.category as ProductCategory);
+  }
+
+  const itemsPayload = await Promise.all(
+    lines.map(async (l, i) => {
+      let design = l.design ?? null;
+      const bucket = CATEGORY_BUCKET[categoryById.get(l.productId) as ProductCategory];
+      const graphicSrc = design?.logo?.src || design?.thumb || null;
+      if (bucket && graphicSrc) {
+        const decoded = decodeDataUrl(graphicSrc);
+        if (decoded) {
+          // order_number přiděluje DB trigger (2026-08-order-numbering.sql) —
+          // dokud migrace neběžela, order.order_number je null; radši dočasně
+          // roztřídit pod ID objednávky, než abychom všechno házeli do jedné
+          // společné složky "null".
+          const folder = order.order_number || order.id;
+          const storagePath = `${folder}/${i + 1}.${decoded.ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from(bucket)
+            .upload(storagePath, decoded.buffer, { contentType: decoded.contentType, upsert: true });
+          if (uploadError) {
+            console.error("objednavka: storage upload failed", uploadError);
+          } else {
+            const { data: pub } = supabase.storage.from(bucket).getPublicUrl(storagePath);
+            design = { ...design, artworkUrl: pub.publicUrl };
+          }
+        }
+      }
+      return {
+        order_id: order.id,
+        type: l.type === "product" ? "flag" : l.type,
+        shape: l.shape,
+        size: l.size,
+        qty: l.qty,
+        unit_price: l.unitPrice,
+        vat_rate: l.vatRate,
+        wc_line_name: [l.name, l.note].filter(Boolean).join(" — "),
+        design,
+      };
+    })
+  );
 
   const { error: itemsError } = await supabase.from("order_items").insert(itemsPayload);
   if (itemsError) {

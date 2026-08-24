@@ -27,6 +27,7 @@ export type ProductInput = {
   images: string[];
   active: boolean;
   sort_order: number;
+  sale_pct: number;
   config: ProductConfig;
 };
 

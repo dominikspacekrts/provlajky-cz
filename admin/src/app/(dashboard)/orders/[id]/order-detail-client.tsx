@@ -32,12 +32,14 @@ export default function OrderDetailClient({
   invoice,
   supplierInvoices,
   products,
+  discountCustomer,
 }: {
   order: Order;
   items: OrderItem[];
   invoice: Invoice | null;
   supplierInvoices: SupplierInvoice[];
   products: Product[];
+  discountCustomer: { email: string; discount_code: string } | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [discountPct, setDiscountPct] = useState(order.discount_pct || 0);
@@ -164,6 +166,13 @@ export default function OrderDetailClient({
           </span>
           <span>{discountPct ? "− " + fmtMoney(totals.discountEx, order.currency) : "—"}</span>
         </div>
+        {discountCustomer && (
+          <div className="totals-row">
+            <span className="muted" style={{ fontSize: 13 }}>
+              Slevový kód: <span style={{ fontFamily: "monospace" }}>{discountCustomer.discount_code}</span> ({discountCustomer.email})
+            </span>
+          </div>
+        )}
         <div className="totals-row">
           <span>
             Doprava (bez DPH)
@@ -310,6 +319,16 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
           <Link href={`/orders/${orderId}/design/${item.id}`} className="btn">
             {item.design ? "Upravit design" : "Přidat design"}
           </Link>
+        )}
+        {item.design?.artworkUrl && (
+          <a
+            className="btn"
+            href={`${item.design.artworkUrl}?download`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Stáhnout grafiku
+          </a>
         )}
         <button className="btn danger" onClick={() => startTransition(() => deleteOrderItem(item.id, orderId))}>
           Smazat
