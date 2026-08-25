@@ -6,6 +6,7 @@ import {
   deleteOrderItem,
   updateItemHsSleeve,
   updateOrderItem,
+  updateOrderItemPartners,
   updateOrderMoney,
   updateOrderStatus,
 } from "@/lib/actions/orders";
@@ -22,8 +23,9 @@ import {
   orderSource,
   statusClass,
   statusLabel,
+  type ProductLookup,
 } from "@/lib/domain";
-import type { Invoice, Order, OrderItem, Product, Settings, SupplierInvoice } from "@/lib/types";
+import type { Invoice, Order, OrderItem, Partner, Product, Settings, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
 import DownloadVisualButton from "./download-visual-button";
@@ -48,6 +50,7 @@ export default function OrderDetailClient({
   invoice,
   supplierInvoices,
   products,
+  partners,
   discountCustomer,
   costPerSize,
 }: {
@@ -56,6 +59,7 @@ export default function OrderDetailClient({
   invoice: Invoice | null;
   supplierInvoices: SupplierInvoice[];
   products: Product[];
+  partners: Partner[];
   discountCustomer: { email: string; discount_code: string } | null;
   costPerSize: Settings["cost_per_size"];
 }) {
@@ -63,8 +67,9 @@ export default function OrderDetailClient({
   const [discountPct, setDiscountPct] = useState(order.discount_pct || 0);
   const [shipping, setShipping] = useState(order.shipping || 0);
 
+  const productById = new Map<string, ProductLookup>(products.map((p) => [p.id, p]));
   const totals = computeOrderTotals({ ...order, discount_pct: discountPct, shipping }, items);
-  const cost = computeOrderCost(items, supplierInvoices, costPerSize);
+  const cost = computeOrderCost(items, supplierInvoices, productById, costPerSize);
   const profit = totals.totalEx - cost;
   const profitExact = hasActualCost(supplierInvoices);
   const b = order.customer?.billing || {};
@@ -150,7 +155,15 @@ export default function OrderDetailClient({
       <h3>Položky</h3>
       <div className="items-list">
         {items.map((it) => (
-          <ItemRow key={it.id} item={it} orderId={order.id} currency={order.currency} costPerSize={costPerSize} />
+          <ItemRow
+            key={it.id}
+            item={it}
+            orderId={order.id}
+            currency={order.currency}
+            costPerSize={costPerSize}
+            productById={productById}
+            partners={partners}
+          />
         ))}
         {items.length === 0 && <p className="muted">Žádné položky.</p>}
       </div>
@@ -252,22 +265,33 @@ function ItemRow({
   orderId,
   currency,
   costPerSize,
+  productById,
+  partners,
 }: {
   item: OrderItem;
   orderId: string;
   currency: "CZK" | "EUR";
   costPerSize: Settings["cost_per_size"];
+  productById: Map<string, ProductLookup>;
+  partners: Partner[];
 }) {
   const [, startTransition] = useTransition();
+  const [partnerIds, setPartnerIds] = useState(item.partner_ids || []);
   const banner = isBanner(item);
   // Skutečná vlajka má vždycky nastavený tvar (viz addOrderItemFromProduct) —
   // položky přidané z jiných produktů (stany, totemy…) shape nemají, takže
   // by tvar/velikost selecty pro ně nedávaly smysl.
   const isFlag = !banner && item.shape != null;
   const lineTotal = (item.unit_price || 0) * (item.qty || 0);
-  // null = náklad neznámý (jen vlajky mají nákladovou tabulku dle velikosti,
-  // viz settings.cost_per_size) — u ostatních typů položek se marže nezobrazuje.
-  const margin = itemMargin(item, costPerSize);
+  // null = náklad neznámý (položka bez product_id, nebo produkt/volba, ke
+  // které se neváže žádná nákupní cena) — u takových se marže nezobrazuje.
+  const margin = itemMargin(item, productById, costPerSize);
+
+  function togglePartner(id: string) {
+    const next = partnerIds.includes(id) ? partnerIds.filter((x) => x !== id) : [...partnerIds, id];
+    setPartnerIds(next);
+    startTransition(() => updateOrderItemPartners(item.id, orderId, next));
+  }
   // eshop.hs je starší úložiště z konfigurátoru na eshopu, hs je totéž pole
   // zapisované adminem — čte se, co je nastavené.
   const [hs, setHs] = useState(item.design?.hs ?? item.design?.eshop?.hs ?? false);
@@ -392,6 +416,24 @@ function ItemRow({
           Smazat
         </button>
       </div>
+      {partners.length > 0 && (
+        <div style={{ flexBasis: "100%", paddingTop: 4 }}>
+          <span className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.03em", marginRight: 10 }}>
+            Zisk se dělí:
+          </span>
+          {partners.map((p) => (
+            <label key={p.id} className="cb-line" style={{ display: "inline-flex", marginRight: 14 }}>
+              <input type="checkbox" checked={partnerIds.includes(p.id)} onChange={() => togglePartner(p.id)} />
+              {p.name}
+            </label>
+          ))}
+          {partnerIds.length === 0 && (
+            <span className="muted" style={{ fontSize: 12 }}>
+              (nerozděleno)
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

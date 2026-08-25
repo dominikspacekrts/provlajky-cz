@@ -1,6 +1,6 @@
 // Pure domain helpers, ported 1:1 from the old app's app.js so behaviour
 // (rounding, discount math, status labels) stays identical after the rebuild.
-import type { Order, OrderItem, OrderTotals, Settings, SupplierInvoice } from "./types";
+import type { Order, OrderItem, OrderTotals, Product, Settings, SupplierInvoice } from "./types";
 
 export const WC_STATUSES: Record<string, string> = {
   pending: "Čeká na platbu",
@@ -85,19 +85,75 @@ export function hasActualCost(invoices: Pick<SupplierInvoice, "amount_czk">[]) {
   return supplierActualCostCzk(invoices) > 0;
 }
 
-// Odhadovaný náklad jedné položky podle nastavení Kč/vlajku dle velikosti
-// (settings.cost_per_size) — jen vlajky mají velikost, u ostatních typů
-// položek (bannery, stany…) obdobná nákladová tabulka není, marže se u
-// nich proto nezobrazuje (ne 0, ale "neznámá").
-export function itemCost(item: Pick<OrderItem, "size">, costPerSize: Settings["cost_per_size"]) {
-  if (!item.size) return null;
-  return costPerSize[item.size as keyof Settings["cost_per_size"]] ?? null;
+export type ProductLookup = Pick<Product, "kind" | "config">;
+type CostItem = Pick<
+  OrderItem,
+  "size" | "unit_price" | "width_cm" | "height_cm" | "product_id" | "material" | "variant_id" | "option_id"
+>;
+
+// Odhadovaný náklad jedné položky — podle produktu/volby, ze které vznikla
+// (order_items.product_id/material/variant_id/option_id → products.config,
+// nastavuje se ve formuláři produktu; viz "Nákupní cena"/"Náklad" u
+// jednotlivých typů produktu). null = náklad neznámý (položka bez
+// product_id — starší objednávka před migrací 2026-08-order-item-product-
+// link.sql, nebo ručně přidaná položka bez vazby na katalog) — marže se u
+// ní nezobrazuje (ne jako 0, ale jako "neznámá").
+export function itemCost(item: CostItem, productById: Map<string, ProductLookup>, costPerSize: Settings["cost_per_size"]) {
+  const product = item.product_id ? productById.get(item.product_id) : undefined;
+  if (!product) {
+    // Starší položka bez product_id — dřívější (a pořád fungující) odhad
+    // podle globálního nastavení fungoval jen u vlajek.
+    if (!item.size) return null;
+    return costPerSize[item.size as keyof Settings["cost_per_size"]] ?? null;
+  }
+  const cfg = product.config;
+  switch (product.kind) {
+    case "configurable": {
+      if (!item.size) return null;
+      return cfg.costBySize?.[item.size as "S" | "M" | "L" | "XL"] ?? null;
+    }
+    case "simple":
+      return cfg.buyPrice ?? null;
+    case "options": {
+      const o = cfg.options?.find((x) => x.id === item.option_id);
+      return o ? o.buyPrice : null;
+    }
+    case "banner_m2": {
+      if (item.width_cm == null || item.height_cm == null) return null;
+      const mat = item.material === "mesh" ? cfg.banner?.mesh : item.material === "pvc" ? cfg.banner?.pvc : undefined;
+      if (!mat) return null;
+      return mat.buyPerM2 * ((item.width_cm / 100) * (item.height_cm / 100));
+    }
+    case "custom_flag": {
+      if (item.width_cm == null || item.height_cm == null) return null;
+      const mat = cfg.customFlag?.materials?.find((x) => x.id === item.material);
+      if (!mat) return null;
+      return mat.buyPerM2 * ((item.width_cm / 100) * (item.height_cm / 100));
+    }
+    case "variant": {
+      const v = cfg.variants?.find((x) => x.id === item.variant_id);
+      if (!v) return null;
+      const costAir = v.cost + v.customs + v.airFreight + v.transactionFee;
+      const costTrain = v.cost + v.customs + v.trainFreight + v.transactionFee;
+      // Zvolený způsob dopravy (letecky/vlakem) se u položky zvlášť neukládá
+      // — odvodí se z toho, které prodejní ceně (sellAir/sellTrain) je
+      // uložená prodejní cena položky blíž.
+      const nearerAir = Math.abs(item.unit_price - v.sellAir) <= Math.abs(item.unit_price - v.sellTrain);
+      return nearerAir ? costAir : costTrain;
+    }
+    default:
+      return null;
+  }
 }
 
 // Marže položky (prodejní cena − náklad) × počet kusů, nebo null, když
 // náklad není známý (viz itemCost výš).
-export function itemMargin(item: Pick<OrderItem, "size" | "unit_price" | "qty">, costPerSize: Settings["cost_per_size"]) {
-  const cost = itemCost(item, costPerSize);
+export function itemMargin(
+  item: CostItem & Pick<OrderItem, "qty">,
+  productById: Map<string, ProductLookup>,
+  costPerSize: Settings["cost_per_size"]
+) {
+  const cost = itemCost(item, productById, costPerSize);
   if (cost == null) return null;
   return ((item.unit_price || 0) - cost) * (item.qty || 0);
 }
@@ -105,15 +161,16 @@ export function itemMargin(item: Pick<OrderItem, "size" | "unit_price" | "qty">,
 // Náklad celé objednávky — přednostně přesný (faktury od dodavatele v Kč),
 // jinak odhad součtem itemCost × qty přes položky, kde je náklad známý.
 export function computeOrderCost(
-  items: Pick<OrderItem, "size" | "qty">[],
+  items: (CostItem & Pick<OrderItem, "qty">)[],
   invoices: Pick<SupplierInvoice, "amount_czk">[],
+  productById: Map<string, ProductLookup>,
   costPerSize: Settings["cost_per_size"]
 ) {
   const actual = supplierActualCostCzk(invoices);
   if (actual > 0) return actual;
   let cost = 0;
   for (const it of items) {
-    const c = itemCost(it, costPerSize);
+    const c = itemCost(it, productById, costPerSize);
     if (c != null) cost += c * (it.qty || 0);
   }
   return cost;
@@ -121,16 +178,32 @@ export function computeOrderCost(
 
 // Zisk = základ daně celkem (produkty po slevě + doprava, bez DPH) − náklad.
 // "exact" = máme fakturu od dodavatele (přesný zisk), jinak jde o
-// předběžný odhad z nastavení marže.
+// předběžný odhad z nákladů nastavených u produktů.
 export function computeOrderProfit(
   order: Pick<Order, "discount_pct" | "shipping" | "ship_vat_rate">,
-  items: Pick<OrderItem, "unit_price" | "qty" | "vat_rate" | "size">[],
+  items: (CostItem & Pick<OrderItem, "qty" | "vat_rate">)[],
   invoices: Pick<SupplierInvoice, "amount_czk">[],
+  productById: Map<string, ProductLookup>,
   costPerSize: Settings["cost_per_size"]
 ) {
   const totals = computeOrderTotals(order, items);
-  const cost = computeOrderCost(items, invoices, costPerSize);
+  const cost = computeOrderCost(items, invoices, productById, costPerSize);
   return { profit: totals.totalEx - cost, cost, exact: hasActualCost(invoices) };
+}
+
+// Marže položky rozdělená rovným dílem mezi partnery přiřazené téhle
+// položce (order_items.partner_ids) — vrací mapu partner_id → částka.
+// Položky s neznámou marží nebo bez přiřazených partnerů se do výsledku
+// nepočítají (viz "nerozděleno" v Platbách, kde se to dopočítá zvlášť).
+export function splitItemMarginByPartners(
+  margin: number,
+  partnerIds: string[]
+): Map<string, number> {
+  const result = new Map<string, number>();
+  if (!partnerIds.length) return result;
+  const share = margin / partnerIds.length;
+  for (const id of partnerIds) result.set(id, (result.get(id) || 0) + share);
+  return result;
 }
 
 export function fmtMoney(value: number, currency: "CZK" | "EUR" = "CZK") {

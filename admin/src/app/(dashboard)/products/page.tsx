@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { fmtMoney } from "@/lib/domain";
-import { PRODUCT_CATEGORIES, NAV_GROUPS, type Product, type ProductCategory } from "@/lib/types";
+import { PRODUCT_CATEGORIES, NAV_GROUPS, type Partner, type Product, type ProductCategory } from "@/lib/types";
 import ActiveToggle from "./active-toggle";
 import ProductFormButton from "./product-form-button";
 import DeleteProductButton from "./delete-product-button";
@@ -37,8 +37,12 @@ function priceLabel(p: Product): string {
 
 export default async function ProductsPage() {
   const supabase = await createClient();
-  const { data } = await supabase.from("products").select("*").order("category").order("sort_order");
+  const [{ data }, { data: partnersData }] = await Promise.all([
+    supabase.from("products").select("*").order("category").order("sort_order"),
+    supabase.from("partners").select("*").order("name"),
+  ]);
   const products = (data || []) as Product[];
+  const partners = (partnersData || []) as Partner[];
 
   const byCategory = new Map<ProductCategory, Product[]>();
   for (const cat of Object.keys(PRODUCT_CATEGORIES) as ProductCategory[]) byCategory.set(cat, []);
@@ -60,7 +64,7 @@ export default async function ProductsPage() {
               <h3>
                 {g.label} <span className="muted" style={{ fontWeight: 400, fontSize: 14 }}>({groupItems.length})</span>
               </h3>
-              <ProductFormButton defaultCategory={g.categories[0]} />
+              <ProductFormButton defaultCategory={g.categories[0]} partners={partners} />
             </summary>
 
             {groupItems.length === 0 && <p className="muted">Zatím žádné produkty v této kategorii.</p>}
@@ -90,7 +94,7 @@ export default async function ProductsPage() {
                         <div className="product-actions">
                           <ActiveToggle productId={p.id} active={p.active} />
                           <div style={{ display: "flex", gap: 8 }}>
-                            <ProductFormButton product={p} />
+                            <ProductFormButton product={p} partners={partners} />
                             <DeleteProductButton productId={p.id} name={p.name} />
                           </div>
                         </div>

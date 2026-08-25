@@ -116,10 +116,42 @@ export async function addOrderItemFromProduct(
     unit_price: number;
     vat_rate: number;
     wc_line_name: string;
+    product_id?: string | null;
+    material?: string | null;
+    variant_id?: string | null;
+    option_id?: string | null;
+    partner_ids?: string[];
   }
 ) {
   const supabase = await createClient();
-  const { error } = await supabase.from("order_items").insert({ order_id: orderId, ...fields });
+  let { error } = await supabase.from("order_items").insert({ order_id: orderId, ...fields });
+  if (error) {
+    // product_id/material/variant_id/option_id/partner_ids jsou z novější
+    // migrace (2026-08-order-item-product-link.sql) — dokud neproběhla,
+    // zkusíme to bez nich, ať jde položku přidat i tak.
+    ({ error } = await supabase.from("order_items").insert({
+      order_id: orderId,
+      type: fields.type,
+      shape: fields.shape,
+      size: fields.size,
+      width_cm: fields.width_cm,
+      height_cm: fields.height_cm,
+      qty: fields.qty,
+      unit_price: fields.unit_price,
+      vat_rate: fields.vat_rate,
+      wc_line_name: fields.wc_line_name,
+    }));
+  }
+  if (error) throw new Error(error.message);
+  revalidatePath(`/orders/${orderId}`);
+}
+
+// Ruční přiřazení/přepsání partnerů, kteří se dělí o zisk konkrétní položky
+// (rovným dílem) — u nové položky se přednastaví podle products.partner_ids,
+// tady jde přepsat.
+export async function updateOrderItemPartners(itemId: string, orderId: string, partnerIds: string[]) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("order_items").update({ partner_ids: partnerIds }).eq("id", itemId);
   if (error) throw new Error(error.message);
   revalidatePath(`/orders/${orderId}`);
 }

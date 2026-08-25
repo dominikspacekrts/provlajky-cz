@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updatePartner } from "@/lib/actions/partners";
+import { createPartner, deletePartner, updatePartner } from "@/lib/actions/partners";
 import { testSmtp, updateMailSettings } from "@/lib/actions/settings";
 import { setOrderCounter, type OrderCounter } from "@/lib/actions/order-counter";
 import type { AllowedUser, Partner, Settings } from "@/lib/types";
@@ -97,11 +97,37 @@ function OrderNumberingTab({ initial }: { initial: OrderCounter | null }) {
 }
 
 function PartnersTab({ partners }: { partners: Partner[] }) {
+  const [name, setName] = useState("");
+  const [isPending, startTransition] = useTransition();
+
   return (
     <div>
       {partners.map((p) => (
         <PartnerBlock key={p.id} partner={p} />
       ))}
+      {partners.length === 0 && <p className="muted">Zatím žádní partneři.</p>}
+
+      <div className="partner-block" style={{ marginTop: partners.length ? 20 : 0 }}>
+        <h4>Přidat partnera</h4>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 260 }}>
+            Jméno
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="např. Alex" />
+          </label>
+          <button
+            className="btn primary"
+            disabled={isPending || !name.trim()}
+            onClick={() =>
+              startTransition(async () => {
+                await createPartner(name.trim());
+                setName("");
+              })
+            }
+          >
+            {isPending ? "Přidávám…" : "+ Přidat"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -154,9 +180,20 @@ function PartnerBlock({ partner }: { partner: Partner }) {
           </label>
         ))}
       </div>
-      <button className="btn" style={{ marginTop: 10 }} disabled={isPending} onClick={save}>
-        {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
-      </button>
+      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+        <button className="btn" disabled={isPending} onClick={save}>
+          {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
+        </button>
+        <button
+          className="btn danger"
+          disabled={isPending}
+          onClick={() => {
+            if (confirm(`Smazat partnera „${partner.name}"?`)) startTransition(() => deletePartner(partner.id));
+          }}
+        >
+          Smazat
+        </button>
+      </div>
     </div>
   );
 }

@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/statistika", icon: "📊", label: "Statistika" },
   { href: "/products", icon: "🏳️", label: "Produkty" },
   { href: "/konfigurace-webu", icon: "🖼️", label: "Konfigurace webu" },
+  { href: "/migrate", icon: "📥", label: "Migrace ze staré appky" },
 ];
 
 export default function Sidebar() {
