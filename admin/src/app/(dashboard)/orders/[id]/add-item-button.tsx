@@ -98,6 +98,12 @@ export default function AddItemButton({
       const m2 = (widthCm / 100) * (heightCm / 100);
       return mat ? m2 * (internal ? mat.buyPerM2 : mat.sellPerM2) : 0;
     }
+    if (product.kind === "tent_walls") {
+      // jen základ (střecha) — přidané stěny je potřeba dopočítat ručně a
+      // cenu přepsat v poli "Cena/ks" níž, tenhle formulář zvlášť stěny neřeší.
+      const tw = product.config.tentWalls;
+      return tw ? (internal ? tw.baseBuy : tw.baseSell) : 0;
+    }
     // simple
     return internal ? product.config.buyPrice ?? 0 : product.price;
   }, [product, size, widthCm, heightCm, material, variantId, delivery, optionId, flagMaterialId, internal]);
@@ -116,6 +122,7 @@ export default function AddItemButton({
       const o = product.config.options?.find((x) => x.id === optionId);
       return o ? `${product.name} — ${o.label}` : product.name;
     }
+    if (product.kind === "tent_walls") return `${product.name} — jen střecha (stěny doplň do popisu ručně)`;
     if (product.kind === "custom_flag") {
       const mat = product.config.customFlag?.materials?.find((x) => x.id === flagMaterialId);
       return `${product.name} — ${mat?.label ?? ""} ${widthCm}×${heightCm} cm`.trim();

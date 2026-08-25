@@ -240,7 +240,7 @@ export type ProductCategory =
   | "totemy"
   | "nafukovaci-brany"
   | "nahradni-dily";
-export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options" | "custom_flag";
+export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options" | "custom_flag" | "tent_walls";
 
 // Volba produktu (např. hmotnost základny) — vlastní prodejní i nákupní cena.
 export type ProductOption = {
@@ -288,6 +288,24 @@ export type ProductVariant = {
   walls?: TentWalls; // volitelné — jaká grafika stěn se u varianty vykreslí na eshopu
 };
 
+// Cena jedné volby stěny (jednostranný/oboustranný potisk, nákup/prodej).
+export type TentWallOption = { buySingle: number; buyDouble: number; sellSingle: number; sellDouble: number };
+
+// kind 'tent_walls' — nůžkový stan skládaný po částech: zákazník začíná se
+// stanem jen se střechou (base) a přidává si zadní + boční stěny zvlášť
+// (bez stěny/poloviční/celá, jednostranný/oboustranný potisk). Zadní stěna
+// má šířku podle velikosti stanu (backWidthM), boční stěny jsou vždy 3 m.
+// Poloviční stěna v sobě má zahrnutou i boční tyč, co ji drží.
+export type TentWallsConfig = {
+  baseBuy: number;
+  baseSell: number;
+  backWidthM: number;
+  fullWallBack: TentWallOption;
+  halfWallBack: TentWallOption;
+  fullWallSide: TentWallOption;
+  halfWallSide: TentWallOption;
+};
+
 export type ProductConfig = {
   banner?: { pvc: BannerMaterialPricing; mesh: BannerMaterialPricing };
   variants?: ProductVariant[];
@@ -295,6 +313,7 @@ export type ProductConfig = {
   customFlag?: CustomFlagConfig; // kind 'custom_flag' — vlajky na zakázku
   buyPrice?: number; // kind 'simple' — nákupní cena (jen pro přehled marže v adminu)
   costBySize?: { S: number; M: number; L: number; XL: number }; // kind 'configurable' — náklad pro odhad marže
+  tentWalls?: TentWallsConfig;
 };
 
 export type Product = {
