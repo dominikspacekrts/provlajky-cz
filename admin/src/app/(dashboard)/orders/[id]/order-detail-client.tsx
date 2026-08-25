@@ -9,8 +9,21 @@ import {
   updateOrderMoney,
   updateOrderStatus,
 } from "@/lib/actions/orders";
-import { ALL_STATUSES, computeOrderTotals, customerLabel, fmtMoney, isBanner, orderLabel, statusClass, statusLabel } from "@/lib/domain";
-import type { Invoice, Order, OrderItem, Product, SupplierInvoice } from "@/lib/types";
+import {
+  ALL_STATUSES,
+  computeOrderCost,
+  computeOrderTotals,
+  customerLabel,
+  fmtMoney,
+  hasActualCost,
+  isBanner,
+  itemMargin,
+  orderLabel,
+  orderSource,
+  statusClass,
+  statusLabel,
+} from "@/lib/domain";
+import type { Invoice, Order, OrderItem, Product, Settings, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
 import DownloadVisualButton from "./download-visual-button";
@@ -34,6 +47,7 @@ export default function OrderDetailClient({
   supplierInvoices,
   products,
   discountCustomer,
+  costPerSize,
 }: {
   order: Order;
   items: OrderItem[];
@@ -41,12 +55,16 @@ export default function OrderDetailClient({
   supplierInvoices: SupplierInvoice[];
   products: Product[];
   discountCustomer: { email: string; discount_code: string } | null;
+  costPerSize: Settings["cost_per_size"];
 }) {
   const [isPending, startTransition] = useTransition();
   const [discountPct, setDiscountPct] = useState(order.discount_pct || 0);
   const [shipping, setShipping] = useState(order.shipping || 0);
 
   const totals = computeOrderTotals({ ...order, discount_pct: discountPct, shipping }, items);
+  const cost = computeOrderCost(items, supplierInvoices, costPerSize);
+  const profit = totals.totalEx - cost;
+  const profitExact = hasActualCost(supplierInvoices);
   const b = order.customer?.billing || {};
   const s = order.customer?.shipping || {};
 
@@ -64,7 +82,12 @@ export default function OrderDetailClient({
     <div>
       <div className="row-between" style={{ marginTop: 10 }}>
         <div>
-          <h2 style={{ margin: 0 }}>{orderLabel(order)}</h2>
+          <h2 style={{ margin: 0 }}>
+            {orderLabel(order)}{" "}
+            <span className={`source-pill src-${orderSource(order)}`}>
+              {orderSource(order) === "eshop" ? "eshop" : "manuál"}
+            </span>
+          </h2>
           <div className="detail-meta-row">
             <label className="inline-label">
               Stav
@@ -123,7 +146,7 @@ export default function OrderDetailClient({
       <h3>Položky</h3>
       <div className="items-list">
         {items.map((it) => (
-          <ItemRow key={it.id} item={it} orderId={order.id} currency={order.currency} />
+          <ItemRow key={it.id} item={it} orderId={order.id} currency={order.currency} costPerSize={costPerSize} />
         ))}
         {items.length === 0 && <p className="muted">Žádné položky.</p>}
       </div>
@@ -202,6 +225,17 @@ export default function OrderDetailClient({
           <span>Celkem k úhradě (s DPH)</span>
           <span>{fmtMoney(totals.grand, order.currency)}</span>
         </div>
+        <div className="totals-row profit-row">
+          <span>
+            {profitExact ? "Přesný zisk" : "Předběžný zisk"}
+            {!profitExact && (
+              <span className="muted" style={{ fontSize: 12, marginLeft: 6 }}>
+                (z nastavení marže — po nahrání faktury dodavatele se dopočítá přesně)
+              </span>
+            )}
+          </span>
+          <span style={{ color: profit >= 0 ? "#166534" : "#991b1b" }}>{fmtMoney(profit, order.currency)}</span>
+        </div>
       </div>
 
       <SupplierInvoices orderId={order.id} invoices={supplierInvoices} />
@@ -209,7 +243,17 @@ export default function OrderDetailClient({
   );
 }
 
-function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string; currency: "CZK" | "EUR" }) {
+function ItemRow({
+  item,
+  orderId,
+  currency,
+  costPerSize,
+}: {
+  item: OrderItem;
+  orderId: string;
+  currency: "CZK" | "EUR";
+  costPerSize: Settings["cost_per_size"];
+}) {
   const [, startTransition] = useTransition();
   const banner = isBanner(item);
   // Skutečná vlajka má vždycky nastavený tvar (viz addOrderItemFromProduct) —
@@ -217,6 +261,9 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
   // by tvar/velikost selecty pro ně nedávaly smysl.
   const isFlag = !banner && item.shape != null;
   const lineTotal = (item.unit_price || 0) * (item.qty || 0);
+  // null = náklad neznámý (jen vlajky mají nákladovou tabulku dle velikosti,
+  // viz settings.cost_per_size) — u ostatních typů položek se marže nezobrazuje.
+  const margin = itemMargin(item, costPerSize);
   // eshop.hs je starší úložiště z konfigurátoru na eshopu, hs je totéž pole
   // zapisované adminem — čte se, co je nastavené.
   const [hs, setHs] = useState(item.design?.hs ?? item.design?.eshop?.hs ?? false);
@@ -315,7 +362,12 @@ function ItemRow({ item, orderId, currency }: { item: OrderItem; orderId: string
         <input className="item-price" type="number" step="0.01" defaultValue={item.unit_price} onBlur={(e) => save({ unit_price: Number(e.target.value) || 0 })} />
       </div>
       <div className="item-spacer" />
-      <div className="item-linetotal">{fmtMoney(lineTotal, currency)}</div>
+      <div className="item-linetotal">
+        {fmtMoney(lineTotal, currency)}
+        <div className="item-margin muted" style={margin != null ? { color: margin >= 0 ? "#166534" : "#991b1b" } : undefined}>
+          {margin != null ? `marže ${fmtMoney(margin, currency)}` : "marže neznámá"}
+        </div>
+      </div>
       <div className="item-actions">
         {isFlag && (
           <Link href={`/orders/${orderId}/design/${item.id}`} className="btn">

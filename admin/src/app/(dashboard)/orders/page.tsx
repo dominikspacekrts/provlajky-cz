@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { computeOrderTotals, customerLabel, fmtMoney, orderLabel, statusClass, statusLabel } from "@/lib/domain";
+import { computeOrderTotals, customerLabel, fmtMoney, orderLabel, orderSource, statusClass, statusLabel } from "@/lib/domain";
 import type { Order, OrderItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,12 @@ export default async function OrdersPage() {
           return (
             <Link key={o.id} href={`/orders/${o.id}`} className="order-card">
               <div>
-                <div className="title">{orderLabel(o)}</div>
+                <div className="title">
+                  {orderLabel(o)}{" "}
+                  <span className={`source-pill src-${orderSource(o)}`}>
+                    {orderSource(o) === "eshop" ? "eshop" : "manuál"}
+                  </span>
+                </div>
                 <div className="meta">
                   {customerLabel(o)} · {new Date(o.created_at).toLocaleDateString("cs-CZ")} ·{" "}
                   <span className={`status-badge ${statusClass(o.status)}`}>

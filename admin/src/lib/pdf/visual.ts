@@ -83,7 +83,7 @@ export async function generateVisualPdf(order: Order, items: OrderItem[]): Promi
   const title = T(onlyBanners ? "NÁVRH GRAFIKY" : "NÁVRH PLÁŽOVÉ VLAJKY");
   page.drawText(title, { x: (A4w - fontB.widthOfTextAtSize(title, 15)) / 2, y, size: 15, font: fontB, color: ink });
   y -= 16;
-  const sub = T(customerLabel(order) + (order.order_number ? ` · objednávka č. ${order.order_number}` : ""));
+  const sub = T(customerLabel(order) + ` · objednávka č. ${order.order_number || "—"}`);
   page.drawText(sub, { x: (A4w - font.widthOfTextAtSize(sub, 9)) / 2, y, size: 9, font, color: grey });
   y -= 22;
 
@@ -160,7 +160,7 @@ export async function generateVisualPdf(order: Order, items: OrderItem[]): Promi
   // ---- Patička ----
   const fY = M + 14;
   page.drawLine({ start: { x: M, y: fY + 18 }, end: { x: A4w - M, y: fY + 18 }, thickness: 0.4, color: line });
-  page.drawText(T("Nezávazná cenová nabídka · platí 30 dní"), { x: M, y: fY, size: 7.5, font, color: grey });
+  page.drawText(T("Nezávazná cenová nabídka · platí 10 dní"), { x: M, y: fY, size: 7.5, font, color: grey });
   const dt = T(new Date().toLocaleDateString("cs-CZ"));
   page.drawText(dt, { x: A4w - M - font.widthOfTextAtSize(dt, 7.5), y: fY, size: 7.5, font, color: grey });
 

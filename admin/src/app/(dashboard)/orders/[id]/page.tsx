@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSettings } from "@/lib/actions/settings";
 import type { Invoice, Order, OrderItem, Product, SupplierInvoice } from "@/lib/types";
 import OrderDetailClient from "./order-detail-client";
 
@@ -17,7 +18,7 @@ export default async function OrderDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: order, error }, { data: items }, { data: invoice }, { data: supplierInvoices }, { data: products }, { data: discountCustomer }] =
+  const [{ data: order, error }, { data: items }, { data: invoice }, { data: supplierInvoices }, { data: products }, { data: discountCustomer }, settings] =
     await Promise.all([
       supabase.from("orders").select("*").eq("id", id).single(),
       supabase.from("order_items").select("*").eq("order_id", id).order("id"),
@@ -27,6 +28,7 @@ export default async function OrderDetailPage({
       // Slevový kód použitý na téhle objednávce (pokud nějaký) — customers.used_order_id
       // se nastaví při odeslání objednávky z eshopu, viz /api/objednavka.
       supabase.from("customers").select("email, discount_code").eq("used_order_id", id).maybeSingle(),
+      getSettings(),
     ]);
 
   if (error || !order) notFound();
@@ -43,6 +45,7 @@ export default async function OrderDetailPage({
         supplierInvoices={(supplierInvoices || []) as SupplierInvoice[]}
         products={(products || []) as Product[]}
         discountCustomer={discountCustomer as { email: string; discount_code: string } | null}
+        costPerSize={settings.cost_per_size}
       />
     </div>
   );
