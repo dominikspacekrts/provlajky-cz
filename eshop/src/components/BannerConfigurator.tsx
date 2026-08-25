@@ -93,6 +93,7 @@ export default function BannerConfigurator({
       thumb: artwork,
       widthCm: w,
       heightCm: h,
+      material,
       note: `${w}×${h} cm (${m2.toFixed(2)} m²) · ${BANNER_MATERIAL_LABEL[material]}${
         artwork ? " · s grafikou" : " · grafiku dodáme ke schválení"
       }`,

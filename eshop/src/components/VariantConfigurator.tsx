@@ -83,6 +83,7 @@ export default function VariantConfigurator({
       vatRate: product.vat_rate,
       thumb: image || null,
       note: `${selected.label} · ${DELIVERY_LABEL[activeSpeed]}`,
+      variantId: selected.id,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);

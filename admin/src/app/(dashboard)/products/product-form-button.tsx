@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { createProduct, updateProduct, type ProductInput } from "@/lib/actions/products";
 import {
   PRODUCT_CATEGORIES,
+  type Partner,
   type Product,
   type ProductCategory,
   type ProductConfig,
@@ -69,6 +70,7 @@ const emptyInput = (defaultCategory: ProductCategory = "plazove-vlajky"): Produc
   sort_order: 0,
   sale_pct: 0,
   config: {},
+  partner_ids: [],
 });
 
 function toInput(p: Product): ProductInput {
@@ -87,6 +89,7 @@ function toInput(p: Product): ProductInput {
     sort_order: p.sort_order,
     sale_pct: p.sale_pct || 0,
     config: p.config || {},
+    partner_ids: p.partner_ids || [],
   };
 }
 
@@ -102,9 +105,11 @@ const fmt = (n: number) =>
 export default function ProductFormButton({
   product,
   defaultCategory,
+  partners = [],
 }: {
   product?: Product;
   defaultCategory?: ProductCategory;
+  partners?: Partner[];
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<ProductInput>(() => (product ? toInput(product) : emptyInput(defaultCategory)));
@@ -125,6 +130,13 @@ export default function ProductFormButton({
 
   function set<K extends keyof ProductInput>(key: K, v: ProductInput[K]) {
     setValue((cur) => ({ ...cur, [key]: v }));
+  }
+
+  function togglePartner(id: string) {
+    setValue((cur) => ({
+      ...cur,
+      partner_ids: cur.partner_ids.includes(id) ? cur.partner_ids.filter((x) => x !== id) : [...cur.partner_ids, id],
+    }));
   }
 
   function openModal() {
@@ -710,6 +722,31 @@ export default function ProductFormButton({
                   onChange={(e) => set("sale_pct", Number(e.target.value) || 0)}
                 />
               </label>
+
+              <div>
+                <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 6 }}>
+                  Partneři — komu se rovným dílem dělí zisk z tohoto produktu (nastavuje se u nové položky v
+                  objednávce automaticky, jde tam i přepsat ručně)
+                </div>
+                {partners.length === 0 ? (
+                  <p className="muted" style={{ fontSize: 13 }}>
+                    Zatím žádní partneři — přidáš je v Nastavení → Partneři.
+                  </p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
+                    {partners.map((p) => (
+                      <label key={p.id} className="cb-line">
+                        <input
+                          type="checkbox"
+                          checked={value.partner_ids.includes(p.id)}
+                          onChange={() => togglePartner(p.id)}
+                        />
+                        {p.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <label className="cb-line">
                 <input type="checkbox" checked={value.active} onChange={(e) => set("active", e.target.checked)} />

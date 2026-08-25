@@ -83,6 +83,16 @@ export type OrderItem = {
   artwork_files: string[];
   design: Design | null;
   multi_artwork: Design[] | null;
+  // Propojení na produkt/volbu, ze které položka vznikla — pro dopočet
+  // marže (viz domain.ts itemCost/itemMargin) a rozdělení zisku mezi
+  // partnery. Starší položky (před migrací) tyhle sloupce mít nemusí.
+  product_id: string | null;
+  material: string | null; // banner_m2: 'pvc'|'mesh'; custom_flag: FlagMaterial.id
+  variant_id: string | null; // kind=variant → ProductVariant.id
+  option_id: string | null; // kind=options → ProductOption.id
+  // Rozdělení zisku téhle položky mezi partnery (rovný díl) — přednastaveno
+  // podle products.partner_ids, jde přepsat ručně u konkrétní položky.
+  partner_ids: string[];
 };
 
 export type OrderTotals = {
@@ -305,6 +315,10 @@ export type Product = {
   // slevu odráží — nastavuje se ručně vedle sale_pct, viz eshop/src/lib/sale.ts).
   sale_pct: number;
   config: ProductConfig;
+  // Výchozí partneři pro rovný podíl na zisku tohoto produktu — nové
+  // položky z tohoto produktu se tímhle přednastaví (jde přepsat u
+  // konkrétní položky v objednávce).
+  partner_ids: string[];
   created_at: string;
   updated_at: string;
 };

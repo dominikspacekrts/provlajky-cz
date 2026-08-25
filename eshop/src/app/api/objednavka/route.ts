@@ -110,9 +110,19 @@ export async function POST(req: NextRequest) {
   // veřejná URL originálu k výrobě (viz Design.artworkUrl).
   const productIds = [...new Set(lines.map((l) => l.productId).filter(Boolean))];
   const categoryById = new Map<string, ProductCategory>();
+  const partnerIdsByProduct = new Map<string, string[]>();
   if (productIds.length) {
     const { data: products } = await supabase.from("products").select("id, category").in("id", productIds);
     for (const p of products || []) categoryById.set(p.id, p.category as ProductCategory);
+    // products.partner_ids je z novější migrace (2026-08-order-item-product-link.sql)
+    // — samostatný dotaz, ať nezhroutí i tu předchozí, dokud migrace neproběhla.
+    try {
+      const { data: withPartners, error } = await supabase.from("products").select("id, partner_ids").in("id", productIds);
+      if (error) throw error;
+      for (const p of withPartners || []) partnerIdsByProduct.set(p.id, (p.partner_ids as string[]) || []);
+    } catch {
+      // sloupec ještě neexistuje — položky se prostě založí bez výchozích partnerů
+    }
   }
 
   const itemsPayload = await Promise.all(
@@ -152,11 +162,26 @@ export async function POST(req: NextRequest) {
         vat_rate: l.vatRate,
         wc_line_name: [l.name, l.note].filter(Boolean).join(" — "),
         design,
+        product_id: l.productId || null,
+        material: l.material ?? null,
+        variant_id: l.variantId ?? null,
+        option_id: l.optionId ?? null,
+        partner_ids: partnerIdsByProduct.get(l.productId) ?? [],
       };
     })
   );
 
-  const { error: itemsError } = await supabase.from("order_items").insert(itemsPayload);
+  let { error: itemsError } = await supabase.from("order_items").insert(itemsPayload);
+  if (itemsError) {
+    // Sloupce product_id/material/variant_id/option_id/partner_ids jsou z
+    // novější migrace (2026-08-order-item-product-link.sql) — dokud neproběhla,
+    // zkusíme to znovu bez nich, ať objednávka nespadne kvůli chybějícímu sloupci.
+    const fallbackPayload = itemsPayload.map(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- tahle pole se schválně zahodí
+      ({ product_id, material, variant_id, option_id, partner_ids, ...rest }) => rest
+    );
+    ({ error: itemsError } = await supabase.from("order_items").insert(fallbackPayload));
+  }
   if (itemsError) {
     console.error("objednavka: order_items insert failed", itemsError);
     return NextResponse.json({ error: "Nepodařilo se uložit položky objednávky, zkuste to prosím znovu." }, { status: 500 });

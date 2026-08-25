@@ -29,12 +29,20 @@ export type ProductInput = {
   sort_order: number;
   sale_pct: number;
   config: ProductConfig;
+  partner_ids: string[];
 };
 
 export async function createProduct(input: ProductInput) {
   const supabase = await createClient();
   const slug = input.slug.trim() ? slugify(input.slug) : slugify(input.name);
-  const { error } = await supabase.from("products").insert({ ...input, slug });
+  let { error } = await supabase.from("products").insert({ ...input, slug });
+  if (error) {
+    // partner_ids je z novější migrace (2026-08-order-item-product-link.sql) —
+    // dokud neproběhla, zkusíme to bez něj, ať jde produkt založit i tak.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- partner_ids se schválně zahodí
+    const { partner_ids: _partnerIds, ...withoutPartnerIds } = input;
+    ({ error } = await supabase.from("products").insert({ ...withoutPartnerIds, slug }));
+  }
   if (error) throw new Error(error.message);
   revalidatePath("/products");
   revalidatePath("/");
@@ -43,10 +51,18 @@ export async function createProduct(input: ProductInput) {
 export async function updateProduct(id: string, input: ProductInput) {
   const supabase = await createClient();
   const slug = input.slug.trim() ? slugify(input.slug) : slugify(input.name);
-  const { error } = await supabase
+  let { error } = await supabase
     .from("products")
     .update({ ...input, slug, updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- partner_ids se schválně zahodí
+    const { partner_ids: _partnerIds, ...withoutPartnerIds } = input;
+    ({ error } = await supabase
+      .from("products")
+      .update({ ...withoutPartnerIds, slug, updated_at: new Date().toISOString() })
+      .eq("id", id));
+  }
   if (error) throw new Error(error.message);
   revalidatePath("/products");
   revalidatePath("/");

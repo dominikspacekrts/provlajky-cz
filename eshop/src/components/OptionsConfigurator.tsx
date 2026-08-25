@@ -45,6 +45,7 @@ export default function OptionsConfigurator({
       vatRate: product.vat_rate,
       thumb: image || null,
       note: selected.label,
+      optionId: selected.id,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);

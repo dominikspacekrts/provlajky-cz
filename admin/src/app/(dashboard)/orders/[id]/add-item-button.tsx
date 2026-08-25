@@ -35,9 +35,13 @@ export default function AddItemButton({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Ke starším položkám (dopočet marže) potřebuje OrderDetailClient i
+  // neaktivní produkty, ale nabízet k ručnímu přidání jde jen to, co je na
+  // eshopu aktivní.
   const byCategory = useMemo(() => {
     const m = new Map<ProductCategory, Product[]>();
     for (const p of products) {
+      if (!p.active) continue;
       if (!m.has(p.category)) m.set(p.category, []);
       m.get(p.category)!.push(p);
     }
@@ -138,6 +142,11 @@ export default function AddItemButton({
           unit_price: unitPrice,
           vat_rate: product.vat_rate,
           wc_line_name: lineName() + (internal ? " (interní nákup)" : ""),
+          product_id: product.id,
+          material: product.kind === "banner_m2" ? material : product.kind === "custom_flag" ? flagMaterialId : null,
+          variant_id: product.kind === "variant" ? variantId : null,
+          option_id: product.kind === "options" ? optionId : null,
+          partner_ids: product.partner_ids || [],
         });
         setOpen(false);
       } catch (e) {
