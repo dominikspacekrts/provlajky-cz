@@ -10,8 +10,15 @@ import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { Product, ProductOption } from "@/lib/types";
 import { CheckMark } from "@/components/Icons";
+import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 
-export default function OptionsConfigurator({ product }: { product: Product }) {
+export default function OptionsConfigurator({
+  product,
+  galleryPhotos,
+}: {
+  product: Product;
+  galleryPhotos?: { id: string; image: string }[];
+}) {
   const { addLine } = useCart();
   const router = useRouter();
 
@@ -44,8 +51,8 @@ export default function OptionsConfigurator({ product }: { product: Product }) {
   }
 
   return (
-    <div className="configurator">
-      <div className="config-preview">
+    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+      <div className="fc-stage">
         {image ? (
           <Image
             src={image}
@@ -60,8 +67,11 @@ export default function OptionsConfigurator({ product }: { product: Product }) {
         )}
       </div>
 
-      <div>
-        <h1 style={{ fontSize: 30 }}>{product.name}</h1>
+      <aside className="fc-panel reveal-stagger">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
+
+        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
         {options.length > 1 && (
@@ -115,7 +125,9 @@ export default function OptionsConfigurator({ product }: { product: Product }) {
             {product.description}
           </p>
         )}
-      </div>
+      </aside>
+
+      <ConfiguratorGallery photos={galleryPhotos ?? []} />
     </div>
   );
 }
