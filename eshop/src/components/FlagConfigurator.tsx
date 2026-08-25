@@ -169,8 +169,6 @@ export default function FlagConfigurator({
           drawDesign={drawDesign}
           wind={0.3}
         />
-        <span className="stage-hint stage-hint-hover">Najeďte myší — vlajka se rozvlaje</span>
-        <span className="stage-hint stage-hint-touch">Vlajka se rozvlaje při doteku</span>
       </div>
 
       <aside className="fc-panel reveal-stagger">

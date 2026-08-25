@@ -29,6 +29,7 @@ const GROUPS = [
 export default function BranyATotemyPage() {
   return (
     <div className="container stany-page">
+      <h1>Nafukovací reklama</h1>
       <section className="stany-groups reveal-stagger">
         {GROUPS.map((g) => (
           <Link key={g.href} href={g.href} className="group-tile">
