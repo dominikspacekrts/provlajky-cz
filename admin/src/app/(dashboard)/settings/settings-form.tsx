@@ -3,18 +3,21 @@
 import { useState, useTransition } from "react";
 import { updatePartner } from "@/lib/actions/partners";
 import { testSmtp, updateMailSettings } from "@/lib/actions/settings";
+import { setOrderCounter, type OrderCounter } from "@/lib/actions/order-counter";
 import type { AllowedUser, Partner, Settings } from "@/lib/types";
 
-const TABS = ["Partneři", "Maily", "Uživatelé"] as const;
+const TABS = ["Partneři", "Maily", "Číslování", "Uživatelé"] as const;
 
 export default function SettingsForm({
   settings,
   partners,
   allowedUsers,
+  orderCounter,
 }: {
   settings: Settings;
   partners: Partner[];
   allowedUsers: AllowedUser[];
+  orderCounter: OrderCounter | null;
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Partneři");
 
@@ -31,8 +34,64 @@ export default function SettingsForm({
       <div className="set-panel">
         {tab === "Partneři" && <PartnersTab partners={partners} />}
         {tab === "Maily" && <MailTab initial={settings.mail} />}
+        {tab === "Číslování" && <OrderNumberingTab initial={orderCounter} />}
         {tab === "Uživatelé" && <UsersTab users={allowedUsers} />}
       </div>
+    </div>
+  );
+}
+
+function OrderNumberingTab({ initial }: { initial: OrderCounter | null }) {
+  const year = initial?.year ?? new Date().getFullYear();
+  const [nextVal, setNextVal] = useState(initial?.next_val ?? 1);
+  const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+
+  if (!initial) {
+    return (
+      <p className="muted">
+        Číslování objednávek ještě není zapnuté — v Supabase SQL Editoru je potřeba spustit migraci{" "}
+        <code>2026-08-order-numbering.sql</code> (soubor je v <code>admin/supabase/</code>). Po jejím spuštění se tu
+        objeví nastavení počátečního čísla.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <p className="muted" style={{ marginBottom: 14 }}>
+        Číslo objednávky (formát {year}NNNN) se přiděluje automaticky při založení nové objednávky — je to zároveň
+        číslo faktury i variabilní symbol platby. Tady jde nastavit, jakým pořadovým číslem se má označit ta
+        <strong> příští</strong> založená objednávka v roce {year}.
+      </p>
+      <label style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 260 }}>
+        Příští objednávka bude mít číslo
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="muted">{year}</span>
+          <input
+            type="number"
+            min={1}
+            max={9999}
+            value={nextVal}
+            onChange={(e) => setNextVal(Math.max(1, Math.min(9999, Number(e.target.value) || 1)))}
+            style={{ width: 100 }}
+          />
+        </div>
+      </label>
+      <button
+        className="btn primary"
+        style={{ marginTop: 14 }}
+        disabled={isPending}
+        onClick={() =>
+          startTransition(async () => {
+            await setOrderCounter(nextVal);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 1500);
+          })
+        }
+      >
+        {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
+      </button>
     </div>
   );
 }
