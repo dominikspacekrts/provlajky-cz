@@ -163,6 +163,18 @@ export async function saveItemDesign(itemId: string, orderId: string, design: De
   revalidatePath(`/orders/${orderId}/design/${itemId}`);
 }
 
+// Smaže objednávku i její položky (order_items má on delete cascade).
+// Faktura, faktury dodavatele a historie mailů zůstávají (order_id se jim
+// jen nastaví na null, viz schema.sql) — jde o samostatné doklady, které
+// se ruší zvlášť (viz deleteInvoice v lib/actions/invoices.ts).
+export async function deleteOrder(orderId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("orders").delete().eq("id", orderId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/orders");
+  redirect("/orders");
+}
+
 export async function updateOrderCustomer(
   orderId: string,
   customer: unknown

@@ -31,6 +31,8 @@ import SendSupplierButton from "./send-supplier-button";
 import SupplierPaidToggle from "./supplier-paid-toggle";
 import SupplierInvoices from "./supplier-invoices";
 import AddItemButton from "./add-item-button";
+import DeleteOrderButton from "./delete-order-button";
+import DeleteInvoiceButton from "@/app/(dashboard)/faktury/delete-invoice-button";
 
 const SHAPES = ["A", "B", "C", "D", "E", "F"];
 const SIZES = ["S", "M", "L", "XL"];
@@ -113,9 +115,11 @@ export default function OrderDetailClient({
         </div>
         <div className="header-actions">
           <SendInvoiceButton order={order} items={items} existingInvoice={invoice} />
+          {invoice && <DeleteInvoiceButton invoiceId={invoice.id} invoiceNumber={invoice.number} orderId={order.id} />}
           <DownloadVisualButton order={order} items={items} />
           <SendVisualButton order={order} items={items} />
           <SendSupplierButton order={order} items={items} />
+          <DeleteOrderButton orderId={order.id} orderNumber={order.order_number} />
         </div>
       </div>
 

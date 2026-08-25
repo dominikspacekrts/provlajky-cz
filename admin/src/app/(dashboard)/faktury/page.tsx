@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fmtMoney } from "@/lib/domain";
 import type { Invoice } from "@/lib/types";
 import PaidToggle from "./paid-toggle";
+import DeleteInvoiceButton from "./delete-invoice-button";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export default async function FakturyPage() {
                 PDF
               </a>
               <PaidToggle invoiceId={inv.id} paid={inv.paid} />
+              <DeleteInvoiceButton invoiceId={inv.id} invoiceNumber={inv.number} orderId={inv.order_id} />
             </div>
           </div>
         ))}
