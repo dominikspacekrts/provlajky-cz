@@ -32,17 +32,37 @@ export type ProductInput = {
   partner_ids: string[];
 };
 
+// PostgREST hlásí sloupec, který ve schema cache nezná (migrace na něj ještě
+// neproběhla), jako "Could not find the 'x' column of 'products' in the
+// schema cache" (PGRST204) — tenhle sloupec z dat zahodíme a zkusíme to
+// znovu, ať produkt jde uložit i s nedoběhlou migrací (sale_pct, partner_ids…
+// — a cokoliv podobného příště, bez nutnosti to řešit zvlášť pro každý sloupec).
+const MISSING_COLUMN_RE = /Could not find the '(\w+)' column/;
+
+async function withMissingColumnFallback(
+  run: (row: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }>,
+  row: Record<string, unknown>
+) {
+  let payload = row;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { error } = await run(payload);
+    if (!error) return null;
+    const missing = MISSING_COLUMN_RE.exec(error.message)?.[1];
+    if (!missing || !(missing in payload)) return error;
+    const next = { ...payload };
+    delete next[missing];
+    payload = next;
+  }
+  return { message: "Příliš mnoho chybějících sloupců — zkontroluj, jestli proběhly všechny SQL migrace." };
+}
+
 export async function createProduct(input: ProductInput) {
   const supabase = await createClient();
   const slug = input.slug.trim() ? slugify(input.slug) : slugify(input.name);
-  let { error } = await supabase.from("products").insert({ ...input, slug });
-  if (error) {
-    // partner_ids je z novější migrace (2026-08-order-item-product-link.sql) —
-    // dokud neproběhla, zkusíme to bez něj, ať jde produkt založit i tak.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- partner_ids se schválně zahodí
-    const { partner_ids: _partnerIds, ...withoutPartnerIds } = input;
-    ({ error } = await supabase.from("products").insert({ ...withoutPartnerIds, slug }));
-  }
+  const error = await withMissingColumnFallback(
+    (row) => supabase.from("products").insert(row),
+    { ...input, slug }
+  );
   if (error) throw new Error(error.message);
   revalidatePath("/products");
   revalidatePath("/");
@@ -51,18 +71,10 @@ export async function createProduct(input: ProductInput) {
 export async function updateProduct(id: string, input: ProductInput) {
   const supabase = await createClient();
   const slug = input.slug.trim() ? slugify(input.slug) : slugify(input.name);
-  let { error } = await supabase
-    .from("products")
-    .update({ ...input, slug, updated_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- partner_ids se schválně zahodí
-    const { partner_ids: _partnerIds, ...withoutPartnerIds } = input;
-    ({ error } = await supabase
-      .from("products")
-      .update({ ...withoutPartnerIds, slug, updated_at: new Date().toISOString() })
-      .eq("id", id));
-  }
+  const error = await withMissingColumnFallback(
+    (row) => supabase.from("products").update(row).eq("id", id),
+    { ...input, slug, updated_at: new Date().toISOString() }
+  );
   if (error) throw new Error(error.message);
   revalidatePath("/products");
   revalidatePath("/");
