@@ -35,6 +35,7 @@ const GROUPS = [
 export default function StanyPage() {
   return (
     <div className="container stany-page">
+      <h1>Nůžkové a nafukovací stany</h1>
       <section className="stany-groups reveal-stagger">
         {GROUPS.map((g) => (
           <Link key={g.href} href={g.href} className="group-tile">

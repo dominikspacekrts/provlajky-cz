@@ -194,8 +194,11 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 
 /* --- výpis kategorie ------------------------------------------------ */
+/* auto-fit (ne auto-fill) — když je produktů méně, než se vejde do řady,
+   nezůstane prázdná stopa vyplněná pozadím (šedý "duch" po chybějící
+   kartě); zbylé karty se rovnoměrně rozdělí o celou šířku řady. */
 .category-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1px; background: var(--border); border: 1px solid var(--border);
 }
 .category-card {
@@ -251,20 +254,6 @@ label:has(input[type="checkbox"]), .cb-line {
    poměr zkrátit — jinak pod ním prosvítá barva švu. */
 .configurator > .config-preview { aspect-ratio: auto; min-height: 420px; }
 .config-preview-flag { width: 100%; height: 100%; }
-.stage-hint {
-  margin-top: 14px; text-align: center; font-size: 11.5px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--gray-light);
-  font-variation-settings: "wght" 540, "wdth" 94;
-}
-.fc-stage .stage-hint {
-  position: absolute; z-index: 2; left: 0; right: 0; bottom: 28px; margin-top: 0;
-  color: var(--gray-light);
-}
-.stage-hint-touch { display: none; }
-@media (hover: none) {
-  .stage-hint-hover { display: none; }
-  .stage-hint-touch { display: block; }
-}
 .config-price {
   display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
   padding: 22px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
@@ -321,6 +310,9 @@ label:has(input[type="checkbox"]), .cb-line {
 .qty-row { display: flex; align-items: center; gap: 14px; }
 .qty-row label { flex: none; }
 .qty-row input { width: 88px; flex: none; text-align: center; }
+/* Řádek s tlačítky (Přidat do košíku…) jde ve všech konfigurátorech hned
+   po počtu kusů — bez mezery na sebe vizuálně lepí. */
+.qty-row + div { margin-top: 18px; }
 
 /* Krokové tlačítko místo číselného pole — jen kliky, žádné psaní/rolování. */
 .qty-stepper {
@@ -638,8 +630,14 @@ label:has(input[type="checkbox"]), .cb-line {
   letter-spacing: 0; text-transform: none; }
 .cb-line input { width: auto; }
 
-/* --- /stany ---------------------------------------------------------- */
-.stany-page { padding-bottom: clamp(50px, 8vh, 90px); }
+/* --- /stany, /brany-a-totemy ------------------------------------------ */
+.stany-page { padding: clamp(34px, 6vh, 72px) 0 clamp(50px, 8vh, 90px); }
+.stany-page > h1 {
+  font-size: clamp(30px, 4.4vw, 60px);
+  font-variation-settings: "wght" 680, "wdth" 116; letter-spacing: -0.036em;
+  padding-bottom: clamp(22px, 3.4vh, 36px);
+  border-bottom: 1px solid var(--border);
+}
 
 /* --- /stany: tři vstupní dlaždice (nůžkové/nafukovací/díly) ---------- */
 .stany-groups {
@@ -1127,6 +1125,30 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-groups-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1px; background: var(--border); border: 1px solid var(--border);
+}
+
+/* --- pruh s čísly (důvěra) hned pod hlavními dlaždicemi ------------- */
+.nv-stats {
+  background: var(--nv-ink);
+  padding: clamp(44px, 7vh, 76px) var(--nv-pad);
+}
+.nv-stats-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 4vw, 48px);
+  max-width: 980px; margin: 0 auto;
+}
+.nv-stats-item { text-align: center; }
+.nv-stats-num {
+  font-size: clamp(32px, 4.4vw, 52px); line-height: 1;
+  font-variation-settings: "wght" 700, "wdth" 112; letter-spacing: -0.03em;
+  color: var(--nv-yellow);
+}
+.nv-stats-label {
+  margin-top: 10px; font-size: 13px; letter-spacing: 0.04em; line-height: 1.4;
+  color: rgba(255, 255, 255, 0.74);
+}
+@media (max-width: 640px) {
+  .nv-stats-grid { grid-template-columns: 1fr; gap: 26px; max-width: 320px; }
 }
 
 /* --- produktová mřížka: dva sloupce velkých panelů ---------------- */

@@ -16,6 +16,9 @@ import RegisterForm from "@/components/RegisterForm";
 import type { ProductCategory } from "@/lib/types";
 
 // Tři hlavní produktové rodiny — ostré vstupní dlaždice hned pod herem.
+// TODO: fotky nahradit vygenerovanými produktovými snímky s bílým pozadím
+// (Viewmax generování obrázků teď nejde kvůli neaktivnímu předplatnému —
+// jakmile bude dostupné, doplnit sem).
 const HOME_GROUPS = [
   {
     id: "vlajky",
@@ -38,6 +41,14 @@ const HOME_GROUPS = [
     note: "Skládací i nafukovací konstrukce s potiskem na míru.",
     img: "/hero/nafukovaci-stan.jpg",
   },
+] as const;
+
+// Čísla jsou orientační odhad (skutečná produkce se v adminu nesleduje) —
+// až budou přesná čísla, stačí je tu přepsat.
+const STATS = [
+  { num: "2500+", label: "vyrobených plážových vlajek" },
+  { num: "600+", label: "vytištěných bannerů a meshů" },
+  { num: "180+", label: "postavených stanů" },
 ] as const;
 
 // foto-01/foto-02 se používají jako fotky dlaždic v NovaFields níž na téže stránce —
@@ -85,28 +96,6 @@ export default function Nova2Client({
         </p>
       </section>
 
-      <section ref={gallery.ref} className={`nv-gallery${gallery.inView ? " nv-in" : ""}`}>
-        <div className="nv-gallery-head" data-reveal>
-          <span className="nv-gallery-kicker">Vlajky v akci</span>
-          <p className="nv-gallery-note">
-            Fotky přímo z akcí, kam jsme vlajky dodali — Zápal to!, Race the Streets a Dolní Vítkovice.
-          </p>
-        </div>
-        <div className="nv-gallery-grid">
-          {GALLERY_PHOTOS.map((src, i) => (
-            <div
-              key={src}
-              className="nv-gallery-item"
-              data-reveal
-              style={{ "--rd": `${i * 90}ms` } as React.CSSProperties}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="Vlajky PROVLAJKY.CZ nasazené na motoristické akci" loading="lazy" />
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section className="nv-groups">
         <div className="nv-groups-grid reveal-stagger">
           {HOME_GROUPS.map((g) => (
@@ -129,6 +118,39 @@ export default function Nova2Client({
                 </span>
               </div>
             </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="nv-stats">
+        <div className="nv-stats-grid reveal-stagger">
+          {STATS.map((s) => (
+            <div key={s.label} className="nv-stats-item">
+              <div className="nv-stats-num">{s.num}</div>
+              <div className="nv-stats-label">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section ref={gallery.ref} className={`nv-gallery${gallery.inView ? " nv-in" : ""}`}>
+        <div className="nv-gallery-head" data-reveal>
+          <span className="nv-gallery-kicker">Vlajky v akci</span>
+          <p className="nv-gallery-note">
+            Fotky přímo z akcí, kam jsme vlajky dodali — Zápal to!, Race the Streets a Dolní Vítkovice.
+          </p>
+        </div>
+        <div className="nv-gallery-grid">
+          {GALLERY_PHOTOS.map((src, i) => (
+            <div
+              key={src}
+              className="nv-gallery-item"
+              data-reveal
+              style={{ "--rd": `${i * 90}ms` } as React.CSSProperties}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt="Vlajky PROVLAJKY.CZ nasazené na motoristické akci" loading="lazy" />
+            </div>
           ))}
         </div>
       </section>
