@@ -11,6 +11,7 @@ import BannerConfigurator from "./BannerConfigurator";
 import VariantConfigurator from "./VariantConfigurator";
 import OptionsConfigurator from "./OptionsConfigurator";
 import CustomFlagConfigurator from "./CustomFlagConfigurator";
+import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import { CheckMark, FlagMark } from "@/components/Icons";
 
 export default function ProductDetail({
@@ -24,13 +25,19 @@ export default function ProductDetail({
 }) {
   if (product.kind === "configurable") return <FlagConfigurator product={product} galleryPhotos={galleryPhotos} />;
   if (product.kind === "custom_flag") return <CustomFlagConfigurator product={product} galleryPhotos={galleryPhotos} />;
-  if (product.kind === "banner_m2") return <BannerConfigurator product={product} />;
-  if (product.kind === "variant") return <VariantConfigurator product={product} size={size} />;
-  if (product.kind === "options") return <OptionsConfigurator product={product} />;
-  return <SimpleProductDetail product={product} />;
+  if (product.kind === "banner_m2") return <BannerConfigurator product={product} galleryPhotos={galleryPhotos} />;
+  if (product.kind === "variant") return <VariantConfigurator product={product} size={size} galleryPhotos={galleryPhotos} />;
+  if (product.kind === "options") return <OptionsConfigurator product={product} galleryPhotos={galleryPhotos} />;
+  return <SimpleProductDetail product={product} galleryPhotos={galleryPhotos} />;
 }
 
-function SimpleProductDetail({ product }: { product: Product }) {
+function SimpleProductDetail({
+  product,
+  galleryPhotos,
+}: {
+  product: Product;
+  galleryPhotos?: { id: string; image: string }[];
+}) {
   const { addLine } = useCart();
   const router = useRouter();
   const [qty, setQty] = useState(1);
@@ -57,8 +64,8 @@ function SimpleProductDetail({ product }: { product: Product }) {
   }
 
   return (
-    <div className="configurator">
-      <div className="config-preview">
+    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+      <div className="fc-stage">
         {shapeImage ? (
           <Image src={shapeImage} alt={product.name} width={480} height={600} style={{ width: "100%", height: "100%", objectFit: "contain" }} unoptimized />
         ) : (
@@ -66,8 +73,11 @@ function SimpleProductDetail({ product }: { product: Product }) {
         )}
       </div>
 
-      <div>
-        <h1 style={{ fontSize: 30 }}>{product.name}</h1>
+      <aside className="fc-panel reveal-stagger">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
+
+        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
         <div className="config-price">
@@ -98,7 +108,9 @@ function SimpleProductDetail({ product }: { product: Product }) {
             {product.description}
           </p>
         )}
-      </div>
+      </aside>
+
+      <ConfiguratorGallery photos={galleryPhotos ?? []} />
     </div>
   );
 }

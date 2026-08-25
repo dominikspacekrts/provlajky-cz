@@ -16,8 +16,15 @@ import {
 } from "@/lib/money";
 import type { Product } from "@/lib/types";
 import { CheckMark, PenMark } from "@/components/Icons";
+import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 
-export default function BannerConfigurator({ product }: { product: Product }) {
+export default function BannerConfigurator({
+  product,
+  galleryPhotos,
+}: {
+  product: Product;
+  galleryPhotos?: { id: string; image: string }[];
+}) {
   const { addLine } = useCart();
   const router = useRouter();
 
@@ -95,8 +102,8 @@ export default function BannerConfigurator({ product }: { product: Product }) {
   }
 
   return (
-    <div className="configurator">
-      <div className="config-preview">
+    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+      <div className="fc-stage">
         <div
           className="banner-preview"
           style={{ width: preview.pw, height: preview.ph }}
@@ -126,8 +133,11 @@ export default function BannerConfigurator({ product }: { product: Product }) {
         />
       </div>
 
-      <div>
-        <h1 style={{ fontSize: 30 }}>{product.name}</h1>
+      <aside className="fc-panel reveal-stagger">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
+
+        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
         <div className="option-label">Materiál</div>
@@ -217,7 +227,9 @@ export default function BannerConfigurator({ product }: { product: Product }) {
             {product.description}
           </p>
         )}
-      </div>
+      </aside>
+
+      <ConfiguratorGallery photos={galleryPhotos ?? []} />
     </div>
   );
 }

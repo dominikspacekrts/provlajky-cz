@@ -23,8 +23,17 @@ import {
   type ProductVariant,
 } from "@/lib/types";
 import { CheckMark } from "@/components/Icons";
+import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 
-export default function VariantConfigurator({ product, size }: { product: Product; size?: string }) {
+export default function VariantConfigurator({
+  product,
+  size,
+  galleryPhotos,
+}: {
+  product: Product;
+  size?: string;
+  galleryPhotos?: { id: string; image: string }[];
+}) {
   const { addLine } = useCart();
   const router = useRouter();
 
@@ -81,18 +90,20 @@ export default function VariantConfigurator({ product, size }: { product: Produc
 
   if (variants.length === 0) {
     return (
-      <div>
-        <h1 style={{ fontSize: 30 }}>{title}</h1>
-        <p style={{ color: "var(--gray)", marginTop: 12 }}>
-          Varianty připravujeme. Napište nám na <a href="mailto:info@provlajky.cz">info@provlajky.cz</a> a
-          připravíme nabídku na míru.
-        </p>
+      <div className="container">
+        <div className="page-panel">
+          <h1 style={{ fontSize: 30 }}>{title}</h1>
+          <p style={{ color: "var(--gray)", marginTop: 12 }}>
+            Varianty připravujeme. Napište nám na <a href="mailto:info@provlajky.cz">info@provlajky.cz</a> a
+            připravíme nabídku na míru.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="fc-page">
+    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
       <div className="fc-stage">
         {(isNuzkovy || isNafukovaci) && selected ? (
           <Image
@@ -198,6 +209,8 @@ export default function VariantConfigurator({ product, size }: { product: Produc
           </p>
         )}
       </aside>
+
+      <ConfiguratorGallery photos={galleryPhotos ?? []} />
     </div>
   );
 }
