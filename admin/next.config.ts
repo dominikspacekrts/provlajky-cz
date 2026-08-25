@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  // Produkty/objednávky/faktury dodavatele posílají fotky a soubory jako
+  // base64 přímo v datech server akce (products.images, order_items.design,
+  // supplier_invoices.file_data…) — výchozí limit 1 MB stačí jen na jednu
+  // menší fotku a víc produktových fotek/PDF ho snadno přesáhne.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
+  },
 };
 
 export default nextConfig;
