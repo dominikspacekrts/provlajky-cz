@@ -248,6 +248,7 @@ export const SUPPLIER = {
   dic: "CZ25882201",
   bank: "3512506359/0800",
   bic: "GIBACZPX",
+  registry: "OR KS v Ostravě, oddíl C, vložka 24424",
 };
 
 export function isBanner(it: Pick<OrderItem, "type">) {
