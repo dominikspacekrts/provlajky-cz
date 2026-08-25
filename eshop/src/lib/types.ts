@@ -10,7 +10,7 @@ export type ProductCategory =
   | "totemy"
   | "nafukovaci-brany"
   | "nahradni-dily";
-export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options" | "custom_flag";
+export type ProductKind = "simple" | "configurable" | "banner_m2" | "variant" | "options" | "custom_flag" | "tent_walls";
 
 export type ProductOption = {
   id: string;
@@ -53,12 +53,34 @@ export type ProductVariant = {
   walls?: TentWalls; // volitelné — jaká grafika stěn se u varianty vykreslí
 };
 
+// Cena jedné volby stěny (jednostranný/oboustranný potisk, nákup/prodej).
+export type TentWallOption = { buySingle: number; buyDouble: number; sellSingle: number; sellDouble: number };
+
+// Nůžkový stan skládaný po částech: zákazník začíná se stanem jen se
+// střechou (base) a k němu si podle chuti přidává zadní stěnu a boční
+// stěny — každou zvlášť jako "bez stěny" / "poloviční" / "celá", s volbou
+// jednostranného nebo oboustranného potisku. Zadní stěna má šířku podle
+// velikosti stanu (backWidthM — 3/4,5/6 m), boční stěny jsou vždy 3 m
+// (hloubka stanu je u všech velikostí stejná). Poloviční stěna už v sobě
+// má zahrnutou boční tyč, která ji drží.
+export type TentWallsConfig = {
+  baseBuy: number;
+  baseSell: number;
+  backWidthM: number;
+  fullWallBack: TentWallOption;
+  halfWallBack: TentWallOption;
+  fullWallSide: TentWallOption;
+  halfWallSide: TentWallOption;
+};
+
 export type ProductConfig = {
   banner?: { pvc: BannerMaterialPricing; mesh: BannerMaterialPricing };
   variants?: ProductVariant[];
   options?: ProductOption[];
   customFlag?: CustomFlagConfig;
   buyPrice?: number;
+  costBySize?: { S: number; M: number; L: number; XL: number };
+  tentWalls?: TentWallsConfig;
 };
 
 export type Product = {

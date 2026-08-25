@@ -99,5 +99,6 @@ export function fromPrice(product: Product): number | null {
   if (product.kind === "banner_m2") return minBannerSell(product);
   if (product.kind === "options") return minOptionSell(product);
   if (product.kind === "custom_flag") return minCustomFlagSell(product);
+  if (product.kind === "tent_walls") return product.config?.tentWalls?.baseSell || null;
   return null;
 }

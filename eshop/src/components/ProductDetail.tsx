@@ -11,6 +11,7 @@ import BannerConfigurator from "./BannerConfigurator";
 import VariantConfigurator from "./VariantConfigurator";
 import OptionsConfigurator from "./OptionsConfigurator";
 import CustomFlagConfigurator from "./CustomFlagConfigurator";
+import TentWallsConfigurator from "./TentWallsConfigurator";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import { CheckMark, FlagMark } from "@/components/Icons";
 
@@ -28,6 +29,7 @@ export default function ProductDetail({
   if (product.kind === "banner_m2") return <BannerConfigurator product={product} galleryPhotos={galleryPhotos} />;
   if (product.kind === "variant") return <VariantConfigurator product={product} size={size} galleryPhotos={galleryPhotos} />;
   if (product.kind === "options") return <OptionsConfigurator product={product} galleryPhotos={galleryPhotos} />;
+  if (product.kind === "tent_walls") return <TentWallsConfigurator product={product} galleryPhotos={galleryPhotos} />;
   return <SimpleProductDetail product={product} galleryPhotos={galleryPhotos} />;
 }
 
