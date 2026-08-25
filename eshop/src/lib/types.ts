@@ -198,4 +198,8 @@ export type CartLine = {
   thumb?: string | null;
   note?: string | null;
   design?: OrderItemDesign | null;
+  // Rozměr banneru — order_items.width_cm/height_cm v adminu (jinde než
+  // "banner" se nepoužívá).
+  widthCm?: number | null;
+  heightCm?: number | null;
 };

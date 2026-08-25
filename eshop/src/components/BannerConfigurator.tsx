@@ -91,6 +91,8 @@ export default function BannerConfigurator({
       unitPrice,
       vatRate: product.vat_rate,
       thumb: artwork,
+      widthCm: w,
+      heightCm: h,
       note: `${w}×${h} cm (${m2.toFixed(2)} m²) · ${BANNER_MATERIAL_LABEL[material]}${
         artwork ? " · s grafikou" : " · grafiku dodáme ke schválení"
       }`,

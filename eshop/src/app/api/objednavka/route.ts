@@ -145,6 +145,8 @@ export async function POST(req: NextRequest) {
         type: l.type === "product" ? "flag" : l.type,
         shape: l.shape,
         size: l.size,
+        width_cm: l.widthCm ?? null,
+        height_cm: l.heightCm ?? null,
         qty: l.qty,
         unit_price: l.unitPrice,
         vat_rate: l.vatRate,
