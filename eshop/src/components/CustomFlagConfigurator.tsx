@@ -145,6 +145,9 @@ export default function CustomFlagConfigurator({
       vatRate: product.vat_rate,
       thumb,
       note,
+      widthCm: w,
+      heightCm: h,
+      material: material?.id ?? null,
       design: upload?.isImage && upload.dataUrl ? { thumb: upload.dataUrl, source: "eshop" } : null,
     });
     setAdded(true);

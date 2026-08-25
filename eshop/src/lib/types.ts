@@ -198,8 +198,13 @@ export type CartLine = {
   thumb?: string | null;
   note?: string | null;
   design?: OrderItemDesign | null;
-  // Rozměr banneru — order_items.width_cm/height_cm v adminu (jinde než
-  // "banner" se nepoužívá).
+  // Rozměr banneru / vlajky na zakázku — order_items.width_cm/height_cm v adminu.
   widthCm?: number | null;
   heightCm?: number | null;
+  // Konkrétní volba v rámci produktu — order_items.material/variant_id/option_id
+  // v adminu, potřeba pro dopočet marže a rozdělení zisku mezi partnery podle
+  // products.config (viz admin/src/lib/domain.ts itemCost/itemMargin).
+  material?: string | null; // banner_m2: 'pvc'|'mesh'; custom_flag: FlagMaterial.id
+  variantId?: string | null; // kind=variant (stany, totemy, brány, díly)
+  optionId?: string | null; // kind=options (těžké základny apod.)
 };
