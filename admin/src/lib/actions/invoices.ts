@@ -81,6 +81,14 @@ export async function getOrCreateInvoiceForOrder(orderId: string): Promise<Invoi
   return inserted as Invoice;
 }
 
+export async function deleteInvoice(invoiceId: string, orderId?: string | null) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("invoices").delete().eq("id", invoiceId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/faktury");
+  if (orderId) revalidatePath(`/orders/${orderId}`);
+}
+
 export async function setInvoicePaid(invoiceId: string, paid: boolean) {
   const supabase = await createClient();
   const { error } = await supabase.from("invoices").update({ paid }).eq("id", invoiceId);
