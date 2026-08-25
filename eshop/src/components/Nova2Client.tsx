@@ -16,9 +16,9 @@ import RegisterForm from "@/components/RegisterForm";
 import type { ProductCategory } from "@/lib/types";
 
 // Tři hlavní produktové rodiny — ostré vstupní dlaždice hned pod herem.
-// TODO: fotky nahradit vygenerovanými produktovými snímky s bílým pozadím
-// (Viewmax generování obrázků teď nejde kvůli neaktivnímu předplatnému —
-// jakmile bude dostupné, doplnit sem).
+// TODO: "vlajky" a "stany" ještě nahradit vygenerovanými produktovými
+// snímky s bílým pozadím (Viewmax generování obrázků teď nejde kvůli
+// neaktivnímu předplatnému — jakmile bude dostupné, doplnit sem).
 const HOME_GROUPS = [
   {
     id: "vlajky",
@@ -32,7 +32,7 @@ const HOME_GROUPS = [
     title: "Bannery a meshe",
     href: "/pvc-bannery",
     note: "PVC i mesh, cena za m², oka po obvodu.",
-    img: "/hero/bannery.jpg",
+    img: "/produkty/mesh-banner.jpg",
   },
   {
     id: "stany",

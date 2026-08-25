@@ -9,10 +9,11 @@ import {
   updateOrderMoney,
   updateOrderStatus,
 } from "@/lib/actions/orders";
-import { ALL_STATUSES, computeOrderTotals, customerLabel, fmtMoney, isBanner, statusClass, statusLabel } from "@/lib/domain";
+import { ALL_STATUSES, computeOrderTotals, customerLabel, fmtMoney, isBanner, orderLabel, statusClass, statusLabel } from "@/lib/domain";
 import type { Invoice, Order, OrderItem, Product, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
+import DownloadVisualButton from "./download-visual-button";
 import SendSupplierButton from "./send-supplier-button";
 import SupplierPaidToggle from "./supplier-paid-toggle";
 import SupplierInvoices from "./supplier-invoices";
@@ -63,7 +64,7 @@ export default function OrderDetailClient({
     <div>
       <div className="row-between" style={{ marginTop: 10 }}>
         <div>
-          <h2 style={{ margin: 0 }}>{order.title || `Objednávka č. ${order.order_number || "—"}`}</h2>
+          <h2 style={{ margin: 0 }}>{orderLabel(order)}</h2>
           <div className="detail-meta-row">
             <label className="inline-label">
               Stav
@@ -89,6 +90,7 @@ export default function OrderDetailClient({
         </div>
         <div className="header-actions">
           <SendInvoiceButton order={order} items={items} existingInvoice={invoice} />
+          <DownloadVisualButton order={order} items={items} />
           <SendVisualButton order={order} items={items} />
           <SendSupplierButton order={order} items={items} />
         </div>

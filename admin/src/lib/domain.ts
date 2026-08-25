@@ -90,6 +90,15 @@ export function customerLabel(order: Pick<Order, "customer">) {
   return b.company || b.name || "—";
 }
 
+// order.title bývá jen obecný popis ("Objednávka z eshopu") — číslo objednávky
+// (= číslo faktury = variabilní symbol, viz 2026-08-order-numbering.sql) musí
+// být vidět vždycky, i když title existuje, jinak podle titulku nejde
+// objednávku dohledat ani spárovat s platbou.
+export function orderLabel(order: Pick<Order, "title" | "order_number">) {
+  const num = order.order_number ? `č. ${order.order_number}` : "č. —";
+  return order.title ? `${order.title} (${num})` : `Objednávka ${num}`;
+}
+
 export function customerEmail(order: Pick<Order, "customer">) {
   return order.customer?.billing?.email || "";
 }
