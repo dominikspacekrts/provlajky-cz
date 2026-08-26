@@ -372,17 +372,25 @@ label:has(input[type="checkbox"]), .cb-line {
   animation: fc-panel-in 0.7s 0.1s var(--nv-ease) both;
 }
 @keyframes fc-panel-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-/* Cena + počet kusů + tlačítko "Přidat do košíku" zůstávají přilepené dole
+/* Úzká lišta s cenou a tlačítkem "Přidat do košíku" zůstává přilepená dole
    v panelu, i když se přes hodně možností musí scrollovat — zákazník má
-   akci vidět na první dobrou, ne až po projetí celého formuláře. */
+   akci vidět na první dobrou. Počet kusů, druhé tlačítko a nápovědy jsou
+   schválně mimo tuhle lištu (v běžném, scrollovatelném obsahu) — jen cena
+   + jedno tlačítko, ať lišta nezabírá místo, když se produkt konfiguruje. */
 .fc-cta {
   position: sticky; bottom: calc(-1 * clamp(24px, 3vw, 44px)); z-index: 5;
-  margin: 14px calc(-1 * clamp(24px, 3vw, 44px)) calc(-1 * clamp(24px, 3vw, 44px));
-  padding: 14px clamp(24px, 3vw, 44px) clamp(24px, 3vw, 44px);
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin: 0 calc(-1 * clamp(24px, 3vw, 44px)) calc(-1 * clamp(24px, 3vw, 44px));
+  padding: 12px clamp(24px, 3vw, 44px) calc(clamp(24px, 3vw, 44px) + 4px);
   border-radius: 0 0 22px 22px;
   background: #f8f8f6;
   box-shadow: 0 -14px 22px -18px rgba(8, 8, 10, 0.28);
 }
+.fc-cta-price {
+  font-size: clamp(19px, 2vw, 24px); font-variation-settings: "wght" 700, "wdth" 108;
+  letter-spacing: -0.02em; white-space: nowrap;
+}
+.fc-cta .btn-yellow { flex: none; }
 /* Trochu hutnější odsazení možností uvnitř panelu, ať se toho vejde víc
    bez scrollu a k tlačítku je to blíž. */
 .fc-panel .option-row { padding: 16px 0; }
