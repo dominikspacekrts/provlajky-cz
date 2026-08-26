@@ -10,7 +10,7 @@ export default async function FakturyPage() {
   const supabase = await createClient();
   const { data: invoices } = await supabase
     .from("invoices")
-    .select("*")
+    .select("id, order_id, number, order_number, issued, due, paid, currency, totals")
     .eq("kind", "product")
     .order("issued", { ascending: false });
 
