@@ -247,49 +247,51 @@ export default function FlagConfigurator({
             : "Povinný krok — zadejte barvu podkladu a nahrajte logo, ať víme, jak má vlajka vypadat."}
         </p>
 
-        <div className="config-price">
-          {unitPrice > 0 ? (
-            <>
-              {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-            </>
-          ) : (
-            <span style={{ fontSize: 20 }}>Cena na dotaz</span>
-          )}
-        </div>
+        <div className="fc-cta">
+          <div className="config-price">
+            {unitPrice > 0 ? (
+              <>
+                {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
+              </>
+            ) : (
+              <span style={{ fontSize: 20 }}>Cena na dotaz</span>
+            )}
+          </div>
 
-        <div className="qty-row">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <div className="qty-stepper">
-            <button
-              type="button"
-              aria-label="Ubrat kus"
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
-              disabled={qty <= 1}
-            >
-              −
-            </button>
-            <span className="qty-value">{qty}</span>
-            <button type="button" aria-label="Přidat kus" onClick={() => setQty((q) => q + 1)}>
-              +
+          <div className="qty-row">
+            <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
+            <div className="qty-stepper">
+              <button
+                type="button"
+                aria-label="Ubrat kus"
+                onClick={() => setQty((q) => Math.max(1, q - 1))}
+                disabled={qty <= 1}
+              >
+                −
+              </button>
+              <span className="qty-value">{qty}</span>
+              <button type="button" aria-label="Přidat kus" onClick={() => setQty((q) => q + 1)}>
+                +
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button className="btn-yellow" disabled={unitPrice <= 0 || !design?.logoDataUrl} onClick={handleAdd}>
+              Přidat do košíku
             </button>
           </div>
+          {unitPrice <= 0 && (
+            <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+              Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
+            </p>
+          )}
+          {unitPrice > 0 && !design?.logoDataUrl && (
+            <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+              Nejdřív navrhněte vlajku (barva podkladu + logo) — pak půjde přidat do košíku.
+            </p>
+          )}
         </div>
-
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="btn-yellow" disabled={unitPrice <= 0 || !design?.logoDataUrl} onClick={handleAdd}>
-            Přidat do košíku
-          </button>
-        </div>
-        {unitPrice <= 0 && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
-          </p>
-        )}
-        {unitPrice > 0 && !design?.logoDataUrl && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Nejdřív navrhněte vlajku (barva podkladu + logo) — pak půjde přidat do košíku.
-          </p>
-        )}
 
         {product.description && (
           <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
