@@ -82,28 +82,30 @@ function SimpleProductDetail({
         <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
-        <div className="config-price">
-          {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-        </div>
+        <div className="fc-cta">
+          <div className="config-price">
+            {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
+          </div>
 
-        <div className="qty-row">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} />
-        </div>
+          <div className="qty-row">
+            <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
+            <input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} />
+          </div>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
-          </button>
-          <button className="btn-outline" onClick={() => router.push("/kosik")}>
-            Přejít do košíku
-          </button>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
+              {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
+            </button>
+            <button className="btn-outline" onClick={() => router.push("/kosik")}>
+              Přejít do košíku
+            </button>
+          </div>
+          {unitPrice <= 0 && (
+            <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+              Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
+            </p>
+          )}
         </div>
-        {unitPrice <= 0 && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
-          </p>
-        )}
 
         {product.description && (
           <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>

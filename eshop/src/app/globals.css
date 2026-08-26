@@ -372,10 +372,33 @@ label:has(input[type="checkbox"]), .cb-line {
   animation: fc-panel-in 0.7s 0.1s var(--nv-ease) both;
 }
 @keyframes fc-panel-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+/* Cena + počet kusů + tlačítko "Přidat do košíku" zůstávají přilepené dole
+   v panelu, i když se přes hodně možností musí scrollovat — zákazník má
+   akci vidět na první dobrou, ne až po projetí celého formuláře. */
+.fc-cta {
+  position: sticky; bottom: calc(-1 * clamp(24px, 3vw, 44px)); z-index: 5;
+  margin: 14px calc(-1 * clamp(24px, 3vw, 44px)) calc(-1 * clamp(24px, 3vw, 44px));
+  padding: 14px clamp(24px, 3vw, 44px) clamp(24px, 3vw, 44px);
+  border-radius: 0 0 22px 22px;
+  background: #f8f8f6;
+  box-shadow: 0 -14px 22px -18px rgba(8, 8, 10, 0.28);
+}
+/* Trochu hutnější odsazení možností uvnitř panelu, ať se toho vejde víc
+   bez scrollu a k tlačítku je to blíž. */
+.fc-panel .option-row { padding: 16px 0; }
+.fc-panel .option-label { margin-bottom: 10px; }
 @media (max-width: 860px) {
   .fc-page { grid-template-columns: 1fr; height: auto; min-height: 0; }
   .fc-stage { height: 46vh; min-height: 280px; }
-  .fc-panel { max-height: none; }
+  /* Bez max-height se panel nikdy sám nescrolluje (stránka jede normálně) —
+     overflow:visible ho zruší jako "scroll container", ať .fc-cta jde
+     sticky rovnou vůči obrazovce, ne vůči panelu (viz níž). */
+  .fc-panel { max-height: none; overflow: visible; }
+  .fc-cta {
+    bottom: 0; border-radius: 0;
+    padding-bottom: 14px;
+    box-shadow: 0 -10px 20px -14px rgba(8, 8, 10, 0.3);
+  }
 }
 /* Nižší monitor/okno (šířka OK, výška ne) — konfigurátor musí pořád jít
    vidět celý bez posouvání stránky; sevřenější odstupy v panelu udělají
@@ -388,6 +411,9 @@ label:has(input[type="checkbox"]), .cb-line {
   .fc-panel .shape-btn { width: 46px; height: 58px; }
   .fc-panel .config-hero-logo { margin-bottom: 10px !important; }
   .fc-panel h1 { font-size: 22px !important; }
+  /* .fc-cta odečítá .fc-panel padding zápornou marží — musí sedět na tuhle
+     zúženou hodnotu, jinak by lišta nedosedla přesně na okraj panelu. */
+  .fc-cta { bottom: -18px; margin: 10px -24px -18px; padding: 10px 24px 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fc-stage, .fc-stage-shape, .fc-panel { animation: none; }
