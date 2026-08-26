@@ -20,7 +20,11 @@ export default async function PlatbyPage() {
 
   const [{ data: orders }, { data: payouts }, { data: partners }, { data: supplierInvoices }, { data: products }, settings] =
     await Promise.all([
-      supabase.from("orders").select("*, order_items(*)"),
+      supabase
+        .from("orders")
+        .select(
+          "*, order_items(id, unit_price, qty, vat_rate, size, width_cm, height_cm, product_id, material, variant_id, option_id, wc_line_name, partner_ids)"
+        ),
       supabase.from("payouts").select("*").order("date", { ascending: false }),
       supabase.from("partners").select("*"),
       supabase.from("supplier_invoices").select("*"),

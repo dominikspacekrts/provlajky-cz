@@ -9,7 +9,7 @@ export default async function StatistikaPage() {
 
   const [{ data: invoices }, { data: orders }, { data: supplierInvoices }] = await Promise.all([
     supabase.from("invoices").select("id, paid").eq("kind", "product"),
-    supabase.from("orders").select("*, order_items(*)"),
+    supabase.from("orders").select("*, order_items(id, unit_price, qty, vat_rate)"),
     supabase.from("supplier_invoices").select("*"),
   ]);
 
