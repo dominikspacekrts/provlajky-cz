@@ -363,25 +363,28 @@ label:has(input[type="checkbox"]), .cb-line {
 @keyframes fc-skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 .fc-stage canvas { position: relative; z-index: 1; }
 .fc-panel {
-  position: relative; overflow: hidden auto; border-radius: 22px;
+  position: relative; overflow: hidden; border-radius: 22px;
+  display: flex; flex-direction: column;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(22px) saturate(1.4);
   border: 1px solid rgba(8, 8, 10, 0.08);
   box-shadow: 0 30px 70px -46px rgba(8, 8, 10, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  padding: clamp(24px, 3vw, 44px);
   animation: fc-panel-in 0.7s 0.1s var(--nv-ease) both;
 }
 @keyframes fc-panel-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-/* Úzká lišta s cenou a tlačítkem "Přidat do košíku" zůstává přilepená dole
-   v panelu, i když se přes hodně možností musí scrollovat — zákazník má
-   akci vidět na první dobrou. Počet kusů, druhé tlačítko a nápovědy jsou
-   schválně mimo tuhle lištu (v běžném, scrollovatelném obsahu) — jen cena
-   + jedno tlačítko, ať lišta nezabírá místo, když se produkt konfiguruje. */
+/* Obsah panelu (nadpis + možnosti) scrolluje sám v tomhle vnitřním boxu —
+   .fc-cta je jeho sourozenec mimo scroll, takže vždycky sedí jako pevný
+   pruh dole a nikdy nepřekrývá text, ať je možností sebevíc (dřívější
+   sticky+záporná marže trik se přesně tohle nedokázal ohlídat u delších
+   konfigurátorů — text pod lištou prosvítal). */
+.fc-panel-scroll {
+  flex: 1 1 auto; min-height: 0; overflow: hidden auto;
+  padding: clamp(24px, 3vw, 44px);
+}
 .fc-cta {
-  position: sticky; bottom: calc(-1 * clamp(24px, 3vw, 44px)); z-index: 5;
+  flex: none; position: relative; z-index: 5;
   display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
-  margin: 0 calc(-1 * clamp(24px, 3vw, 44px)) calc(-1 * clamp(24px, 3vw, 44px));
-  padding: 12px clamp(24px, 3vw, 44px) calc(clamp(24px, 3vw, 44px) + 4px);
+  padding: 14px clamp(24px, 3vw, 44px) clamp(20px, 2.4vw, 32px);
   border-radius: 0 0 22px 22px;
   background: #f8f8f6;
   box-shadow: 0 -14px 22px -18px rgba(8, 8, 10, 0.28);
@@ -398,12 +401,13 @@ label:has(input[type="checkbox"]), .cb-line {
 @media (max-width: 860px) {
   .fc-page { grid-template-columns: 1fr; height: auto; min-height: 0; }
   .fc-stage { height: 46vh; min-height: 280px; }
-  /* Bez max-height se panel nikdy sám nescrolluje (stránka jede normálně) —
-     overflow:visible ho zruší jako "scroll container", ať .fc-cta jde
-     sticky rovnou vůči obrazovce, ne vůči panelu (viz níž). */
-  .fc-panel { max-height: none; overflow: visible; }
+  /* Na mobilu nescrolluje panel sám — jede celá stránka — a .fc-cta se
+     přilepí dole vůči obrazovce (position: sticky se tu chytí na body/html,
+     protože panel i jeho scroll box mají overflow: visible). */
+  .fc-panel { overflow: visible; }
+  .fc-panel-scroll { flex: none; overflow: visible; }
   .fc-cta {
-    bottom: 0; border-radius: 0;
+    position: sticky; bottom: 0; border-radius: 0;
     padding-bottom: 14px;
     box-shadow: 0 -10px 20px -14px rgba(8, 8, 10, 0.3);
   }
@@ -412,16 +416,14 @@ label:has(input[type="checkbox"]), .cb-line {
    vidět celý bez posouvání stránky; sevřenější odstupy v panelu udělají
    místo, ať je "Přidat do košíku" vidět bez scrollu i tady. */
 @media (max-height: 760px) and (min-width: 861px) {
-  .fc-panel { padding: 18px 24px; }
+  .fc-panel-scroll { padding: 18px 24px; }
   .fc-panel .option-row { padding: 12px 0; }
   .fc-panel .option-label { margin-bottom: 8px; }
   .fc-panel .config-price { padding: 12px 0; margin: 14px 0; }
   .fc-panel .shape-btn { width: 46px; height: 58px; }
   .fc-panel .config-hero-logo { margin-bottom: 10px !important; }
   .fc-panel h1 { font-size: 22px !important; }
-  /* .fc-cta odečítá .fc-panel padding zápornou marží — musí sedět na tuhle
-     zúženou hodnotu, jinak by lišta nedosedla přesně na okraj panelu. */
-  .fc-cta { bottom: -18px; margin: 10px -24px -18px; padding: 10px 24px 18px; }
+  .fc-cta { padding: 10px 24px 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fc-stage, .fc-stage-shape, .fc-panel { animation: none; }

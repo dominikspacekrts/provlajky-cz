@@ -60,9 +60,9 @@ function PositionRow({
 }) {
   if (!side) {
     return (
-      <div className="option-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+      <div className="option-row" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <button className="option-chip" onClick={() => onChange({ type: "full", double: false })}>
             + Celá stěna
           </button>
@@ -75,19 +75,19 @@ function PositionRow({
   }
 
   return (
-    <div className="option-row" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+    <div className="option-row" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <span style={{ fontSize: 14, fontWeight: 600 }}>
           {label} — {side.type === "full" ? "celá stěna" : "poloviční stěna"}
         </span>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 13, color: "var(--gray)" }}>+{fmtMoney(price)}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
+          <span style={{ fontSize: 13, color: "var(--gray)", whiteSpace: "nowrap" }}>+{fmtMoney(price)}</span>
           <button className="link-reset" onClick={() => onChange(null)} aria-label={`Odebrat ${label.toLowerCase()}`}>
             ✕
           </button>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {(
           [
             [false, "Jednostranný potisk"],
@@ -190,6 +190,7 @@ export default function TentWallsConfigurator({
       </div>
 
       <aside className="fc-panel reveal-stagger">
+      <div className="fc-panel-scroll">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
 
@@ -233,6 +234,13 @@ export default function TentWallsConfigurator({
           </p>
         )}
 
+        {product.description && (
+          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
+            {product.description}
+          </p>
+        )}
+      </div>
+
         <div className="fc-cta">
           <div className="fc-cta-price">
             {unitPrice > 0 ? (
@@ -247,12 +255,6 @@ export default function TentWallsConfigurator({
             {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
           </button>
         </div>
-
-        {product.description && (
-          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
-            {product.description}
-          </p>
-        )}
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />

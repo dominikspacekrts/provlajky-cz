@@ -88,8 +88,33 @@ export function hasActualCost(invoices: Pick<SupplierInvoice, "amount_czk">[]) {
 export type ProductLookup = Pick<Product, "kind" | "config">;
 type CostItem = Pick<
   OrderItem,
-  "size" | "unit_price" | "width_cm" | "height_cm" | "product_id" | "material" | "variant_id" | "option_id"
+  "size" | "unit_price" | "width_cm" | "height_cm" | "product_id" | "material" | "variant_id" | "option_id" | "wc_line_name"
 >;
+
+// Nůžkové stany (tent_walls) neukládají výběr stěn strukturovaně — jen do
+// wc_line_name (název položky), viz TentWallsConfigurator.handleAdd v eshopu.
+// Aby šel spočítat náklad (a tedy i marže/podíl partnerů), zpětně to odsud
+// naparsujeme — křehčí než sloupec v DB, ale funguje i na starší objednávky
+// bez migrace.
+const TENT_WALL_POSITION_LABELS: Record<string, "front" | "back" | "left" | "right"> = {
+  "Přední stěna": "front",
+  "Zadní stěna": "back",
+  "Levá boční stěna": "left",
+  "Pravá boční stěna": "right",
+};
+function parseTentWallsFromLineName(wcLineName: string | null | undefined) {
+  const result: Partial<Record<"front" | "back" | "left" | "right", { full: boolean; double: boolean }>> = {};
+  if (!wcLineName) return result;
+  for (const [label, key] of Object.entries(TENT_WALL_POSITION_LABELS)) {
+    const m = wcLineName.match(new RegExp(`${label}: (celá|poloviční) \\((jednostranný|oboustranný) potisk\\)`));
+    if (m) result[key] = { full: m[1] === "celá", double: m[2] === "oboustranný" };
+  }
+  return result;
+}
+function tentWallOptionFor(cfg: NonNullable<Product["config"]>["tentWalls"], key: "front" | "back" | "left" | "right") {
+  if (!cfg) return null;
+  return key === "left" || key === "right" ? { full: cfg.fullWallSide, half: cfg.halfWallSide } : { full: cfg.fullWallBack, half: cfg.halfWallBack };
+}
 
 // Odhadovaný náklad jedné položky — podle produktu/volby, ze které vznikla
 // (order_items.product_id/material/variant_id/option_id → products.config,
@@ -140,6 +165,21 @@ export function itemCost(item: CostItem, productById: Map<string, ProductLookup>
       // uložená prodejní cena položky blíž.
       const nearerAir = Math.abs(item.unit_price - v.sellAir) <= Math.abs(item.unit_price - v.sellTrain);
       return nearerAir ? costAir : costTrain;
+    }
+    case "tent_walls": {
+      const tw = cfg.tentWalls;
+      if (!tw) return null;
+      const walls = parseTentWallsFromLineName(item.wc_line_name);
+      let cost = tw.baseBuy;
+      for (const key of ["front", "back", "left", "right"] as const) {
+        const w = walls[key];
+        if (!w) continue;
+        const opts = tentWallOptionFor(tw, key);
+        if (!opts) continue;
+        const o = w.full ? opts.full : opts.half;
+        cost += w.double ? o.buyDouble : o.buySingle;
+      }
+      return cost;
     }
     default:
       return null;

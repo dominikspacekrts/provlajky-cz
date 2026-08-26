@@ -137,6 +137,7 @@ export default function BannerConfigurator({
       </div>
 
       <aside className="fc-panel reveal-stagger">
+      <div className="fc-panel-scroll">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
 
@@ -211,6 +212,13 @@ export default function BannerConfigurator({
           </p>
         )}
 
+        {product.description && (
+          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
+            {product.description}
+          </p>
+        )}
+      </div>
+
         <div className="fc-cta">
           <div className="fc-cta-price">
             {unitPrice > 0 ? (
@@ -225,12 +233,6 @@ export default function BannerConfigurator({
             {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
           </button>
         </div>
-
-        {product.description && (
-          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
-            {product.description}
-          </p>
-        )}
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
