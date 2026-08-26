@@ -198,6 +198,11 @@ export function itemMargin(
   return ((item.unit_price || 0) - cost) * (item.qty || 0);
 }
 
+// Podíl z tržby každé objednávky, který jde na provoz (web, účetní apod.)
+// a nerozděluje se mezi partnery — odečítá se z položkové marže dřív, než
+// se zbytek rozdělí (viz platby/page.tsx).
+export const PLATFORM_FEE_PCT = 0.1;
+
 // Náklad celé objednávky — přednostně přesný (faktury od dodavatele v Kč),
 // jinak odhad součtem itemCost × qty přes položky, kde je náklad známý.
 export function computeOrderCost(

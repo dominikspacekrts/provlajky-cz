@@ -15,6 +15,13 @@ export async function addPayout(partnerId: string, partnerName: string, amount: 
   revalidatePath("/platby");
 }
 
+export async function deletePayout(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("payouts").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/platby");
+}
+
 export async function addSupplierInvoice(fields: {
   order_id?: string | null;
   supplier?: string;
