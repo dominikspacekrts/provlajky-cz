@@ -169,6 +169,7 @@ export default function CustomFlagConfigurator({
       </div>
 
       <aside className="fc-panel reveal-stagger">
+      <div className="fc-panel-scroll">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
 
@@ -355,6 +356,7 @@ export default function CustomFlagConfigurator({
             <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.
           </p>
         )}
+      </div>
 
         {/* Cena */}
         <div className="fc-cta">

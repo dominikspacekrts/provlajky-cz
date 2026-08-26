@@ -709,44 +709,46 @@ export default function ProductFormButton({
               )}
 
               {value.kind === "tent_walls" && (
-                <div className="variant-block">
-                  <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 8 }}>
-                    Zákazník začíná se stanem jen se střechou (base) a přidává si zadní a boční stěny zvlášť — bez
-                    stěny / poloviční / celá, jednostranný nebo oboustranný potisk. Zadní stěna má šířku podle
-                    velikosti stanu (níže), boční stěny jsou vždy 3 m. Poloviční stěna v ceně zahrnuje i boční tyč.
-                  </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div className="variant-block">
+                    <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 8 }}>
+                      Zákazník začíná se stanem jen se střechou (base) a přidává si zadní a boční stěny zvlášť — bez
+                      stěny / poloviční / celá, jednostranný nebo oboustranný potisk. Zadní stěna má šířku podle
+                      velikosti stanu (níže), boční stěny jsou vždy 3 m. Poloviční stěna v ceně zahrnuje i boční tyč.
+                    </div>
 
-                  <div className="variant-row" style={{ alignItems: "flex-end" }}>
-                    <label style={{ flex: 1 }}>
-                      Šířka zadní stěny (m)
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={tentWalls.backWidthM}
-                        onChange={(e) => setTentWalls({ ...tentWalls, backWidthM: Number(e.target.value) || 0 })}
-                      />
-                    </label>
-                    <label style={{ flex: 1 }}>
-                      Základ — nákup (jen střecha)
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={tentWalls.baseBuy}
-                        onChange={(e) => setTentWalls({ ...tentWalls, baseBuy: Number(e.target.value) || 0 })}
-                      />
-                    </label>
-                    <label style={{ flex: 1 }}>
-                      Základ — prodej (jen střecha)
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={tentWalls.baseSell}
-                        onChange={(e) => setTentWalls({ ...tentWalls, baseSell: Number(e.target.value) || 0 })}
-                      />
-                      <small style={{ color: tentWalls.baseSell >= tentWalls.baseBuy ? "#16a34a" : "#dc2626" }}>
-                        marže {fmt(tentWalls.baseSell - tentWalls.baseBuy)}
-                      </small>
-                    </label>
+                    <div className="variant-row" style={{ alignItems: "flex-end" }}>
+                      <label style={{ flex: 1 }}>
+                        Šířka zadní stěny (m)
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={tentWalls.backWidthM}
+                          onChange={(e) => setTentWalls({ ...tentWalls, backWidthM: Number(e.target.value) || 0 })}
+                        />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Základ — nákup (jen střecha)
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={tentWalls.baseBuy}
+                          onChange={(e) => setTentWalls({ ...tentWalls, baseBuy: Number(e.target.value) || 0 })}
+                        />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Základ — prodej (jen střecha)
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={tentWalls.baseSell}
+                          onChange={(e) => setTentWalls({ ...tentWalls, baseSell: Number(e.target.value) || 0 })}
+                        />
+                        <small style={{ color: tentWalls.baseSell >= tentWalls.baseBuy ? "#16a34a" : "#dc2626" }}>
+                          marže {fmt(tentWalls.baseSell - tentWalls.baseBuy)}
+                        </small>
+                      </label>
+                    </div>
                   </div>
 
                   {(
@@ -759,51 +761,53 @@ export default function ProductFormButton({
                   ).map(([key, title]) => {
                     const o = tentWalls[key];
                     return (
-                      <div key={key} style={{ marginTop: 14 }}>
-                        <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>{title}</div>
-                        <div className="variant-row" style={{ alignItems: "flex-end" }}>
-                          <label style={{ flex: 1 }}>
-                            Nákup — jednostranný
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={o.buySingle}
-                              onChange={(e) => patchTentWallOption(key, { buySingle: Number(e.target.value) || 0 })}
-                            />
-                          </label>
-                          <label style={{ flex: 1 }}>
-                            Prodej — jednostranný
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={o.sellSingle}
-                              onChange={(e) => patchTentWallOption(key, { sellSingle: Number(e.target.value) || 0 })}
-                            />
-                            <small style={{ color: o.sellSingle >= o.buySingle ? "#16a34a" : "#dc2626" }}>
-                              marže {fmt(o.sellSingle - o.buySingle)}
-                            </small>
-                          </label>
-                          <label style={{ flex: 1 }}>
-                            Nákup — oboustranný
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={o.buyDouble}
-                              onChange={(e) => patchTentWallOption(key, { buyDouble: Number(e.target.value) || 0 })}
-                            />
-                          </label>
-                          <label style={{ flex: 1 }}>
-                            Prodej — oboustranný
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={o.sellDouble}
-                              onChange={(e) => patchTentWallOption(key, { sellDouble: Number(e.target.value) || 0 })}
-                            />
-                            <small style={{ color: o.sellDouble >= o.buyDouble ? "#16a34a" : "#dc2626" }}>
-                              marže {fmt(o.sellDouble - o.buyDouble)}
-                            </small>
-                          </label>
+                      <div key={key} className="variant-card">
+                        <div style={{ padding: "10px 12px", fontWeight: 600, fontSize: 13.5 }}>{title}</div>
+                        <div className="variant-card-body">
+                          <div className="variant-row" style={{ alignItems: "flex-end" }}>
+                            <label style={{ flex: 1 }}>
+                              Nákup — jednostranný
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={o.buySingle}
+                                onChange={(e) => patchTentWallOption(key, { buySingle: Number(e.target.value) || 0 })}
+                              />
+                            </label>
+                            <label style={{ flex: 1 }}>
+                              Prodej — jednostranný
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={o.sellSingle}
+                                onChange={(e) => patchTentWallOption(key, { sellSingle: Number(e.target.value) || 0 })}
+                              />
+                              <small style={{ color: o.sellSingle >= o.buySingle ? "#16a34a" : "#dc2626" }}>
+                                marže {fmt(o.sellSingle - o.buySingle)}
+                              </small>
+                            </label>
+                            <label style={{ flex: 1 }}>
+                              Nákup — oboustranný
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={o.buyDouble}
+                                onChange={(e) => patchTentWallOption(key, { buyDouble: Number(e.target.value) || 0 })}
+                              />
+                            </label>
+                            <label style={{ flex: 1 }}>
+                              Prodej — oboustranný
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={o.sellDouble}
+                                onChange={(e) => patchTentWallOption(key, { sellDouble: Number(e.target.value) || 0 })}
+                              />
+                              <small style={{ color: o.sellDouble >= o.buyDouble ? "#16a34a" : "#dc2626" }}>
+                                marže {fmt(o.sellDouble - o.buyDouble)}
+                              </small>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     );
