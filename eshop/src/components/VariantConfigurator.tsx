@@ -166,44 +166,43 @@ export default function VariantConfigurator({
           </>
         )}
 
+        <div className="qty-row">
+          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
+          <div className="qty-stepper">
+            <button type="button" aria-label="Ubrat kus" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}>
+              −
+            </button>
+            <span className="qty-value">{qty}</span>
+            <button type="button" aria-label="Přidat kus" onClick={() => setQty((q) => q + 1)}>
+              +
+            </button>
+          </div>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <button className="btn-outline" onClick={() => router.push("/kosik")}>
+            Přejít do košíku
+          </button>
+        </div>
+        {unitPrice <= 0 && (
+          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+            Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na{" "}
+            <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.
+          </p>
+        )}
+
         <div className="fc-cta">
-          <div className="config-price">
+          <div className="fc-cta-price">
             {unitPrice > 0 ? (
               <>
                 {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
               </>
             ) : (
-              <span style={{ fontSize: 20 }}>Cena na dotaz</span>
+              <span>Cena na dotaz</span>
             )}
           </div>
-
-          <div className="qty-row">
-            <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-            <div className="qty-stepper">
-              <button type="button" aria-label="Ubrat kus" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}>
-                −
-              </button>
-              <span className="qty-value">{qty}</span>
-              <button type="button" aria-label="Přidat kus" onClick={() => setQty((q) => q + 1)}>
-                +
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-              {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
-            </button>
-            <button className="btn-outline" onClick={() => router.push("/kosik")}>
-              Přejít do košíku
-            </button>
-          </div>
-          {unitPrice <= 0 && (
-            <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-              Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na{" "}
-              <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.
-            </p>
-          )}
+          <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
+            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
+          </button>
         </div>
 
         {product.description && (
