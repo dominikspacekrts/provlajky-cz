@@ -1,82 +1,108 @@
 "use client";
 
-// Nůžkový stan skládaný po částech: zákazník začíná se stanem jen se
-// střechou a přidává si zadní stěnu + obě boční stěny — každou zvlášť
-// jako bez stěny / poloviční / celá, s volbou jednostranného nebo
-// oboustranného potisku. Cena se přepočítává živě podle výběru.
+// Nůžkový stan skládaný po stěnách: zákazník začíná se stanem jen se
+// střechou a u každé ze 4 stran (přední/zadní/levá boční/pravá boční) si
+// zvlášť přidá "celou stěnu" nebo "poloviční stěnu" (tlačítkem), u přidané
+// stěny zvolí jednostranný/oboustranný potisk a jde ji zase smazat (×).
+// Cena se u každého řádku i celkem počítá živě.
 //
-// Náhled (TentGraphic) je zatím jen orientační přiblížení — umí ukázat
-// celkovou úroveň "bez stěn / poloviční / celé" a jednostranný/oboustranný
-// potisk, ne přesně tuhle kombinaci po jednotlivých stranách. Přesný obrázek
-// podle konkrétní konfigurace se doladí později (Viewmax generování).
+// Přední a zadní stěna mají stejnou šířku (podle velikosti stanu — cfg.backWidthM),
+// boční stěny jsou vždy 3 m (hloubka je u všech velikostí stejná).
+//
+// Foto je zatím jen statická produktová fotka — přesný obrázek podle
+// konkrétní kombinace stěn se doladí později přes Viewmax (moc kombinací
+// na to, aby šly předgenerovat všechny najednou).
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { Product, TentWallOption } from "@/lib/types";
-import { CheckMark } from "@/components/Icons";
+import { CheckMark, FlagMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
-import TentGraphic from "@/components/TentGraphic";
 
-type WallType = "none" | "half" | "full";
-type Side = { type: WallType; double: boolean };
-const noSide: Side = { type: "none", double: false };
+type WallType = "half" | "full";
+type Side = { type: WallType; double: boolean } | null;
 
-function sidePrice(side: Side, opts: { full: TentWallOption; half: TentWallOption }, buy: boolean) {
-  if (side.type === "none") return 0;
+type PositionKey = "front" | "back" | "left" | "right";
+const POSITIONS: { key: PositionKey; label: string }[] = [
+  { key: "front", label: "Přední stěna" },
+  { key: "back", label: "Zadní stěna" },
+  { key: "left", label: "Levá boční stěna" },
+  { key: "right", label: "Pravá boční stěna" },
+];
+
+function optionFor(cfg: NonNullable<Product["config"]>["tentWalls"], key: PositionKey) {
+  if (!cfg) return null;
+  return key === "left" || key === "right"
+    ? { full: cfg.fullWallSide, half: cfg.halfWallSide }
+    : { full: cfg.fullWallBack, half: cfg.halfWallBack };
+}
+
+function sidePrice(side: Side, opts: { full: TentWallOption; half: TentWallOption } | null, buy: boolean) {
+  if (!side || !opts) return 0;
   const o = side.type === "full" ? opts.full : opts.half;
   if (buy) return side.double ? o.buyDouble : o.buySingle;
   return side.double ? o.sellDouble : o.sellSingle;
 }
 
-function SideEditor({
+function PositionRow({
   label,
   side,
   onChange,
+  price,
 }: {
   label: string;
   side: Side;
   onChange: (next: Side) => void;
+  price: number;
 }) {
+  if (!side) {
+    return (
+      <div className="option-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="option-chip" onClick={() => onChange({ type: "full", double: false })}>
+            + Celá stěna
+          </button>
+          <button className="option-chip" onClick={() => onChange({ type: "half", double: false })}>
+            + Poloviční stěna
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ marginBottom: 6 }}>
-      <div className="option-label">{label}</div>
-      <div className="option-row">
+    <div className="option-row" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 14, fontWeight: 600 }}>
+          {label} — {side.type === "full" ? "celá stěna" : "poloviční stěna"}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13, color: "var(--gray)" }}>+{fmtMoney(price)}</span>
+          <button className="link-reset" onClick={() => onChange(null)} aria-label={`Odebrat ${label.toLowerCase()}`}>
+            ✕
+          </button>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
         {(
           [
-            ["none", "Bez stěny"],
-            ["half", "Poloviční stěna"],
-            ["full", "Celá stěna"],
+            [false, "Jednostranný potisk"],
+            [true, "Oboustranný potisk"],
           ] as const
-        ).map(([type, text]) => (
+        ).map(([double, text]) => (
           <button
-            key={type}
-            className={`option-chip${side.type === type ? " active" : ""}`}
-            onClick={() => onChange({ ...side, type })}
+            key={String(double)}
+            className={`option-chip${side.double === double ? " active" : ""}`}
+            onClick={() => onChange({ ...side, double })}
           >
             {text}
           </button>
         ))}
       </div>
-      {side.type !== "none" && (
-        <div className="option-row" style={{ paddingTop: 0 }}>
-          {(
-            [
-              [false, "Jednostranný potisk"],
-              [true, "Oboustranný potisk"],
-            ] as const
-          ).map(([double, text]) => (
-            <button
-              key={String(double)}
-              className={`option-chip${side.double === double ? " active" : ""}`}
-              onClick={() => onChange({ ...side, double })}
-            >
-              {text}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -92,42 +118,28 @@ export default function TentWallsConfigurator({
   const router = useRouter();
 
   const cfg = product.config?.tentWalls;
-  const [back, setBack] = useState<Side>(noSide);
-  const [left, setLeft] = useState<Side>(noSide);
-  const [right, setRight] = useState<Side>(noSide);
+  const [sides, setSides] = useState<Record<PositionKey, Side>>({ front: null, back: null, left: null, right: null });
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
+  const image = product.images?.[0];
+
+  const priceByPosition = useMemo(() => {
+    const out = {} as Record<PositionKey, number>;
+    for (const p of POSITIONS) out[p.key] = sidePrice(sides[p.key], optionFor(cfg, p.key), false);
+    return out;
+  }, [cfg, sides]);
 
   const unitPrice = useMemo(() => {
     if (!cfg) return 0;
-    const backOpts = { full: cfg.fullWallBack, half: cfg.halfWallBack };
-    const sideOpts = { full: cfg.fullWallSide, half: cfg.halfWallSide };
-    return (
-      cfg.baseSell +
-      sidePrice(back, backOpts, false) +
-      sidePrice(left, sideOpts, false) +
-      sidePrice(right, sideOpts, false)
-    );
-  }, [cfg, back, left, right]);
-
-  // Přiblížení pro náhled — TentGraphic umí jen jednu společnou úroveň
-  // stěn pro celý stan, ne po stranách zvlášť.
-  const anyFull = back.type === "full" || left.type === "full" || right.type === "full";
-  const anyWall = anyFull || back.type === "half" || left.type === "half" || right.type === "half";
-  const anyDouble = (back.type !== "none" && back.double) || (left.type !== "none" && left.double) || (right.type !== "none" && right.double);
-  const previewWalls = anyFull ? "full" : anyWall ? "half" : "none";
-
-  function describe(name: string, side: Side) {
-    if (side.type === "none") return null;
-    const typeLabel = side.type === "full" ? "celá" : "poloviční";
-    return `${name}: ${typeLabel} (${side.double ? "oboustranný" : "jednostranný"} potisk)`;
-  }
+    return cfg.baseSell + POSITIONS.reduce((sum, p) => sum + priceByPosition[p.key], 0);
+  }, [cfg, priceByPosition]);
 
   function handleAdd() {
     if (!cfg || unitPrice <= 0) return;
-    const parts = [describe("Zadní stěna", back), describe("Levá boční stěna", left), describe("Pravá boční stěna", right)].filter(
-      (v): v is string => Boolean(v)
-    );
+    const parts = POSITIONS.filter((p) => sides[p.key]).map((p) => {
+      const s = sides[p.key]!;
+      return `${p.label}: ${s.type === "full" ? "celá" : "poloviční"} (${s.double ? "oboustranný" : "jednostranný"} potisk)`;
+    });
     const note = parts.length ? parts.join(" · ") : "Jen střecha, bez stěn";
     addLine({
       productId: product.id,
@@ -139,7 +151,7 @@ export default function TentWallsConfigurator({
       qty,
       unitPrice,
       vatRate: product.vat_rate,
-      thumb: product.images?.[0] || null,
+      thumb: image || null,
       note,
     });
     setAdded(true);
@@ -163,7 +175,18 @@ export default function TentWallsConfigurator({
   return (
     <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
       <div className="fc-stage">
-        <TentGraphic size={product.name} walls={previewWalls} printSides={anyDouble ? "double" : "single"} className="config-preview-flag" />
+        {image ? (
+          <Image
+            src={image}
+            alt={product.name}
+            width={640}
+            height={480}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            unoptimized
+          />
+        ) : (
+          <FlagMark className="thumb-empty" />
+        )}
       </div>
 
       <aside className="fc-panel reveal-stagger">
@@ -173,11 +196,18 @@ export default function TentWallsConfigurator({
         <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
-        <SideEditor label="Zadní stěna" side={back} onChange={setBack} />
-        <SideEditor label="Levá boční stěna" side={left} onChange={setLeft} />
-        <SideEditor label="Pravá boční stěna" side={right} onChange={setRight} />
+        <div className="option-label">Stěny</div>
+        {POSITIONS.map((p) => (
+          <PositionRow
+            key={p.key}
+            label={p.label}
+            side={sides[p.key]}
+            price={priceByPosition[p.key]}
+            onChange={(next) => setSides((cur) => ({ ...cur, [p.key]: next }))}
+          />
+        ))}
         <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
-          Přední strana zůstává otevřená jako vstup. Poloviční stěna už zahrnuje boční tyč, která ji drží.
+          Poloviční stěna už zahrnuje boční tyč, která ji drží. Kombinovat lze libovolně.
         </p>
 
         <div className="config-price">
