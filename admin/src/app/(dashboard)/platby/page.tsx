@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/actions/settings";
 import {
-  computeOrderTotals,
+  computeOrderProfit,
   fmtMoney,
   isRealizedOrder,
   itemMargin,
@@ -27,17 +27,28 @@ export default async function PlatbyPage() {
     ]);
 
   const realizedOrders = ((orders || []) as (Order & { order_items: OrderItem[] })[]).filter(isRealizedOrder);
-  const revenueEx = realizedOrders.reduce((sum, o) => sum + computeOrderTotals(o, o.order_items).totalEx, 0);
-  const totalCostsCzk = ((supplierInvoices || []) as SupplierInvoice[]).reduce((sum, s) => sum + (s.amount_czk || 0), 0);
-  const profit = revenueEx - totalCostsCzk;
+  const productById = new Map<string, ProductLookup>(((products || []) as Product[]).map((p) => [p.id, p]));
+  // Zisk počítáme za každou objednávku zvlášť (computeOrderProfit): pokud
+  // má reálnou fakturu od dodavatele, použije se ta (přesně), jinak spadne
+  // na odhad z nákupních cen u produktů — stejný odhad, ze kterého se
+  // počítá i rozdělení mezi partnery níž, ať si ta dvě čísla neodporují
+  // (dřív se tu odečítala jen SUMA VŠECH faktur bez ohledu na objednávku —
+  // u objednávek bez faktury to tak vycházel zisk = celý obrat, bez nákladů).
+  let profit = 0;
+  let allExact = true;
+  for (const o of realizedOrders) {
+    const orderInvoices = ((supplierInvoices || []) as SupplierInvoice[]).filter((s) => s.order_id === o.id);
+    const { profit: orderProfit, exact } = computeOrderProfit(o, o.order_items || [], orderInvoices, productById, settings.cost_per_size);
+    profit += orderProfit;
+    if (!exact) allExact = false;
+  }
 
   // Rozdělení zisku mezi partnery jde podle jednotlivých položek objednávek
   // (viz products.partner_ids / order_items.partner_ids v detailu objednávky
   // — rovný díl mezi vybranými partnery), ne podle starého fixního % podílu
-  // z celkového zisku firmy. Tenhle odhad je z nákupních cen u produktů, ne
-  // z reálných faktur dodavatele, takže se přesně nemusí shodovat s "Zisk
-  // celkem" výše — je to průběžný odhad, ne účetní číslo.
-  const productById = new Map<string, ProductLookup>(((products || []) as Product[]).map((p) => [p.id, p]));
+  // z celkového zisku firmy. U objednávek bez reálné faktury je to stejný
+  // odhad z nákupních cen, ze kterého se počítá "Zisk celkem" výše — obě
+  // čísla teď spolu sedí (viz computeOrderProfit / itemMargin výš).
   const earnedByPartner = new Map<string, number>();
   let unassigned = 0;
   let unknownMarginItems = 0;
@@ -69,8 +80,16 @@ export default async function PlatbyPage() {
 
       <div className="stats-cards" style={{ marginBottom: 20 }}>
         <div className="stat-card">
-          <div className="label">Zisk celkem (tržby − náklady dodavatele)</div>
+          <div className="label">
+            Zisk celkem (tržby − náklady dodavatele){!allExact && " · odhad"}
+          </div>
           <div className="value">{fmtMoney(profit, "CZK")}</div>
+          {!allExact && (
+            <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+              Některé objednávky nemají nahranou fakturu od dodavatele — u nich se počítá s odhadem z nákupních cen
+              produktů.
+            </div>
+          )}
         </div>
         <div className="stat-card">
           <div className="label">Nerozděleno mezi partnery</div>
