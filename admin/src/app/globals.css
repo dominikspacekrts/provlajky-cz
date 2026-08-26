@@ -342,14 +342,20 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 .partner-grid label.full { grid-column: 1 / -1; }
 .partner-grid input { padding: 7px 9px; border: 1px solid var(--color-border-input); border-radius: 6px; font: inherit; font-size: 14px; }
 
-.earnings-partner {
+.earnings-partner-card {
   background: white; border: 1px solid var(--color-border); border-radius: 12px;
   padding: 18px 20px; margin-bottom: 14px;
-  display: flex; justify-content: space-between; align-items: center; gap: 16px;
 }
+.earnings-partner { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .earnings-partner .ep-name { font-size: 18px; font-weight: 700; }
 .earnings-partner .ep-meta { color: var(--color-gray-500); font-size: 13px; margin-top: 4px; }
 .earnings-partner .ep-amount { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ep-payout-list { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 8px; }
+.ep-payout-row {
+  display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--color-gray-700);
+}
+.ep-payout-row span:first-child { color: var(--color-gray-500); min-width: 90px; }
+.ep-payout-row span:nth-child(2) { flex: 1; font-variant-numeric: tabular-nums; font-weight: 600; }
 
 .stats-table { width: 100%; border-collapse: collapse; background: white; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; }
 .stats-table th, .stats-table td { padding: 12px 16px; text-align: right; border-bottom: 1px solid #f1f3f5; font-variant-numeric: tabular-nums; }

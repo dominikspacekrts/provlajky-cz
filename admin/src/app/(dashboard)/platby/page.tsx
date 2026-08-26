@@ -5,11 +5,13 @@ import {
   fmtMoney,
   isRealizedOrder,
   itemMargin,
+  PLATFORM_FEE_PCT,
   splitItemMarginByPartners,
   type ProductLookup,
 } from "@/lib/domain";
 import type { Order, OrderItem, Partner, Payout, Product, SupplierInvoice } from "@/lib/types";
 import AddPayoutForm from "./add-payout-form";
+import DeletePayoutButton from "./delete-payout-button";
 
 export const dynamic = "force-dynamic";
 
@@ -46,12 +48,15 @@ export default async function PlatbyPage() {
   // Rozdělení zisku mezi partnery jde podle jednotlivých položek objednávek
   // (viz products.partner_ids / order_items.partner_ids v detailu objednávky
   // — rovný díl mezi vybranými partnery), ne podle starého fixního % podílu
-  // z celkového zisku firmy. U objednávek bez reálné faktury je to stejný
-  // odhad z nákupních cen, ze kterého se počítá "Zisk celkem" výše — obě
-  // čísla teď spolu sedí (viz computeOrderProfit / itemMargin výš).
+  // z celkového zisku firmy. Předtím se z položkové marže strhne provozní
+  // poplatek (PLATFORM_FEE_PCT, viz domain.ts) — ten se mezi partnery
+  // nedělí, jde na chod webu/účetní/atd. U objednávek bez reálné faktury je
+  // marže odhad z nákupních cen, ze kterého se počítá i "Zisk celkem" výše
+  // — obě čísla teď spolu sedí (viz computeOrderProfit / itemMargin výš).
   const earnedByPartner = new Map<string, number>();
   let unassigned = 0;
   let unknownMarginItems = 0;
+  let operatingCosts = 0;
   for (const o of realizedOrders) {
     for (const it of o.order_items || []) {
       const margin = itemMargin(it, productById, settings.cost_per_size);
@@ -59,9 +64,12 @@ export default async function PlatbyPage() {
         unknownMarginItems++;
         continue;
       }
-      const split = splitItemMarginByPartners(margin, it.partner_ids || []);
+      const fee = (it.unit_price || 0) * (it.qty || 0) * PLATFORM_FEE_PCT;
+      operatingCosts += fee;
+      const distributable = margin - fee;
+      const split = splitItemMarginByPartners(distributable, it.partner_ids || []);
       if (split.size === 0) {
-        unassigned += margin;
+        unassigned += distributable;
         continue;
       }
       for (const [partnerId, amount] of split) {
@@ -69,6 +77,7 @@ export default async function PlatbyPage() {
       }
     }
   }
+  profit -= operatingCosts;
 
   return (
     <div>
@@ -81,7 +90,7 @@ export default async function PlatbyPage() {
       <div className="stats-cards" style={{ marginBottom: 20 }}>
         <div className="stat-card">
           <div className="label">
-            Zisk celkem (tržby − náklady dodavatele){!allExact && " · odhad"}
+            Zisk k rozdělení (tržby − náklady dodavatele − provoz){!allExact && " · odhad"}
           </div>
           <div className="value">{fmtMoney(profit, "CZK")}</div>
           {!allExact && (
@@ -90,6 +99,10 @@ export default async function PlatbyPage() {
               produktů.
             </div>
           )}
+        </div>
+        <div className="stat-card">
+          <div className="label">Provozní náklady ({Math.round(PLATFORM_FEE_PCT * 100)} % z tržeb)</div>
+          <div className="value">{fmtMoney(operatingCosts, "CZK")}</div>
         </div>
         <div className="stat-card">
           <div className="label">Nerozděleno mezi partnery</div>
@@ -106,22 +119,36 @@ export default async function PlatbyPage() {
       <h3>Výdělky partnerů</h3>
       {((partners || []) as Partner[]).map((p) => {
         const earned = earnedByPartner.get(p.id) || 0;
-        const paidOut = ((payouts || []) as Payout[])
+        const partnerPayouts = ((payouts || []) as Payout[])
           .filter((po) => po.partner_id === p.id)
-          .reduce((s, po) => s + Number(po.amount), 0);
+          .sort((a, b) => (a.date < b.date ? 1 : -1));
+        const paidOut = partnerPayouts.reduce((s, po) => s + Number(po.amount), 0);
         const remaining = earned - paidOut;
         return (
-          <div key={p.id} className="earnings-partner">
-            <div>
-              <div className="ep-name">{p.name}</div>
-              <div className="ep-meta">
-                Vydělal {fmtMoney(earned, "CZK")} · Vyplaceno {fmtMoney(paidOut, "CZK")}
+          <div key={p.id} className="earnings-partner-card">
+            <div className="earnings-partner">
+              <div>
+                <div className="ep-name">{p.name}</div>
+                <div className="ep-meta">
+                  Vydělal {fmtMoney(earned, "CZK")} · Vyplaceno {fmtMoney(paidOut, "CZK")}
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div className="ep-amount">{fmtMoney(remaining, "CZK")}</div>
+                <AddPayoutForm partnerId={p.id} partnerName={p.name} />
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div className="ep-amount">{fmtMoney(remaining, "CZK")}</div>
-              <AddPayoutForm partnerId={p.id} partnerName={p.name} />
-            </div>
+            {partnerPayouts.length > 0 && (
+              <div className="ep-payout-list">
+                {partnerPayouts.map((po) => (
+                  <div key={po.id} className="ep-payout-row">
+                    <span>{new Date(po.date).toLocaleDateString("cs-CZ")}</span>
+                    <span>{fmtMoney(Number(po.amount), "CZK")}</span>
+                    <DeletePayoutButton payoutId={po.id} amount={Number(po.amount)} />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
