@@ -20,6 +20,8 @@ const DEFAULT_MAIL: Settings["mail"] = {
   signPhone: "+420 605 981 155",
 };
 
+const DEFAULT_MARKETING: Settings["marketing"] = { headSnippet: "" };
+
 export async function getSettings(): Promise<Settings> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("settings").select("*").eq("id", 1).single();
@@ -28,6 +30,9 @@ export async function getSettings(): Promise<Settings> {
     id: 1,
     cost_per_size: { S: 0, M: 0, L: 0, XL: 0, ...(data?.cost_per_size || {}) },
     mail: { ...DEFAULT_MAIL, ...(data?.mail || {}) },
+    // marketing sloupec může chybět, dokud neproběhne migrace
+    // 2026-08-settings-marketing.sql — bez něj prostě není co vypsat.
+    marketing: { ...DEFAULT_MARKETING, ...(data?.marketing || {}) },
     updated_at: data?.updated_at,
   };
 }
@@ -52,6 +57,12 @@ export async function updateCostPerSize(costPerSize: Settings["cost_per_size"]) 
 export async function updateMailSettings(mail: Settings["mail"]) {
   const supabase = await createClient();
   const { error } = await supabase.from("settings").update({ mail, updated_at: new Date().toISOString() }).eq("id", 1);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateMarketingSettings(marketing: Settings["marketing"]) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("settings").update({ marketing, updated_at: new Date().toISOString() }).eq("id", 1);
   if (error) throw new Error(error.message);
 }
 
