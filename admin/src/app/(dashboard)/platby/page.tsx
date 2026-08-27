@@ -7,6 +7,7 @@ import {
   itemMargin,
   PLATFORM_FEE_PCT,
   splitItemMarginByPartners,
+  supplierActualCostCzk,
   type ProductLookup,
 } from "@/lib/domain";
 import type { Order, OrderItem, Partner, Payout, Product, SupplierInvoice } from "@/lib/types";
@@ -61,8 +62,40 @@ export default async function PlatbyPage() {
   let unknownMarginItems = 0;
   let operatingCosts = 0;
   for (const o of realizedOrders) {
-    for (const it of o.order_items || []) {
-      const margin = itemMargin(it, productById, settings.cost_per_size);
+    const items = o.order_items || [];
+    const orderInvoices = ((supplierInvoices || []) as SupplierInvoice[]).filter((s) => s.order_id === o.id);
+    const actualCost = supplierActualCostCzk(orderInvoices);
+
+    // Marže po položkách — u položek bez vazby na produkt (typicky starší
+    // naimportované položky bez product_id/size) itemCost neví, kolik stály.
+    // Když má ale objednávka reálnou fakturu od dodavatele, dopočítáme jejich
+    // marži ze zbytku (skutečný náklad minus náklad položek, které už
+    // spočítat jdou), rozpočítaného mezi ně podle podílu na tržbě — ať se
+    // jejich část zisku neztratí (dřív skončila jen v "Nerozděleno").
+    const marginById = new Map<string, number>();
+    let knownCostSum = 0;
+    let unknownRevenueSum = 0;
+    for (const it of items) {
+      const m = itemMargin(it, productById, settings.cost_per_size);
+      const revenue = (it.unit_price || 0) * (it.qty || 0);
+      if (m != null) {
+        marginById.set(it.id, m);
+        knownCostSum += revenue - m;
+      } else {
+        unknownRevenueSum += revenue;
+      }
+    }
+    if (actualCost > 0 && unknownRevenueSum > 0) {
+      const remainingCost = actualCost - knownCostSum;
+      for (const it of items) {
+        if (marginById.has(it.id)) continue;
+        const revenue = (it.unit_price || 0) * (it.qty || 0);
+        marginById.set(it.id, revenue - remainingCost * (revenue / unknownRevenueSum));
+      }
+    }
+
+    for (const it of items) {
+      const margin = marginById.get(it.id);
       if (margin == null) {
         unknownMarginItems++;
         continue;
