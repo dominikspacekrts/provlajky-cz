@@ -2,11 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { createPartner, deletePartner, updatePartner } from "@/lib/actions/partners";
-import { testSmtp, updateMailSettings } from "@/lib/actions/settings";
+import { testSmtp, updateMailSettings, updateMarketingSettings } from "@/lib/actions/settings";
 import { setOrderCounter, type OrderCounter } from "@/lib/actions/order-counter";
 import type { AllowedUser, Partner, Settings } from "@/lib/types";
 
-const TABS = ["Partneři", "Maily", "Číslování", "Uživatelé"] as const;
+const TABS = ["Partneři", "Maily", "Marketing", "Číslování", "Uživatelé"] as const;
 
 export default function SettingsForm({
   settings,
@@ -34,6 +34,7 @@ export default function SettingsForm({
       <div className="set-panel">
         {tab === "Partneři" && <PartnersTab partners={partners} />}
         {tab === "Maily" && <MailTab initial={settings.mail} />}
+        {tab === "Marketing" && <MarketingTab initial={settings.marketing} />}
         {tab === "Číslování" && <OrderNumberingTab initial={orderCounter} />}
         {tab === "Uživatelé" && <UsersTab users={allowedUsers} />}
       </div>
@@ -298,6 +299,47 @@ function MailTab({ initial }: { initial: Settings["mail"] }) {
         </button>
         {testResult && <span className="muted">{testResult}</span>}
       </div>
+    </div>
+  );
+}
+
+function MarketingTab({ initial }: { initial: Settings["marketing"] }) {
+  const [snippet, setSnippet] = useState(initial.headSnippet);
+  const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+
+  return (
+    <div>
+      <p className="muted" style={{ marginBottom: 14 }}>
+        Sem vlož konverzní/sledovací kódy, které pošle marketingová agentura (Google Ads, Meta Pixel, GA4, ověřovací
+        meta tagy apod.) — přesně tak, jak je dostaneš (celý <code>&lt;script&gt;</code>/<code>&lt;meta&gt;</code>{" "}
+        úryvek). Vloží se do <code>&lt;head&gt;</code> na každé stránce eshopu. XML feed produktů pro Google Merchant
+        Center je na adrese <code>https://provlajky.cz/feed/products.xml</code>.
+      </p>
+      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        Kód do &lt;head&gt;
+        <textarea
+          className="tpl-area"
+          rows={12}
+          value={snippet}
+          onChange={(e) => setSnippet(e.target.value)}
+          placeholder={`<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=..."></script>\n<script>...</script>`}
+        />
+      </label>
+      <button
+        className="btn primary"
+        style={{ marginTop: 14 }}
+        disabled={isPending}
+        onClick={() =>
+          startTransition(async () => {
+            await updateMarketingSettings({ headSnippet: snippet });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 1500);
+          })
+        }
+      >
+        {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
+      </button>
     </div>
   );
 }

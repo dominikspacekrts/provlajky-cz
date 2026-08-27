@@ -202,10 +202,18 @@ export type MailSettings = {
   signPhone: string;
 };
 
+// Volně vložený HTML/JS kód do <head> eshopu — konverzní kódy od
+// marketingové agentury (Google Ads, Meta Pixel, GA4, ověřovací meta tagy
+// atd.) chodí typicky jako hotový úryvek na vložení, ne jako holé ID, takže
+// je jednodušší a odolnější mít jedno univerzální pole než po jednom ID
+// na platformu.
+export type MarketingSettings = { headSnippet: string };
+
 export type Settings = {
   id: 1;
   cost_per_size: { S: number; M: number; L: number; XL: number };
   mail: MailSettings;
+  marketing: MarketingSettings;
   updated_at: string;
 };
 

@@ -1,9 +1,35 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import type { Product, ProductCategory } from "@/lib/types";
 import ProductDetail from "@/components/ProductDetail";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("products")
+    .select("name, subtitle, description, images")
+    .eq("slug", slug)
+    .eq("active", true)
+    .single();
+  if (!data) return {};
+  const description = data.subtitle || data.description || undefined;
+  const image = data.images?.[0];
+  return {
+    title: data.name,
+    description,
+    alternates: { canonical: `/produkt/${slug}` },
+    openGraph: { title: data.name, description, images: image ? [image] : undefined },
+    twitter: { title: data.name, description, images: image ? [image] : undefined },
+  };
+}
 
 // Ilustrační fotky pro sloupec s galerií, dokud si admin pro danou kategorii
 // nenahraje vlastní fotky hotových realizací (Konfigurace webu → Galerie).
