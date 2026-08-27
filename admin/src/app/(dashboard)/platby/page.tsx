@@ -58,7 +58,6 @@ export default async function PlatbyPage() {
   // marže odhad z nákupních cen, ze kterého se počítá i "Zisk celkem" výše
   // — obě čísla teď spolu sedí (viz computeOrderProfit / itemMargin výš).
   const earnedByPartner = new Map<string, number>();
-  let unassigned = 0;
   let unknownMarginItems = 0;
   let operatingCosts = 0;
   for (const o of realizedOrders) {
@@ -72,16 +71,21 @@ export default async function PlatbyPage() {
       operatingCosts += fee;
       const distributable = margin - fee;
       const split = splitItemMarginByPartners(distributable, it.partner_ids || []);
-      if (split.size === 0) {
-        unassigned += distributable;
-        continue;
-      }
       for (const [partnerId, amount] of split) {
         earnedByPartner.set(partnerId, (earnedByPartner.get(partnerId) || 0) + amount);
       }
     }
   }
   profit -= operatingCosts;
+  // "Nerozděleno" je dopočet zbytku (zisk minus to, co se skutečně přiřadilo
+  // konkrétním partnerům), ne jen součet položek bez partnera — položky bez
+  // vazby na produkt (unknownMarginItems, viz itemCost) mají totiž svůj podíl
+  // na zisku už započítaný v "Zisk k rozdělení" (ten se počítá z reálné
+  // faktury dodavatele za celou objednávku), jen ho nejde rozpočítat po
+  // jednotlivých položkách — dřív se tenhle podíl nikde neukázal a čísla si
+  // neseděla (35 019 Kč nahoře vs. jen 12 573 Kč rozdělených dole).
+  const totalEarned = [...earnedByPartner.values()].reduce((sum, v) => sum + v, 0);
+  const unassigned = profit - totalEarned;
 
   return (
     <div>
@@ -116,7 +120,8 @@ export default async function PlatbyPage() {
       {unknownMarginItems > 0 && (
         <p className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
           {unknownMarginItems} položek nemá známou marži (chybí nákupní cena u produktu/volby, nebo položka nemá
-          vazbu na produkt) — do rozdělení se nepočítají.
+          vazbu na produkt) — jejich podíl na zisku se nedá rozpočítat po jednotlivých partnerech, takže zůstává v
+          „Nerozděleno mezi partnery&rdquo; výše.
         </p>
       )}
 
