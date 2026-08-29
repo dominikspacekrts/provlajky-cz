@@ -2,11 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { createPartner, deletePartner, updatePartner } from "@/lib/actions/partners";
-import { testSmtp, updateMailSettings, updateMarketingSettings } from "@/lib/actions/settings";
+import {
+  testSmtp,
+  updateMailSettings,
+  updateMarketingSettings,
+  updatePaymentSettings,
+  updateShippingSettings,
+} from "@/lib/actions/settings";
 import { setOrderCounter, type OrderCounter } from "@/lib/actions/order-counter";
-import type { AllowedUser, Partner, Settings } from "@/lib/types";
+import type { AllowedUser, Partner, Settings, ShippingMethod, PaymentMethod } from "@/lib/types";
 
-const TABS = ["Partneři", "Maily", "Marketing", "Číslování", "Uživatelé"] as const;
+const TABS = ["Partneři", "Maily", "Marketing", "Doprava a platby", "Číslování", "Uživatelé"] as const;
 
 export default function SettingsForm({
   settings,
@@ -35,6 +41,7 @@ export default function SettingsForm({
         {tab === "Partneři" && <PartnersTab partners={partners} />}
         {tab === "Maily" && <MailTab initial={settings.mail} />}
         {tab === "Marketing" && <MarketingTab initial={settings.marketing} />}
+        {tab === "Doprava a platby" && <ShippingPaymentTab shipping={settings.shipping} payment={settings.payment} />}
         {tab === "Číslování" && <OrderNumberingTab initial={orderCounter} />}
         {tab === "Uživatelé" && <UsersTab users={allowedUsers} />}
       </div>
@@ -338,6 +345,140 @@ function MarketingTab({ initial }: { initial: Settings["marketing"] }) {
           })
         }
       >
+        {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
+      </button>
+    </div>
+  );
+}
+
+// Slug z labelu pro id nové položky (kolize při shodném názvu doplní čísly).
+function slugify(label: string, existing: Set<string>): string {
+  const base =
+    label
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "polozka";
+  let id = base;
+  let i = 2;
+  while (existing.has(id)) id = `${base}-${i++}`;
+  return id;
+}
+
+function MethodListEditor({
+  methods,
+  onChange,
+}: {
+  methods: (ShippingMethod | PaymentMethod)[];
+  onChange: (next: (ShippingMethod | PaymentMethod)[]) => void;
+}) {
+  const [newLabel, setNewLabel] = useState("");
+  const [newPrice, setNewPrice] = useState(0);
+
+  function update(id: string, patch: Partial<ShippingMethod>) {
+    onChange(methods.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  }
+
+  function remove(id: string) {
+    onChange(methods.filter((m) => m.id !== id));
+  }
+
+  function add() {
+    const label = newLabel.trim();
+    if (!label) return;
+    const id = slugify(
+      label,
+      new Set(methods.map((m) => m.id))
+    );
+    onChange([...methods, { id, label, price: newPrice }]);
+    setNewLabel("");
+    setNewPrice(0);
+  }
+
+  return (
+    <div>
+      {methods.map((m) => (
+        <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 10 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+            Název
+            <input value={m.label} onChange={(e) => update(m.id, { label: e.target.value })} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, width: 140 }}>
+            Cena (Kč)
+            <input
+              type="number"
+              value={m.price}
+              onChange={(e) => update(m.id, { price: Number(e.target.value) || 0 })}
+            />
+          </label>
+          <button className="btn danger" onClick={() => remove(m.id)}>
+            Smazat
+          </button>
+        </div>
+      ))}
+      {methods.length === 0 && <p className="muted" style={{ marginBottom: 10 }}>Zatím žádné.</p>}
+
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: 14 }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+          Nový název
+          <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="např. GLS" />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6, width: 140 }}>
+          Cena (Kč)
+          <input type="number" value={newPrice} onChange={(e) => setNewPrice(Number(e.target.value) || 0)} />
+        </label>
+        <button className="btn primary" disabled={!newLabel.trim()} onClick={add}>
+          + Přidat
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ShippingPaymentTab({ shipping, payment }: { shipping: Settings["shipping"]; payment: Settings["payment"] }) {
+  const [freeOverAmount, setFreeOverAmount] = useState(shipping.freeOverAmount);
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>(shipping.methods);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(payment.methods);
+  const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+
+  function save() {
+    startTransition(async () => {
+      await Promise.all([
+        updateShippingSettings({ freeOverAmount, methods: shippingMethods }),
+        updatePaymentSettings({ methods: paymentMethods }),
+      ]);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    });
+  }
+
+  return (
+    <div>
+      <h4>Doprava</h4>
+      <p className="muted" style={{ marginBottom: 14 }}>
+        Způsoby dopravy nabízené v checkoutu eshopu, s cenou bez DPH. Cena 0 Kč = zdarma. Když mezisoučet objednávky
+        bez DPH dosáhne částky níže, doprava se zákazníkovi automaticky odpustí bez ohledu na cenu vybraného způsobu.
+      </p>
+      <label style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 260, marginBottom: 18 }}>
+        Doprava zdarma od (Kč bez DPH)
+        <input
+          type="number"
+          value={freeOverAmount}
+          onChange={(e) => setFreeOverAmount(Number(e.target.value) || 0)}
+        />
+      </label>
+      <MethodListEditor methods={shippingMethods} onChange={(next) => setShippingMethods(next as ShippingMethod[])} />
+
+      <h4 style={{ marginTop: 32 }}>Platba</h4>
+      <p className="muted" style={{ marginBottom: 14 }}>
+        Způsoby platby nabízené v checkoutu eshopu, s příplatkem bez DPH (0 Kč = bez příplatku).
+      </p>
+      <MethodListEditor methods={paymentMethods} onChange={(next) => setPaymentMethods(next as PaymentMethod[])} />
+
+      <button className="btn primary" style={{ marginTop: 20 }} disabled={isPending} onClick={save}>
         {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
       </button>
     </div>

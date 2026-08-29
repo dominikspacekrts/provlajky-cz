@@ -22,6 +22,15 @@ const DEFAULT_MAIL: Settings["mail"] = {
 
 const DEFAULT_MARKETING: Settings["marketing"] = { headSnippet: "" };
 
+const DEFAULT_SHIPPING: Settings["shipping"] = {
+  freeOverAmount: 5000,
+  methods: [{ id: "osobni-odber", label: "Osobní odběr (nábřeží Míru 1055/82, Český Těšín 737 01)", price: 0 }],
+};
+
+const DEFAULT_PAYMENT: Settings["payment"] = {
+  methods: [{ id: "bankovni-prevod", label: "Bankovní převod", price: 0 }],
+};
+
 export async function getSettings(): Promise<Settings> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("settings").select("*").eq("id", 1).single();
@@ -33,6 +42,10 @@ export async function getSettings(): Promise<Settings> {
     // marketing sloupec může chybět, dokud neproběhne migrace
     // 2026-08-settings-marketing.sql — bez něj prostě není co vypsat.
     marketing: { ...DEFAULT_MARKETING, ...(data?.marketing || {}) },
+    // shipping/payment sloupce může chybět, dokud neproběhne migrace
+    // 2026-08-settings-shipping-payment.sql — bez ní jen výchozí hodnoty.
+    shipping: { ...DEFAULT_SHIPPING, ...(data?.shipping || {}) },
+    payment: { ...DEFAULT_PAYMENT, ...(data?.payment || {}) },
     updated_at: data?.updated_at,
   };
 }
@@ -63,6 +76,18 @@ export async function updateMailSettings(mail: Settings["mail"]) {
 export async function updateMarketingSettings(marketing: Settings["marketing"]) {
   const supabase = await createClient();
   const { error } = await supabase.from("settings").update({ marketing, updated_at: new Date().toISOString() }).eq("id", 1);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateShippingSettings(shipping: Settings["shipping"]) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("settings").update({ shipping, updated_at: new Date().toISOString() }).eq("id", 1);
+  if (error) throw new Error(error.message);
+}
+
+export async function updatePaymentSettings(payment: Settings["payment"]) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("settings").update({ payment, updated_at: new Date().toISOString() }).eq("id", 1);
   if (error) throw new Error(error.message);
 }
 

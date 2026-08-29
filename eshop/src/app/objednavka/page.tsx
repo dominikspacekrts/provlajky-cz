@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
-import type { CustomerAddress } from "@/lib/types";
+import type { CheckoutSettings, CustomerAddress } from "@/lib/types";
+
+// Stejná sazba, se kterou eshop počítá DPH na produktové položky, dokud
+// admin nezavede vlastní sazby pro dopravu/platbu (viz orders.ship_vat_rate).
+const STANDARD_VAT_RATE = 0.21;
 
 const emptyAddr = (): CustomerAddress => ({
   company: "",
@@ -32,8 +36,35 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [checkoutSettings, setCheckoutSettings] = useState<CheckoutSettings | null>(null);
+  const [shippingMethodId, setShippingMethodId] = useState<string | null>(null);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/checkout-settings")
+      .then((r) => r.json())
+      .then((s: CheckoutSettings) => {
+        setCheckoutSettings(s);
+        setShippingMethodId((cur) => cur ?? s.shippingMethods[0]?.id ?? null);
+        setPaymentMethodId((cur) => cur ?? s.paymentMethods[0]?.id ?? null);
+      })
+      .catch(() => {});
+  }, []);
+
   const subtotalEx = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
-  const vat = lines.reduce((s, l) => s + l.unitPrice * l.qty * l.vatRate, 0);
+  const productVat = lines.reduce((s, l) => s + l.unitPrice * l.qty * l.vatRate, 0);
+
+  const selectedShipping = checkoutSettings?.shippingMethods.find((m) => m.id === shippingMethodId) ?? null;
+  const shippingFree = checkoutSettings != null && subtotalEx >= checkoutSettings.shippingFreeOverAmount && checkoutSettings.shippingFreeOverAmount > 0;
+  const shippingPriceEx = shippingFree ? 0 : selectedShipping?.price ?? 0;
+  const shippingVat = shippingPriceEx * STANDARD_VAT_RATE;
+
+  const selectedPayment = checkoutSettings?.paymentMethods.find((m) => m.id === paymentMethodId) ?? null;
+  const paymentPriceEx = selectedPayment?.price ?? 0;
+  const paymentVat = paymentPriceEx * STANDARD_VAT_RATE;
+
+  const vat = productVat + shippingVat + paymentVat;
+  const totalEx = subtotalEx + shippingPriceEx + paymentPriceEx;
 
   function set<K extends keyof CustomerAddress>(key: K, v: CustomerAddress[K]) {
     setBilling((cur) => ({ ...cur, [key]: v }));
@@ -57,6 +88,14 @@ export default function CheckoutPage() {
       setError("Pro odeslání objednávky je potřeba souhlasit s obchodními podmínkami.");
       return;
     }
+    if (checkoutSettings && checkoutSettings.shippingMethods.length > 0 && !shippingMethodId) {
+      setError("Vyberte prosím způsob dopravy.");
+      return;
+    }
+    if (checkoutSettings && checkoutSettings.paymentMethods.length > 0 && !paymentMethodId) {
+      setError("Vyberte prosím způsob platby.");
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
@@ -69,6 +108,8 @@ export default function CheckoutPage() {
           note,
           lines,
           discountCode: discountCode.trim() || undefined,
+          shippingMethodId,
+          paymentMethodId,
         }),
       });
       const json = await res.json();
@@ -190,6 +231,32 @@ export default function CheckoutPage() {
             </>
           )}
 
+          {checkoutSettings && checkoutSettings.shippingMethods.length > 0 && (
+            <>
+              <h3 style={{ fontSize: 18, marginTop: 24, marginBottom: 8 }}>Způsob dopravy</h3>
+              <p style={{ fontSize: 13, color: "var(--gray)", marginBottom: 12 }}>
+                Cena dopravy je ovlivněna velikostí a hmotností zásilky. Od {fmtMoney(checkoutSettings.shippingFreeOverAmount)}{" "}
+                mezisoučtu bez DPH je doprava zdarma.
+              </p>
+              <div className="method-list">
+                {checkoutSettings.shippingMethods.map((m) => (
+                  <label key={m.id} className={`method-row${shippingMethodId === m.id ? " active" : ""}`}>
+                    <span className="method-row-l">
+                      <input
+                        type="radio"
+                        name="shippingMethod"
+                        checked={shippingMethodId === m.id}
+                        onChange={() => setShippingMethodId(m.id)}
+                      />
+                      {m.label}
+                    </span>
+                    <span className="method-row-price">{!shippingFree && m.price > 0 ? fmtMoney(m.price) : "Zdarma"}</span>
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+
           <div className="form-grid" style={{ marginTop: 14 }}>
             <label className="full-width">
               Poznámka k objednávce
@@ -198,6 +265,26 @@ export default function CheckoutPage() {
           </div>
 
           <h3 style={{ fontSize: 18, marginTop: 24, marginBottom: 12 }}>Způsob platby</h3>
+
+          {checkoutSettings && checkoutSettings.paymentMethods.length > 0 && (
+            <div className="method-list" style={{ marginBottom: 14 }}>
+              {checkoutSettings.paymentMethods.map((m) => (
+                <label key={m.id} className={`method-row${paymentMethodId === m.id ? " active" : ""}`}>
+                  <span className="method-row-l">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethodId === m.id}
+                      onChange={() => setPaymentMethodId(m.id)}
+                    />
+                    {m.label}
+                  </span>
+                  <span className="method-row-price">{m.price > 0 ? fmtMoney(m.price) : "Zdarma"}</span>
+                </label>
+              ))}
+            </div>
+          )}
+
           <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
             <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", fontWeight: 600 }}>Platba předem</div>
             <p style={{ padding: "14px 18px", color: "var(--gray)", fontSize: 14, lineHeight: 1.7, margin: 0 }}>
@@ -263,13 +350,25 @@ export default function CheckoutPage() {
               <span>Mezisoučet bez DPH</span>
               <span>{fmtMoney(subtotalEx)}</span>
             </div>
+            {selectedShipping && (
+              <div className="row">
+                <span>Doprava</span>
+                <span>{shippingPriceEx > 0 ? fmtMoney(shippingPriceEx) : "Zdarma"}</span>
+              </div>
+            )}
+            {selectedPayment && paymentPriceEx > 0 && (
+              <div className="row">
+                <span>Platba</span>
+                <span>{fmtMoney(paymentPriceEx)}</span>
+              </div>
+            )}
             <div className="row">
               <span>DPH</span>
               <span>{fmtMoney(vat)}</span>
             </div>
             <div className="row total">
               <span>Celkem</span>
-              <span>{fmtMoney(subtotalEx + vat)}</span>
+              <span>{fmtMoney(totalEx + vat)}</span>
             </div>
           </div>
         </div>
