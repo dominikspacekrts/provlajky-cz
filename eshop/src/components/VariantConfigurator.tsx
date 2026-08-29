@@ -164,6 +164,9 @@ export default function VariantConfigurator({
                 </button>
               ))}
             </div>
+            <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
+              Lhůta dodání běží od přijetí platby na náš účet.
+            </p>
           </>
         )}
 

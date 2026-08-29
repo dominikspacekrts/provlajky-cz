@@ -230,3 +230,13 @@ export type CartLine = {
   variantId?: string | null; // kind=variant (stany, totemy, brány, díly)
   optionId?: string | null; // kind=options (těžké základny apod.)
 };
+
+// Způsoby dopravy/platby spravované v adminu (Nastavení → Doprava a platby).
+// price v Kč bez DPH, 0 = zdarma/bez příplatku.
+export type ShippingMethod = { id: string; label: string; price: number };
+export type PaymentMethod = { id: string; label: string; price: number };
+export type CheckoutSettings = {
+  shippingFreeOverAmount: number;
+  shippingMethods: ShippingMethod[];
+  paymentMethods: PaymentMethod[];
+};

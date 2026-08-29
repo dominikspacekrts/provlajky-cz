@@ -66,15 +66,15 @@ export default function FlagConfigurator({
   const thumbRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    if (!design?.logoDataUrl) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset odvozeného stavu při odebrání loga
+    if (!design?.logoDataUrl || design.logoIsPdf) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset odvozeného stavu při odebrání loga / PDF bez náhledu
       setLogoImg(null);
       return;
     }
     const img = new Image();
     img.onload = () => setLogoImg(img);
     img.src = design.logoDataUrl;
-  }, [design?.logoDataUrl]);
+  }, [design?.logoDataUrl, design?.logoIsPdf]);
 
   const drawDesign = useMemo(
     () => (design ? designPainter(design, logoImg) : undefined),
@@ -111,7 +111,20 @@ export default function FlagConfigurator({
   function buildOrderDesign(thumb: string | null): OrderItemDesign | null {
     if (!design) return null;
     let logo: OrderItemDesign["logo"] = null;
-    if (design.logoDataUrl && logoImg && logoImg.naturalWidth > 0) {
+    if (design.logoDataUrl && design.logoIsPdf) {
+      // PDF nemá živě dopočítaný rozměr (logoImg neexistuje) — přiložíme ho s výchozí
+      // polohou, admin/výroba umístění doladí ručně podle přiloženého PDF.
+      const w = design.logoScale;
+      const h = design.logoScale;
+      logo = {
+        src: design.logoDataUrl,
+        x: design.logoX - w / 2,
+        y: design.logoY - h / 2,
+        w,
+        h,
+        rotation: design.logoRotation || 0,
+      };
+    } else if (design.logoDataUrl && logoImg && logoImg.naturalWidth > 0) {
       const w = design.logoScale;
       const h = design.logoScale * SHAPE_ASPECT[shape] * (logoImg.naturalHeight / logoImg.naturalWidth);
       logo = {
@@ -137,6 +150,7 @@ export default function FlagConfigurator({
   function handleAdd() {
     const noteParts = [hs ? `HS tunel (${sleeveColor === "black" ? "černý" : "bílý"})` : "standardní tunel"];
     if (design) noteParts.push(`vlastní návrh z editoru (pozadí ${design.bgColor})`);
+    if (design?.logoIsPdf) noteParts.push("PDF logo — umístění doladíme ručně");
     const thumb = makeThumb();
     addLine({
       productId: product.id,

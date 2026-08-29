@@ -16,8 +16,8 @@ export function minSizePrice(priceBySize: Product["price_by_size"]) {
 export type DeliverySpeed = "fast" | "slow"; // fast = do 14 dní (letecky), slow = do 2 měsíců (vlakem)
 
 export const DELIVERY_LABEL: Record<DeliverySpeed, string> = {
-  fast: "Dodání do 14 dní",
-  slow: "Dodání do 2 měsíců",
+  fast: "Expresní doručení (do 14 dní)",
+  slow: "Economy doručení (do 2 měsíců)",
 };
 
 export function variantSellPrice(v: ProductVariant, speed: DeliverySpeed): number {

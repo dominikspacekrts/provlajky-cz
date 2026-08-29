@@ -119,6 +119,7 @@ export default function TentWallsConfigurator({
 
   const cfg = product.config?.tentWalls;
   const [sides, setSides] = useState<Record<PositionKey, Side>>({ front: null, back: null, left: null, right: null });
+  const [roofColor, setRoofColor] = useState<"black" | "white">("black");
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const image = product.images?.[0];
@@ -140,7 +141,8 @@ export default function TentWallsConfigurator({
       const s = sides[p.key]!;
       return `${p.label}: ${s.type === "full" ? "celá" : "poloviční"} (${s.double ? "oboustranný" : "jednostranný"} potisk)`;
     });
-    const note = parts.length ? parts.join(" · ") : "Jen střecha, bez stěn";
+    const roofNote = `Střecha bez potisku, ${roofColor === "black" ? "černá" : "bílá"}`;
+    const note = [roofNote, ...parts].join(" · ");
     addLine({
       productId: product.id,
       productSlug: product.slug,
@@ -197,6 +199,19 @@ export default function TentWallsConfigurator({
         <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
+        <div className="option-label">Barva střechy (bez potisku)</div>
+        <div className="option-row">
+          {(["black", "white"] as const).map((c) => (
+            <button
+              key={c}
+              className={`option-chip${roofColor === c ? " active" : ""}`}
+              onClick={() => setRoofColor(c)}
+            >
+              {c === "black" ? "Černá" : "Bílá"}
+            </button>
+          ))}
+        </div>
+
         <div className="option-label">Stěny</div>
         {POSITIONS.map((p) => (
           <PositionRow
@@ -244,9 +259,15 @@ export default function TentWallsConfigurator({
         <div className="fc-cta">
           <div className="fc-cta-price">
             {unitPrice > 0 ? (
-              <>
-                {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-              </>
+              qty > 1 ? (
+                <>
+                  {fmtMoney(unitPrice * qty)} <span className="vat">bez DPH celkem za {qty} ks</span>
+                </>
+              ) : (
+                <>
+                  {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
+                </>
+              )
             ) : (
               <span>Cena na dotaz</span>
             )}

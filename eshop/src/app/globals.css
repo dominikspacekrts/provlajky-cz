@@ -104,22 +104,22 @@ h1, h2, h3, h4 {
 .btn-yellow:active::before, .btn-outline:active::before, .btn-design:active::before { opacity: 1; }
 
 .btn-yellow {
-  color: var(--ink);
-  background-image: linear-gradient(180deg, #ffee55 0%, #ffe701 34%, #ffdf00 68%, #eecb00 100%);
+  color: var(--yellow);
+  background-image: linear-gradient(180deg, #2c2c32 0%, #121216 34%, #08080a 68%, #000 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 4px 10px -4px rgba(8, 8, 10, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 10px -4px rgba(8, 8, 10, 0.5);
 }
 .btn-yellow:hover:not(:disabled) {
   background-position: 50% 100%;
   box-shadow:
-    inset 0 1px 0 #fff,
-    0 8px 18px -6px rgba(8, 8, 10, 0.4),
-    0 10px 30px -14px rgba(255, 231, 1, 0.7);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 8px 18px -6px rgba(8, 8, 10, 0.55),
+    0 10px 30px -14px rgba(255, 231, 1, 0.55);
 }
 .btn-yellow:active:not(:disabled) {
   background-position: 50% 100%;
-  box-shadow: inset 0 2px 5px rgba(122, 96, 0, 0.42);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
 }
 .btn-yellow:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
@@ -137,15 +137,15 @@ h1, h2, h3, h4 {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 18px 38px -20px rgba(8, 8, 10, 0.8);
 }
 .btn-design {
-  color: var(--ink); border-color: rgba(8, 8, 10, 0.18);
-  background-image: linear-gradient(132deg, rgba(255, 255, 255, 0.9), rgba(246, 245, 240, 0.55) 55%, rgba(255, 255, 255, 0.85));
+  color: var(--yellow); border-color: rgba(255, 255, 255, 0.14);
+  background-image: linear-gradient(132deg, #2c2c32, #121216 55%, #08080a);
   backdrop-filter: blur(10px) saturate(1.3);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 20px -16px rgba(8, 8, 10, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 20px -16px rgba(8, 8, 10, 0.6);
 }
 .btn-design:hover {
-  border-color: rgba(8, 8, 10, 0.4);
-  background-image: linear-gradient(132deg, #fffce0, #ffe701 55%, #ffef7d);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 16px 34px -20px rgba(255, 231, 1, 0.8);
+  border-color: rgba(255, 231, 1, 0.55);
+  background-image: linear-gradient(132deg, #1c1c22, #000 55%, #08080a);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 16px 34px -20px rgba(255, 231, 1, 0.7);
 }
 .btn-design-required { border-color: rgba(255, 231, 1, 0.7); animation: btn-design-pulse 2.4s ease-in-out infinite; }
 @keyframes btn-design-pulse {
@@ -499,20 +499,6 @@ label:has(input[type="checkbox"]), .cb-line {
   border-left: 2px solid var(--yellow); font-size: 13.5px; line-height: 1.6; color: var(--gray);
 }
 
-.eyelet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  background: #fff; border: 1px solid var(--border); border-width: 1px 0 0 1px; }
-.eyelet-cell {
-  display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer;
-  padding: 14px 8px; background: #fff; border: 0 solid var(--border); border-width: 0 1px 1px 0;
-  border-radius: 0;
-  font-family: inherit; font-size: 11px; letter-spacing: 0.06em; text-align: center; color: var(--gray);
-  transition: background 0.3s var(--nv-ease), color 0.3s var(--nv-ease);
-}
-.eyelet-cell:hover { background: #faf9f6; }
-.eyelet-cell.active { background: var(--ink); color: #fff; }
-.eyelet-glyph { width: 40px; height: 40px; }
-.eyelet-photo { width: 40px; height: 40px; object-fit: cover; }
-
 .placement-box {
   display: flex; flex-direction: column; gap: 10px; max-width: 460px;
   padding: 16px 18px; border: 1px solid var(--border); background: #fff;
@@ -585,6 +571,10 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 .editor-preview { background: rgba(255, 255, 255, 0.55); padding: clamp(16px, 3vw, 32px); display: flex;
   align-items: center; justify-content: center; min-height: 320px; }
+/* Canvas se kreslí na fixní vnitřní rozlišení (viz FLAG_H/TEXTURE_H) — bez tohohle
+   by na malém displeji přetékal z panelu. Tažení/zvětšení počítá s poměrem
+   getBoundingClientRect() vs. canvas.width, takže zmenšené CSS rozměry nevadí. */
+.editor-preview canvas { max-width: 100%; max-height: min(70vh, 640px); width: auto; height: auto; display: block; }
 .editor-controls { background: rgba(255, 255, 255, 0.4); padding: clamp(18px, 3vw, 26px); }
 .editor-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch {
@@ -593,6 +583,13 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 .swatch:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -12px rgba(8, 8, 10, 0.5); }
 .swatch.active { border-color: var(--ink); box-shadow: inset 0 0 0 2px #fff; }
+.swatch.custom {
+  position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: conic-gradient(from 0deg, #ff3b30, #ffcc00, #34c759, #0a84ff, #af52de, #ff3b30);
+  color: #fff;
+}
+.swatch.custom svg { width: 18px; height: 18px; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
+.swatch.custom input[type="color"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .editor-hint, .editor-note { font-size: 12.5px; line-height: 1.6; color: var(--gray); margin-top: 12px; }
 .editor-note-warn { color: #b3540c; font-variation-settings: "wght" 600, "wdth" 100; }
 .editor-actions {
@@ -619,6 +616,11 @@ label:has(input[type="checkbox"]), .cb-line {
 .ask-actions .btn-yellow, .ask-actions .btn-outline { padding: 13px 18px; font-size: 11.5px; }
 
 /* --- košík a objednávka --------------------------------------------- */
+.cart-freeship { max-width: 820px; margin: 18px 0 26px; }
+.cart-freeship p { font-size: 14px; color: var(--gray); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.cart-freeship-check { width: 16px; height: 16px; color: #0a8f3c; flex: none; }
+.cart-freeship-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.cart-freeship-fill { height: 100%; background: var(--yellow); transition: width 0.4s var(--nv-ease); }
 .cart-body { max-width: 820px; }
 .cart-empty { max-width: 520px; }
 .cart-empty .btn-yellow { margin-top: 20px; }
@@ -647,6 +649,19 @@ label:has(input[type="checkbox"]), .cb-line {
   transition: background 0.25s var(--nv-ease), color 0.25s var(--nv-ease), border-color 0.25s var(--nv-ease);
 }
 .cart-line-remove:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.method-list { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.method-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 18px; cursor: pointer; font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.method-row:last-child { border-bottom: 0; }
+.method-row-l { display: flex; align-items: center; gap: 10px; }
+.method-row input[type="radio"] { width: 16px; height: 16px; accent-color: var(--ink); }
+.method-row.active { font-weight: 600; background: rgba(8, 8, 10, 0.03); }
+.method-row-price { color: var(--gray); font-variation-settings: "wght" 600; white-space: nowrap; }
+.method-row.active .method-row-price { color: var(--ink); }
 
 .cart-summary { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--border); }
 .cart-summary .row {
@@ -1107,7 +1122,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 /* --- jedna věta mezi herem a produkty ----------------------------- */
 .nv-lead {
   background: var(--nv-paper);
-  padding: clamp(80px, 13vh, 168px) var(--nv-pad) clamp(64px, 10vh, 124px);
+  padding: clamp(44px, 7vh, 96px) var(--nv-pad) clamp(32px, 5vh, 64px);
   display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: clamp(30px, 6vw, 110px); align-items: end;
 }
@@ -1156,7 +1171,7 @@ html:has(.nv) { scroll-behavior: smooth; }
    --nv-pad odsazením místo .container. */
 .nv-groups {
   background: var(--nv-paper);
-  padding: 0 var(--nv-pad) clamp(70px, 11vh, 140px);
+  padding: 0 var(--nv-pad) clamp(36px, 5vh, 64px);
 }
 .nv-groups-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -1166,7 +1181,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 /* --- pruh s čísly (důvěra) hned pod hlavními dlaždicemi ------------- */
 .nv-stats {
   background: var(--nv-ink);
-  padding: clamp(44px, 7vh, 76px) var(--nv-pad);
+  padding: clamp(32px, 5vh, 56px) var(--nv-pad);
 }
 .nv-stats-grid {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));

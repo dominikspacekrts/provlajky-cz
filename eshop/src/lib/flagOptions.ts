@@ -1,35 +1,21 @@
 // Volby konfigurátoru vlajek na zakázku: typy oček/uchycení a umístění oček.
-// Typy jsou globální (ne per-produkt). `photo` je volitelná cesta k reálné fotce
-// v public/vlajky/ocka/ — když soubor existuje, komponenta ji preferuje před ikonou.
+// Typy jsou globální (ne per-produkt) — jen textové popisky, bez ikon/fotek.
 
 export type EyeletType = {
   id: string;
   label: string;
-  glyph: EyeletGlyph;
-  photo?: string; // volitelně /vlajky/ocka/oko-N.jpg
 };
 
-export type EyeletGlyph =
-  | "tunnel"
-  | "strap-carabiner"
-  | "d-ring"
-  | "grommet"
-  | "windtracker"
-  | "carabiner"
-  | "hook"
-  | "loop"
-  | "hem";
-
 export const EYELET_TYPES: EyeletType[] = [
-  { id: "tunnel", label: "Tunel (kapsa na tyč)", glyph: "tunnel", photo: "/vlajky/ocka/oko-1.jpg" },
-  { id: "strap-carabiner", label: "Popruh s karabinou", glyph: "strap-carabiner", photo: "/vlajky/ocka/oko-2.jpg" },
-  { id: "d-ring", label: "Kovový kroužek (D-ring)", glyph: "d-ring", photo: "/vlajky/ocka/oko-3.jpg" },
-  { id: "grommet", label: "Kovové oko (průchodka)", glyph: "grommet", photo: "/vlajky/ocka/oko-4.jpg" },
-  { id: "windtracker", label: "Vyztužený tunel (windtracker)", glyph: "windtracker", photo: "/vlajky/ocka/oko-5.jpg" },
-  { id: "carabiner", label: "Plastová karabina", glyph: "carabiner", photo: "/vlajky/ocka/oko-6.jpg" },
-  { id: "hook", label: "Plastový háček", glyph: "hook", photo: "/vlajky/ocka/oko-7.jpg" },
-  { id: "loop", label: "Guma se smyčkou", glyph: "loop", photo: "/vlajky/ocka/oko-8.jpg" },
-  { id: "hem", label: "Obšitý lem", glyph: "hem", photo: "/vlajky/ocka/oko-9.jpg" },
+  { id: "tunnel", label: "Tunel (kapsa na tyč)" },
+  { id: "strap-carabiner", label: "Popruh s karabinou" },
+  { id: "d-ring", label: "Kovový kroužek (D-ring)" },
+  { id: "grommet", label: "Kovové oko (průchodka)" },
+  { id: "windtracker", label: "Vyztužený tunel (windtracker)" },
+  { id: "carabiner", label: "Plastová karabina" },
+  { id: "hook", label: "Plastový háček" },
+  { id: "loop", label: "Guma se smyčkou" },
+  { id: "hem", label: "Obšitý lem" },
 ];
 
 export type EyeletPlacement = "left" | "right" | "top" | "bottom" | "all";

@@ -1,23 +1,55 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
-import { CloseMark, FlagMark } from "@/components/Icons";
+import { CheckMark, CloseMark, FlagMark } from "@/components/Icons";
 
 export default function CartPage() {
   const { lines, updateQty, removeLine, count } = useCart();
   const router = useRouter();
+  const [freeShippingOver, setFreeShippingOver] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/checkout-settings")
+      .then((r) => r.json())
+      .then((s) => setFreeShippingOver(s.shippingFreeOverAmount || 0))
+      .catch(() => {});
+  }, []);
 
   const subtotalEx = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const vat = lines.reduce((s, l) => s + l.unitPrice * l.qty * l.vatRate, 0);
+  const missingToFreeShipping = Math.max(0, freeShippingOver - subtotalEx);
 
   return (
     <div className="container">
       <div className="page-panel">
       <h1>Košík</h1>
+
+      {lines.length > 0 && freeShippingOver > 0 && (
+        <div className="cart-freeship">
+          <p>
+            {missingToFreeShipping > 0 ? (
+              <>
+                Do dopravy zdarma chybí <strong>{fmtMoney(missingToFreeShipping)}</strong>.
+              </>
+            ) : (
+              <>
+                <CheckMark className="cart-freeship-check" /> Máte dopravu zdarma.
+              </>
+            )}
+          </p>
+          <div className="cart-freeship-bar">
+            <div
+              className="cart-freeship-fill"
+              style={{ width: `${Math.min(100, (subtotalEx / freeShippingOver) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {lines.length === 0 ? (
         <div className="cart-empty">

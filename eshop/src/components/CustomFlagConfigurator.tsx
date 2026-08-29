@@ -17,7 +17,6 @@ import {
   type EyeletPlacement,
 } from "@/lib/flagOptions";
 import FlagWave from "./FlagWave";
-import EyeletIcon from "./EyeletIcon";
 import { CheckMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 
@@ -42,7 +41,7 @@ export default function CustomFlagConfigurator({
   const maxDimState = cfg?.maxDimState ?? 300;
   const maxDimCustom = cfg?.maxDimCustom ?? 200;
 
-  const [flagType, setFlagType] = useState<FlagType>("state");
+  const [flagType, setFlagType] = useState<FlagType>("custom");
   const [materialId, setMaterialId] = useState<string>(materials[0]?.id ?? "");
   const material = materials.find((m) => m.id === materialId) ?? materials[0];
 
@@ -101,9 +100,11 @@ export default function CustomFlagConfigurator({
   function pickUpload(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
-    const isImage = file.type.startsWith("image/") || /\.svg$/i.test(file.name);
+    const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isSvg && !isPdf) return;
     const reader = new FileReader();
-    reader.onload = () => setUpload({ dataUrl: reader.result as string, name: file.name, isImage });
+    reader.onload = () => setUpload({ dataUrl: reader.result as string, name: file.name, isImage: isSvg });
     reader.readAsDataURL(file);
   }
 
@@ -264,11 +265,11 @@ export default function CustomFlagConfigurator({
             <input
               ref={fileRef}
               type="file"
-              accept="image/*,application/pdf,.svg"
+              accept="image/svg+xml,.svg,application/pdf,.pdf"
               hidden
               onChange={(e) => pickUpload(e.target.files)}
             />
-            <p className="editor-note">Maximální velikost souboru 20 MB. Podporovaný formát: SVG, PDF, obrázek.</p>
+            <p className="editor-note">Maximální velikost souboru 20 MB. Podporovaný formát: SVG nebo PDF.</p>
           </>
         )}
 
@@ -302,17 +303,15 @@ export default function CustomFlagConfigurator({
 
         {/* Typ oček */}
         <div className="option-label">Typ oček</div>
-        <div className="eyelet-grid">
+        <div className="option-row">
           {EYELET_TYPES.map((e) => (
             <button
               key={e.id}
               type="button"
-              className={`eyelet-cell${eyeletType === e.id ? " active" : ""}`}
+              className={`option-chip${eyeletType === e.id ? " active" : ""}`}
               onClick={() => setEyeletType(e.id)}
-              title={e.label}
             >
-              <EyeletIcon glyph={e.glyph} photo={e.photo} alt={e.label} />
-              <span>{e.label}</span>
+              {e.label}
             </button>
           ))}
         </div>

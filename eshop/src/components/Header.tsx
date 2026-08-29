@@ -103,7 +103,7 @@ export default function Header() {
         </div>
         <div className="nv-nav-right">
           <a href={isHome ? "#registrace" : "/#registrace"} className="nv-btn nv-btn-yellow">
-            <span className="nv-btn-l">Registrace · sleva 10 %</span>
+            <span className="nv-btn-l">Registrace</span>
           </a>
           <Link href="/kosik" className="nv-nav-cart">
             <span className="nv-btn-l">

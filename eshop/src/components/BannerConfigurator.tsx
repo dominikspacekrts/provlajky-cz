@@ -59,10 +59,18 @@ export default function BannerConfigurator({
   function pickArtwork(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
-    // Downscale na náhled ~1000 px delší strany kvůli velikosti v košíku.
+    const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isSvg && !isPdf) return;
     const reader = new FileReader();
     reader.onload = () => {
       const src = reader.result as string;
+      // PDF nejde vykreslit jako <img> náhled — uložíme ho rovnou jako přílohu bez rastrového náhledu.
+      if (isPdf) {
+        setArtwork(src);
+        return;
+      }
+      // Downscale SVG náhledu na ~1000 px delší strany kvůli velikosti v košíku.
       const img = new Image();
       img.onload = () => {
         const max = 1000;
@@ -115,8 +123,12 @@ export default function BannerConfigurator({
           tabIndex={0}
         >
           {artwork ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={artwork} alt="Náhled grafiky" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            artwork.startsWith("data:application/pdf") ? (
+              <span className="banner-preview-hint">📄 PDF nahráno</span>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={artwork} alt="Náhled grafiky" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            )
           ) : (
             <span className="banner-preview-hint">＋ Nahrát grafiku</span>
           )}
@@ -130,7 +142,7 @@ export default function BannerConfigurator({
         <input
           ref={fileRef}
           type="file"
-          accept="image/*,application/pdf"
+          accept="image/svg+xml,.svg,application/pdf,.pdf"
           hidden
           onChange={(e) => pickArtwork(e.target.files)}
         />

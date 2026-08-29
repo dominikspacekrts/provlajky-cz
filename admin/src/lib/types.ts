@@ -209,11 +209,22 @@ export type MailSettings = {
 // na platformu.
 export type MarketingSettings = { headSnippet: string };
 
+// Způsoby dopravy/platby nabízené v checkoutu eshopu — spravují se v
+// Nastavení → Doprava a platby, cena 0 = zdarma. shipping.freeOverAmount:
+// když mezisoučet objednávky bez DPH dosáhne téhle částky, doprava se
+// zákazníkovi automaticky odpustí bez ohledu na cenu vybraného způsobu.
+export type ShippingMethod = { id: string; label: string; price: number };
+export type PaymentMethod = { id: string; label: string; price: number };
+export type ShippingSettings = { freeOverAmount: number; methods: ShippingMethod[] };
+export type PaymentSettings = { methods: PaymentMethod[] };
+
 export type Settings = {
   id: 1;
   cost_per_size: { S: number; M: number; L: number; XL: number };
   mail: MailSettings;
   marketing: MarketingSettings;
+  shipping: ShippingSettings;
+  payment: PaymentSettings;
   updated_at: string;
 };
 
