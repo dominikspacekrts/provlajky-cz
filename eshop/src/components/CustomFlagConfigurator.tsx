@@ -101,9 +101,11 @@ export default function CustomFlagConfigurator({
   function pickUpload(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
-    const isImage = file.type.startsWith("image/") || /\.svg$/i.test(file.name);
+    const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isSvg && !isPdf) return;
     const reader = new FileReader();
-    reader.onload = () => setUpload({ dataUrl: reader.result as string, name: file.name, isImage });
+    reader.onload = () => setUpload({ dataUrl: reader.result as string, name: file.name, isImage: isSvg });
     reader.readAsDataURL(file);
   }
 
@@ -264,11 +266,11 @@ export default function CustomFlagConfigurator({
             <input
               ref={fileRef}
               type="file"
-              accept="image/*,application/pdf,.svg"
+              accept="image/svg+xml,.svg,application/pdf,.pdf"
               hidden
               onChange={(e) => pickUpload(e.target.files)}
             />
-            <p className="editor-note">Maximální velikost souboru 20 MB. Podporovaný formát: SVG, PDF, obrázek.</p>
+            <p className="editor-note">Maximální velikost souboru 20 MB. Podporovaný formát: SVG nebo PDF.</p>
           </>
         )}
 

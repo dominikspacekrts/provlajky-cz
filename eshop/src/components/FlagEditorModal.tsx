@@ -71,17 +71,17 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
     setTimeout(onClose, CLOSE_MS);
   }, [onClose]);
 
-  // načtení loga z dataURL
+  // načtení loga z dataURL — PDF nejde vykreslit na canvas, logoImg zůstává null.
   useEffect(() => {
-    if (!design.logoDataUrl) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset odvozeného stavu při odebrání loga
+    if (!design.logoDataUrl || design.logoIsPdf) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset odvozeného stavu při odebrání loga / PDF bez náhledu
       setLogoImg(null);
       return;
     }
     const img = new Image();
     img.onload = () => setLogoImg(img);
     img.src = design.logoDataUrl;
-  }, [design.logoDataUrl]);
+  }, [design.logoDataUrl, design.logoIsPdf]);
 
   // překreslení náhledu + úchyty pro tažení/zvětšení/otočení loga (jen v editoru,
   // do sdíleného designPainter nejdou — ten kreslí i finální texturu/náhled).
@@ -260,32 +260,14 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
 
   function handleFile(file: File | undefined) {
     if (!file) return;
+    const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    if (!isSvg && !isPdf) return;
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = String(reader.result);
-      // SVG necháme beze změny, bitmapy zmenšíme, aby se návrh vešel do objednávky
-      if (file.type === "image/svg+xml") {
-        setDesign((d) => ({ ...d, logoDataUrl: dataUrl }));
-        return;
-      }
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 1400;
-        const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
-        if (scale >= 1) {
-          setDesign((d) => ({ ...d, logoDataUrl: dataUrl }));
-          return;
-        }
-        const c = document.createElement("canvas");
-        c.width = Math.round(img.naturalWidth * scale);
-        c.height = Math.round(img.naturalHeight * scale);
-        c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
-        const out =
-          file.type === "image/jpeg" ? c.toDataURL("image/jpeg", 0.88) : c.toDataURL("image/png");
-        setDesign((d) => ({ ...d, logoDataUrl: out }));
-      };
-      img.onerror = () => setDesign((d) => ({ ...d, logoDataUrl: dataUrl }));
-      img.src = dataUrl;
+      // PDF nejde vykreslit na canvas — přiložíme ho bez živého náhledu/pozicování.
+      setDesign((d) => ({ ...d, logoDataUrl: dataUrl, logoIsPdf: isPdf }));
     };
     reader.readAsDataURL(file);
   }
@@ -310,6 +292,8 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
             <p className="editor-hint">
               {logoImg
                 ? "Logo přetáhněte na místo, bílým rohem zvětšíte, žlutým bodem otočíte."
+                : design.logoIsPdf
+                ? "PDF logo nahráno — umístění na vlajce doladíme ručně, v editoru se nedá živě posouvat."
                 : "Nahrajte logo a umístěte ho tažením."}
             </p>
           </div>
@@ -317,8 +301,8 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
           <div className="editor-controls">
             <div className="option-label" style={{ marginTop: 0 }}>Vaše logo</div>
             <label className="editor-upload">
-              <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={(e) => handleFile(e.target.files?.[0])} hidden />
-              {design.logoDataUrl ? "Nahrát jiné logo" : "Nahrát logo (PNG, JPG, SVG)"}
+              <input type="file" accept="image/svg+xml,.svg,application/pdf,.pdf" onChange={(e) => handleFile(e.target.files?.[0])} hidden />
+              {design.logoDataUrl ? "Nahrát jiné logo" : "Nahrát logo (SVG nebo PDF)"}
             </label>
 
             <div className="option-label">Barva pozadí</div>

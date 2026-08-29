@@ -85,6 +85,8 @@ function shade(hex: string, f: number): string {
 export type FlagDesign = {
   bgColor: string;
   logoDataUrl?: string | null;
+  /** PDF nejde vykreslit na canvas — logo se nedá živě posouvat/otáčet, jen se přiloží k objednávce. */
+  logoIsPdf?: boolean;
   /** střed loga, 0–1 */
   logoX: number;
   logoY: number;
@@ -97,6 +99,7 @@ export type FlagDesign = {
 export const DEFAULT_DESIGN: FlagDesign = {
   bgColor: "#ffe701",
   logoDataUrl: null,
+  logoIsPdf: false,
   logoX: 0.55,
   logoY: 0.4,
   logoScale: 0.55,
