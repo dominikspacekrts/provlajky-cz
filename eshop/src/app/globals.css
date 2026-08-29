@@ -1107,7 +1107,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 /* --- jedna věta mezi herem a produkty ----------------------------- */
 .nv-lead {
   background: var(--nv-paper);
-  padding: clamp(80px, 13vh, 168px) var(--nv-pad) clamp(64px, 10vh, 124px);
+  padding: clamp(44px, 7vh, 96px) var(--nv-pad) clamp(32px, 5vh, 64px);
   display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: clamp(30px, 6vw, 110px); align-items: end;
 }
@@ -1156,7 +1156,7 @@ html:has(.nv) { scroll-behavior: smooth; }
    --nv-pad odsazením místo .container. */
 .nv-groups {
   background: var(--nv-paper);
-  padding: 0 var(--nv-pad) clamp(70px, 11vh, 140px);
+  padding: 0 var(--nv-pad) clamp(36px, 5vh, 64px);
 }
 .nv-groups-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -1166,7 +1166,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 /* --- pruh s čísly (důvěra) hned pod hlavními dlaždicemi ------------- */
 .nv-stats {
   background: var(--nv-ink);
-  padding: clamp(44px, 7vh, 76px) var(--nv-pad);
+  padding: clamp(32px, 5vh, 56px) var(--nv-pad);
 }
 .nv-stats-grid {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
