@@ -1,6 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 import { createServiceClient } from "@/lib/supabase";
+import { fmtMoney } from "@/lib/money";
 import type { CartLine, CustomerAddress, ProductCategory } from "@/lib/types";
+
+type MailSettings = {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  fromName?: string;
+  from?: string;
+};
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+
+function orderConfirmationEmailHtml(orderLabel: string, billing: CustomerAddress, lines: CartLine[]): string {
+  const rows = lines
+    .map(
+      (l) =>
+        `<tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;">${escapeHtml(l.name)}${
+          l.note ? `<br><span style="color:#777;font-size:12px;">${escapeHtml(l.note)}</span>` : ""
+        }</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center;">${l.qty}×</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;">${fmtMoney(l.unitPrice * l.qty)}</td>
+        </tr>`
+    )
+    .join("");
+  const subtotalEx = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
+  const vat = lines.reduce((s, l) => s + l.unitPrice * l.qty * l.vatRate, 0);
+  const name = billing.name || billing.company || "";
+  return `
+    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 560px; margin: 0 auto;">
+      <p>Dobrý den${name ? ` ${escapeHtml(name)}` : ""},</p>
+      <p>děkujeme, přijali jsme Vaši objednávku <strong>${escapeHtml(orderLabel)}</strong> na provlajky.cz. Ozveme se s pokyny k platbě, případně upřesněním detailů.</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #08080a;">Položka</th>
+            <th style="text-align:center;padding:6px 10px;border-bottom:2px solid #08080a;">Ks</th>
+            <th style="text-align:right;padding:6px 10px;border-bottom:2px solid #08080a;">Cena</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="margin-top:14px;">
+        Mezisoučet bez DPH: <strong>${fmtMoney(subtotalEx)}</strong><br>
+        DPH: <strong>${fmtMoney(vat)}</strong><br>
+        Celkem: <strong>${fmtMoney(subtotalEx + vat)}</strong>
+      </p>
+      <p>Máte dotaz? Ozvěte se na <a href="mailto:info@provlajky.cz">info@provlajky.cz</a> nebo <a href="tel:+420605981155">+420 605 981 155</a>.</p>
+      <p>Tým PROVLAJKY.CZ</p>
+    </div>
+  `;
+}
 
 type Body = {
   billing: CustomerAddress;
@@ -185,6 +242,57 @@ export async function POST(req: NextRequest) {
   if (itemsError) {
     console.error("objednavka: order_items insert failed", itemsError);
     return NextResponse.json({ error: "Nepodařilo se uložit položky objednávky, zkuste to prosím znovu." }, { status: 500 });
+  }
+
+  // Potvrzovací e-mail zákazníkovi — objednávka je v DB hotová bez ohledu na to,
+  // jestli se mail povede odeslat, takže selhání tady nesmí shodit odpověď.
+  try {
+    const { data: settingsRow } = await supabase.from("settings").select("mail").eq("id", 1).single();
+    const mail = settingsRow?.mail as MailSettings | undefined;
+    if (mail?.host && mail?.user) {
+      const orderLabel = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8)}`;
+      const subject = `Potvrzení objednávky ${orderLabel} — provlajky.cz`;
+      const html = orderConfirmationEmailHtml(orderLabel, billing, lines);
+      const transporter = nodemailer.createTransport({
+        host: mail.host,
+        port: Number(mail.port) || 587,
+        secure: !!mail.secure,
+        auth: { user: mail.user, pass: mail.pass },
+      });
+      const fromName = mail.fromName || "PROVLAJKY";
+      const fromAddr = mail.from || mail.user;
+      try {
+        await transporter.sendMail({ from: `"${fromName}" <${fromAddr}>`, to: billing.email, subject, html });
+        await supabase.from("email_history").insert({
+          sent_by: mail.user,
+          kind: "other",
+          to_addr: billing.email,
+          cc: [],
+          bcc: [],
+          subject,
+          html_body: html,
+          attachments_meta: [],
+          status: "sent",
+        });
+      } catch (sendError) {
+        const message = sendError instanceof Error ? sendError.message : "Neznámá chyba odeslání.";
+        console.error("objednavka: confirmation email failed", sendError);
+        await supabase.from("email_history").insert({
+          sent_by: mail.user,
+          kind: "other",
+          to_addr: billing.email,
+          cc: [],
+          bcc: [],
+          subject,
+          html_body: html,
+          attachments_meta: [],
+          status: "failed",
+          error_message: message,
+        });
+      }
+    }
+  } catch (e) {
+    console.error("objednavka: confirmation email step failed", e);
   }
 
   return NextResponse.json({ orderId: order.id });
