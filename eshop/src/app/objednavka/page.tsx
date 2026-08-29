@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { CustomerAddress } from "@/lib/types";
@@ -27,6 +28,7 @@ export default function CheckoutPage() {
   const [shipping, setShipping] = useState<CustomerAddress>(emptyAddr());
   const [note, setNote] = useState("");
   const [discountCode, setDiscountCode] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +51,10 @@ export default function CheckoutPage() {
     }
     if (billing.isCompany && !billing.ico?.trim()) {
       setError('Nákup je označen „na firmu“ – vyplň IČO.');
+      return;
+    }
+    if (!termsAccepted) {
+      setError("Pro odeslání objednávky je potřeba souhlasit s obchodními podmínkami.");
       return;
     }
     setError(null);
@@ -190,6 +196,36 @@ export default function CheckoutPage() {
               <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
             </label>
           </div>
+
+          <h3 style={{ fontSize: 18, marginTop: 24, marginBottom: 12 }}>Způsob platby</h3>
+          <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", fontWeight: 600 }}>Platba předem</div>
+            <p style={{ padding: "14px 18px", color: "var(--gray)", fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+              Platbu předem požadujeme, protože zboží vyrábíme na zakázku podle individuálních potřeb zákazníka.
+              Tímto eliminujeme riziko neprodejného vráceného zboží. Před platbou vás ale vždy kontaktujeme pro
+              vytvoření a odsouhlasení návrhu, abychom se ujistili, že je vše podle vašich představ. Výrobu
+              zahájíme až po úhradě, čímž garantujeme osobní přístup a precizní zpracování vaší objednávky.
+              Odesláním objednávky se nezavazujete k platbě.
+            </p>
+          </div>
+
+          <p style={{ fontSize: 13, color: "var(--gray)", marginTop: 14 }}>
+            Vaše osobní údaje budou použity k vyřízení Vaší objednávky, zvýšení spokojenosti po celou dobu
+            procházení tohoto webu a k dalším účelům popsaných na stránce{" "}
+            <Link href="/ochrana-osobnich-udaju">Zásady ochrany osobních údajů</Link>.
+          </p>
+
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 14, fontSize: 14 }}>
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              style={{ marginTop: 3 }}
+            />
+            <span>
+              Přečetl/a jsem si <Link href="/obchodni-podminky">Obchodní podmínky</Link> a souhlasím s nimi *
+            </span>
+          </label>
 
           {error && <div style={{ color: "#dc2626", fontSize: 13, marginTop: 12 }}>{error}</div>}
 
