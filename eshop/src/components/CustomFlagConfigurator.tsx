@@ -42,7 +42,7 @@ export default function CustomFlagConfigurator({
   const maxDimState = cfg?.maxDimState ?? 300;
   const maxDimCustom = cfg?.maxDimCustom ?? 200;
 
-  const [flagType, setFlagType] = useState<FlagType>("state");
+  const [flagType, setFlagType] = useState<FlagType>("custom");
   const [materialId, setMaterialId] = useState<string>(materials[0]?.id ?? "");
   const material = materials.find((m) => m.id === materialId) ?? materials[0];
 
