@@ -593,6 +593,13 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 .swatch:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -12px rgba(8, 8, 10, 0.5); }
 .swatch.active { border-color: var(--ink); box-shadow: inset 0 0 0 2px #fff; }
+.swatch.custom {
+  position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: conic-gradient(from 0deg, #ff3b30, #ffcc00, #34c759, #0a84ff, #af52de, #ff3b30);
+  color: #fff;
+}
+.swatch.custom svg { width: 18px; height: 18px; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45)); }
+.swatch.custom input[type="color"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .editor-hint, .editor-note { font-size: 12.5px; line-height: 1.6; color: var(--gray); margin-top: 12px; }
 .editor-note-warn { color: #b3540c; font-variation-settings: "wght" 600, "wdth" 100; }
 .editor-actions {

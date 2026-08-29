@@ -11,6 +11,7 @@ import {
   drawFlagCanvas,
   type FlagDesign,
 } from "@/lib/flagShapes";
+import { PaletteMark } from "@/components/Icons";
 
 const BG_PRESETS = ["#ffe701", "#ffffff", "#111111", "#e02020", "#0a54c2", "#0a8f3c", "#f97316", "#7c3aed"];
 
@@ -317,6 +318,7 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
                 />
               ))}
               <label className="swatch custom" title="Vlastní barva">
+                <PaletteMark />
                 <input type="color" value={design.bgColor} onChange={(e) => setDesign((d) => ({ ...d, bgColor: e.target.value }))} />
               </label>
             </div>

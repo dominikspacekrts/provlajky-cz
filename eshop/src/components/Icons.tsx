@@ -45,6 +45,24 @@ export function CloseMark({ className = "" }: { className?: string }) {
   );
 }
 
+export function PaletteMark({ className = "" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M12 3.5c-4.7 0-8.5 3.6-8.5 8 0 3.1 2.4 4 4.2 4h.6c.9 0 1.6.7 1.6 1.6 0 .5-.2.9-.5 1.2-.3.3-.5.7-.5 1.1 0 .9.9 1.5 1.9 1.5 5 0 9.2-3.9 9.2-8.7 0-4.8-3.8-8.7-8-8.7Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="8.2" cy="10.4" r="1.05" fill="currentColor" stroke="none" />
+      <circle cx="12.4" cy="8" r="1.05" fill="currentColor" stroke="none" />
+      <circle cx="16.3" cy="10.6" r="1.05" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function PenMark({ className = "" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
