@@ -571,6 +571,10 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 .editor-preview { background: rgba(255, 255, 255, 0.55); padding: clamp(16px, 3vw, 32px); display: flex;
   align-items: center; justify-content: center; min-height: 320px; }
+/* Canvas se kreslí na fixní vnitřní rozlišení (viz FLAG_H/TEXTURE_H) — bez tohohle
+   by na malém displeji přetékal z panelu. Tažení/zvětšení počítá s poměrem
+   getBoundingClientRect() vs. canvas.width, takže zmenšené CSS rozměry nevadí. */
+.editor-preview canvas { max-width: 100%; max-height: min(70vh, 640px); width: auto; height: auto; display: block; }
 .editor-controls { background: rgba(255, 255, 255, 0.4); padding: clamp(18px, 3vw, 26px); }
 .editor-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch {
