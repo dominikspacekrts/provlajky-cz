@@ -42,6 +42,9 @@ export default function Footer() {
           <h4>Důležité informace</h4>
           <ul>
             <li>
+              <Link href="/kontakt">Kontaktujte nás</Link>
+            </li>
+            <li>
               <Link href="/obchodni-podminky">Obchodní podmínky</Link>
             </li>
             <li>
