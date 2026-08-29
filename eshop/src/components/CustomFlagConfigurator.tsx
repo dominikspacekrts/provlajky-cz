@@ -17,7 +17,6 @@ import {
   type EyeletPlacement,
 } from "@/lib/flagOptions";
 import FlagWave from "./FlagWave";
-import EyeletIcon from "./EyeletIcon";
 import { CheckMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 
@@ -304,17 +303,15 @@ export default function CustomFlagConfigurator({
 
         {/* Typ oček */}
         <div className="option-label">Typ oček</div>
-        <div className="eyelet-grid">
+        <div className="option-row">
           {EYELET_TYPES.map((e) => (
             <button
               key={e.id}
               type="button"
-              className={`eyelet-cell${eyeletType === e.id ? " active" : ""}`}
+              className={`option-chip${eyeletType === e.id ? " active" : ""}`}
               onClick={() => setEyeletType(e.id)}
-              title={e.label}
             >
-              <EyeletIcon glyph={e.glyph} photo={e.photo} alt={e.label} />
-              <span>{e.label}</span>
+              {e.label}
             </button>
           ))}
         </div>

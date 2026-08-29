@@ -499,20 +499,6 @@ label:has(input[type="checkbox"]), .cb-line {
   border-left: 2px solid var(--yellow); font-size: 13.5px; line-height: 1.6; color: var(--gray);
 }
 
-.eyelet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  background: #fff; border: 1px solid var(--border); border-width: 1px 0 0 1px; }
-.eyelet-cell {
-  display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer;
-  padding: 14px 8px; background: #fff; border: 0 solid var(--border); border-width: 0 1px 1px 0;
-  border-radius: 0;
-  font-family: inherit; font-size: 11px; letter-spacing: 0.06em; text-align: center; color: var(--gray);
-  transition: background 0.3s var(--nv-ease), color 0.3s var(--nv-ease);
-}
-.eyelet-cell:hover { background: #faf9f6; }
-.eyelet-cell.active { background: var(--ink); color: #fff; }
-.eyelet-glyph { width: 40px; height: 40px; }
-.eyelet-photo { width: 40px; height: 40px; object-fit: cover; }
-
 .placement-box {
   display: flex; flex-direction: column; gap: 10px; max-width: 460px;
   padding: 16px 18px; border: 1px solid var(--border); background: #fff;
