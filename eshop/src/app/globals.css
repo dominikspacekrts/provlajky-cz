@@ -104,22 +104,22 @@ h1, h2, h3, h4 {
 .btn-yellow:active::before, .btn-outline:active::before, .btn-design:active::before { opacity: 1; }
 
 .btn-yellow {
-  color: var(--ink);
-  background-image: linear-gradient(180deg, #ffee55 0%, #ffe701 34%, #ffdf00 68%, #eecb00 100%);
+  color: var(--yellow);
+  background-image: linear-gradient(180deg, #2c2c32 0%, #121216 34%, #08080a 68%, #000 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 4px 10px -4px rgba(8, 8, 10, 0.35);
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 10px -4px rgba(8, 8, 10, 0.5);
 }
 .btn-yellow:hover:not(:disabled) {
   background-position: 50% 100%;
   box-shadow:
-    inset 0 1px 0 #fff,
-    0 8px 18px -6px rgba(8, 8, 10, 0.4),
-    0 10px 30px -14px rgba(255, 231, 1, 0.7);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 8px 18px -6px rgba(8, 8, 10, 0.55),
+    0 10px 30px -14px rgba(255, 231, 1, 0.55);
 }
 .btn-yellow:active:not(:disabled) {
   background-position: 50% 100%;
-  box-shadow: inset 0 2px 5px rgba(122, 96, 0, 0.42);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
 }
 .btn-yellow:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
@@ -137,15 +137,15 @@ h1, h2, h3, h4 {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 18px 38px -20px rgba(8, 8, 10, 0.8);
 }
 .btn-design {
-  color: var(--ink); border-color: rgba(8, 8, 10, 0.18);
-  background-image: linear-gradient(132deg, rgba(255, 255, 255, 0.9), rgba(246, 245, 240, 0.55) 55%, rgba(255, 255, 255, 0.85));
+  color: var(--yellow); border-color: rgba(255, 255, 255, 0.14);
+  background-image: linear-gradient(132deg, #2c2c32, #121216 55%, #08080a);
   backdrop-filter: blur(10px) saturate(1.3);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 20px -16px rgba(8, 8, 10, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 20px -16px rgba(8, 8, 10, 0.6);
 }
 .btn-design:hover {
-  border-color: rgba(8, 8, 10, 0.4);
-  background-image: linear-gradient(132deg, #fffce0, #ffe701 55%, #ffef7d);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 16px 34px -20px rgba(255, 231, 1, 0.8);
+  border-color: rgba(255, 231, 1, 0.55);
+  background-image: linear-gradient(132deg, #1c1c22, #000 55%, #08080a);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 16px 34px -20px rgba(255, 231, 1, 0.7);
 }
 .btn-design-required { border-color: rgba(255, 231, 1, 0.7); animation: btn-design-pulse 2.4s ease-in-out infinite; }
 @keyframes btn-design-pulse {
