@@ -244,9 +244,15 @@ export default function TentWallsConfigurator({
         <div className="fc-cta">
           <div className="fc-cta-price">
             {unitPrice > 0 ? (
-              <>
-                {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-              </>
+              qty > 1 ? (
+                <>
+                  {fmtMoney(unitPrice * qty)} <span className="vat">bez DPH celkem za {qty} ks</span>
+                </>
+              ) : (
+                <>
+                  {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
+                </>
+              )
             ) : (
               <span>Cena na dotaz</span>
             )}
