@@ -20,7 +20,10 @@ import type { ProductCategory } from "@/lib/types";
 // je souhrn tří kategorií (brány, totemy, nafukovací stany), takže potřebuje
 // vlastní mapování, aby šlo dohledat, jestli má ukázat slevovou plaketu.
 const TILE_CATEGORIES: Record<string, ProductCategory[]> = {
-  nafukovaci: ["nafukovaci-brany", "totemy", "nafukovaci-stany"],
+  "bannery-pvc": ["pvc-bannery"],
+  "bannery-mesh": ["pvc-bannery"],
+  nafukovaci: ["nafukovaci-brany", "totemy"],
+  prislusenstvi: ["prislusenstvi", "nahradni-dily"],
 };
 
 type Tile = {
@@ -48,39 +51,39 @@ const TILES: Tile[] = [
     note: "Šest tvarů, potisk na míru, žerď i základna podle terénu.",
     href: "/plazove-vlajky",
     cta: "Vybrat vlajku",
-    tone: "scene",
-    img: "/fotky/foto-01.jpg",
-    objectPosition: "28% 30%",
+    tone: "studio",
+    fit: "contain",
+    img: "/produkty/plazova-vlajka-sirka.jpg",
   },
   {
     id: "vlajky-na-zakazku",
-    title: "Vlajky na zakázku",
+    title: "Vlajky na míru",
     note: "Státní i vlastní grafika, libovolný rozměr, oka podle potřeby.",
     href: "/vlajky-na-zakazku",
     cta: "Vybrat vlajku",
-    tone: "scene",
-    img: "/fotky/foto-02.jpg",
-    objectPosition: "50% 32%",
+    tone: "studio",
+    fit: "contain",
+    img: "/produkty/vlajka-na-miru.jpg",
   },
   {
-    id: "pvc-bannery",
-    title: "PVC bannery a meshe",
-    note: "Cena za m², oka po obvodu, mesh tam, kde fouká.",
-    href: "/pvc-bannery",
+    id: "bannery-pvc",
+    title: "PVC bannery",
+    note: "Plná plachtovina 510 g/m², cena za m², oka po obvodu.",
+    href: "/produkt/pvc-banner-na-miru",
     cta: "Spočítat banner",
     tone: "studio",
     fit: "contain",
-    img: "/produkty/mesh-banner.jpg",
+    img: "/produkty/banner-pvc.jpg",
   },
   {
-    id: "nafukovaci",
-    title: "Nafukovací reklama",
-    note: "Brány, totemy i stany. Postaví to jeden člověk.",
-    href: "/nafukovaci-brany",
-    cta: "Vybrat produkt",
+    id: "bannery-mesh",
+    title: "Meshe",
+    note: "Perforovaná síťovina — propouští vítr, drží tam, kde fouká.",
+    href: "/produkt/mesh-banner-na-miru",
+    cta: "Spočítat mesh",
     tone: "studio",
     fit: "contain",
-    img: "/produkty/nafukovaci-brana.jpg",
+    img: "/produkty/banner-mesh.jpg",
   },
   {
     id: "nuzkove-stany",
@@ -91,6 +94,26 @@ const TILES: Tile[] = [
     tone: "studio",
     fit: "contain",
     img: "/stany/nuzkovy-3x3.jpg",
+  },
+  {
+    id: "nafukovaci-stany",
+    title: "Nafukovací stany",
+    note: "Postaví jeden člověk, plnobarevný potisk stěn i střechy.",
+    href: "/nafukovaci-stany",
+    cta: "Vybrat stan",
+    tone: "studio",
+    fit: "contain",
+    img: "/produkty/nafukovaci-stan.jpg",
+  },
+  {
+    id: "nafukovaci",
+    title: "Nafukovací reklama",
+    note: "Brány a totemy s potiskem na míru.",
+    href: "/brany-a-totemy",
+    cta: "Vybrat produkt",
+    tone: "studio",
+    fit: "contain",
+    img: "/produkty/nafukovaci-reklama.jpg",
   },
   {
     id: "prislusenstvi",
@@ -122,7 +145,7 @@ export default function NovaFields({
           key={t.id}
           id={t.id}
           className={`nv-tile is-${t.tone}${t.fit ? ` fit-${t.fit}` : ""}${t.img ? "" : " is-slot"}`}
-          style={{ "--d": `${(i % 2) * 90 + Math.floor(i / 2) * 40}ms` } as React.CSSProperties}
+          style={{ "--d": `${(i % 3) * 70 + Math.floor(i / 3) * 40}ms` } as React.CSSProperties}
         >
           <div className="nv-tile-head">
             {salePct > 0 && <span className="nv-tile-badge">−{salePct} %</span>}

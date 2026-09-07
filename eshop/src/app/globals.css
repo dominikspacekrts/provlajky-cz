@@ -1216,13 +1216,13 @@ html:has(.nv) { scroll-behavior: smooth; }
 
 /* --- produktová mřížka: dva sloupce velkých panelů ---------------- */
 .nv-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
   background: var(--nv-seam); border-block: 1px solid var(--nv-seam);
   scroll-margin-top: 62px;
 }
 .nv-tile {
   position: relative; overflow: hidden;
-  min-height: min(64svh, 620px);
+  min-height: min(52svh, 470px);
   scroll-margin-top: 62px;
   display: grid; grid-template-rows: auto minmax(0, 1fr);
   background: var(--nv-ink);
@@ -1459,6 +1459,9 @@ html:has(.nv) { scroll-behavior: smooth; }
   .nv-entry a:nth-child(3n + 1) { border-left: 0; }
   .nv-entry a:nth-child(n + 4) { border-top: 1px solid rgba(255, 255, 255, 0.12); }
   .nv-lead { grid-template-columns: 1fr; align-items: start; }
+}
+@media (max-width: 1240px) {
+  .nv-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 900px) {
   .nv-grid { grid-template-columns: 1fr; }
