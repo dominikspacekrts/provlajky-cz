@@ -9,18 +9,20 @@
 // Přední a zadní stěna mají stejnou šířku (podle velikosti stanu — cfg.backWidthM),
 // boční stěny jsou vždy 3 m (hloubka je u všech velikostí stejná).
 //
-// Foto je zatím jen statická produktová fotka — přesný obrázek podle
-// konkrétní kombinace stěn se doladí později přes Viewmax (moc kombinací
-// na to, aby šly předgenerovat všechny najednou).
+// Náhled je produktová fotka stanu bez stěn, do které se stěny dokreslují
+// živě jako perspektivní polygony (TentStage + tentGeometry). Předgenerovat
+// kombinace nešlo — 4 strany × 3 stavy je 81 obrázků na velikost a vrstvy
+// z Viewmaxu na sebe nesedí, protože model scénu mezi generacemi posouvá.
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { Product, TentWallOption } from "@/lib/types";
-import { CheckMark, FlagMark } from "@/components/Icons";
+import { CheckMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
+import TentStage from "@/components/TentStage";
+import { geometryForWidth } from "@/lib/tentGeometry";
 
 type WallType = "half" | "full";
 type Side = { type: WallType; double: boolean } | null;
@@ -123,6 +125,7 @@ export default function TentWallsConfigurator({
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const image = product.images?.[0];
+  const geometry = geometryForWidth(cfg?.backWidthM);
 
   const priceByPosition = useMemo(() => {
     const out = {} as Record<PositionKey, number>;
@@ -177,18 +180,7 @@ export default function TentWallsConfigurator({
   return (
     <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
       <div className="fc-stage">
-        {image ? (
-          <Image
-            src={image}
-            alt={product.name}
-            width={640}
-            height={480}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            unoptimized
-          />
-        ) : (
-          <FlagMark className="thumb-empty" />
-        )}
+        <TentStage geometry={geometry} sides={sides} alt={product.name} />
       </div>
 
       <aside className="fc-panel reveal-stagger">
