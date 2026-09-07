@@ -16,16 +16,16 @@ import RegisterForm from "@/components/RegisterForm";
 import type { ProductCategory } from "@/lib/types";
 
 // Tři hlavní produktové rodiny — ostré vstupní dlaždice hned pod herem.
-// TODO: "vlajky" a "stany" ještě nahradit vygenerovanými produktovými
-// snímky s bílým pozadím (Viewmax generování obrázků teď nejde kvůli
-// neaktivnímu předplatnému — jakmile bude dostupné, doplnit sem).
+// Všechny tři používají studiové produktové snímky na světlém pozadí, aby
+// řada držela jednotný vzhled. Dlaždice "stany" je šikmá kombinace nůžkového
+// a nafukovacího stanu (skládá se lokálně, viz public/stany).
 const HOME_GROUPS = [
   {
     id: "vlajky",
     title: "Plážové vlajky",
     href: "/plazove-vlajky",
     note: "Šest tvarů, potisk na míru, cenu vidíte hned v konfigurátoru.",
-    img: "/hero/plazove-vlajky.jpg",
+    img: "/produkty/plazova-vlajka.jpg",
   },
   {
     id: "bannery",
@@ -39,7 +39,7 @@ const HOME_GROUPS = [
     title: "Nůžkové a nafukovací stany",
     href: "/stany",
     note: "Skládací i nafukovací konstrukce s potiskem na míru.",
-    img: "/hero/nafukovaci-stan.jpg",
+    img: "/stany/nuzkovy-nafukovaci.jpg",
   },
 ] as const;
 

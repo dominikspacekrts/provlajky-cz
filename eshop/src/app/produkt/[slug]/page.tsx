@@ -47,7 +47,7 @@ const FALLBACK_GALLERY: Record<ProductCategory, string[]> = {
     "/prislusenstvi/tezka-zelezna-zakladna.jpg",
     "/prislusenstvi/zapich-pro-vlajku.jpg",
   ],
-  "nuzkove-stany": ["/stany/real-full.jpg", "/stany/real-half.jpg", "/stany/real-none.jpg", "/produkty/dily-stany.jpg"],
+  "nuzkove-stany": ["/stany/nuzkovy-3x3.jpg", "/stany/nuzkovy-3x45.jpg", "/stany/nuzkovy-3x6.jpg", "/produkty/dily-stany.jpg"],
   "nafukovaci-stany": ["/stany/nafukovaci.jpg", "/hero/nafukovaci-stan.jpg", "/produkty/nafukovaci-stan.jpg"],
   totemy: ["/produkty/nafukovaci-totem.jpg"],
   "nafukovaci-brany": ["/produkty/nafukovaci-brana.jpg"],
