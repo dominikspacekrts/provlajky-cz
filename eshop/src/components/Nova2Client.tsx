@@ -25,7 +25,7 @@ const HOME_GROUPS = [
     title: "Plážové vlajky",
     href: "/plazove-vlajky",
     note: "Šest tvarů, potisk na míru, cenu vidíte hned v konfigurátoru.",
-    img: "/produkty/plazova-vlajka.jpg",
+    img: "/produkty/plazova-vlajka-sirka.jpg",
   },
   {
     id: "bannery",
