@@ -90,7 +90,7 @@ const TILES: Tile[] = [
     cta: "Vybrat stan",
     tone: "studio",
     fit: "contain",
-    img: "/stany/real-full.jpg",
+    img: "/stany/nuzkovy-3x3.jpg",
   },
   {
     id: "prislusenstvi",

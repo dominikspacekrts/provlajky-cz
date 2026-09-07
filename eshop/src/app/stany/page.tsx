@@ -16,7 +16,7 @@ const GROUPS = [
     href: "/nuzkove-stany",
     title: "Nůžkové stany",
     note: "Skládací hliníková konstrukce, rozložený za minutu.",
-    img: "/stany/real-full.jpg",
+    img: "/stany/nuzkovy-3x3.jpg",
   },
   {
     href: "/nafukovaci-stany",
