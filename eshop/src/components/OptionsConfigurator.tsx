@@ -7,10 +7,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
-import { fmtMoney } from "@/lib/money";
 import type { Product, ProductOption } from "@/lib/types";
-import { CheckMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
+import CtaBar from "@/components/CtaBar";
 
 export default function OptionsConfigurator({
   product,
@@ -93,15 +92,6 @@ export default function OptionsConfigurator({
           </>
         )}
 
-        <div className="qty-row">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <input
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-          />
-        </div>
         <div style={{ marginTop: 10 }}>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku
@@ -115,20 +105,14 @@ export default function OptionsConfigurator({
         )}
       </div>
 
-        <div className="fc-cta">
-          <div className="fc-cta-price">
-            {unitPrice > 0 ? (
-              <>
-                {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-              </>
-            ) : (
-              <span>Cena na dotaz</span>
-            )}
-          </div>
-          <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
-          </button>
-        </div>
+        <CtaBar
+          qty={qty}
+          onQtyChange={setQty}
+          unitPrice={unitPrice}
+          disabled={unitPrice <= 0}
+          added={added}
+          onAdd={handleAdd}
+        />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />

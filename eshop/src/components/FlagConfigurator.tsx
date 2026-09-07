@@ -7,7 +7,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useCart } from "@/lib/cart";
-import { fmtMoney } from "@/lib/money";
 import {
   FLAG_SHAPES,
   FLAG_SIZES,
@@ -25,6 +24,7 @@ import {
 } from "@/lib/flagShapes";
 import { CheckMark, PenMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
+import CtaBar from "@/components/CtaBar";
 
 // FlagWave táhne celé three.js jen kvůli animaci vlání — na první vykreslení
 // stránky to nepotřebujeme, takže jde do vlastního JS chunku a načte se až
@@ -262,23 +262,6 @@ export default function FlagConfigurator({
             : "Povinný krok — zadejte barvu podkladu a nahrajte logo, ať víme, jak má vlajka vypadat."}
         </p>
 
-        <div className="qty-row">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <div className="qty-stepper">
-            <button
-              type="button"
-              aria-label="Ubrat kus"
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
-              disabled={qty <= 1}
-            >
-              −
-            </button>
-            <span className="qty-value">{qty}</span>
-            <button type="button" aria-label="Přidat kus" onClick={() => setQty((q) => q + 1)}>
-              +
-            </button>
-          </div>
-        </div>
         {unitPrice <= 0 && (
           <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
             Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
@@ -297,20 +280,14 @@ export default function FlagConfigurator({
         )}
       </div>
 
-        <div className="fc-cta">
-          <div className="fc-cta-price">
-            {unitPrice > 0 ? (
-              <>
-                {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-              </>
-            ) : (
-              <span>Cena na dotaz</span>
-            )}
-          </div>
-          <button className="btn-yellow" disabled={unitPrice <= 0 || !design?.logoDataUrl} onClick={handleAdd}>
-            Přidat do košíku
-          </button>
-        </div>
+        <CtaBar
+          qty={qty}
+          onQtyChange={setQty}
+          unitPrice={unitPrice}
+          disabled={unitPrice <= 0 || !design?.logoDataUrl}
+          addLabel="Přidat do košíku"
+          onAdd={handleAdd}
+        />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
