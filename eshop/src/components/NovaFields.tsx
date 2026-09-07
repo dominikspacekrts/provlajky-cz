@@ -23,7 +23,6 @@ const TILE_CATEGORIES: Record<string, ProductCategory[]> = {
   "bannery-pvc": ["pvc-bannery"],
   "bannery-mesh": ["pvc-bannery"],
   nafukovaci: ["nafukovaci-brany", "totemy"],
-  prislusenstvi: ["prislusenstvi", "nahradni-dily"],
 };
 
 type Tile = {
@@ -117,13 +116,23 @@ const TILES: Tile[] = [
   },
   {
     id: "prislusenstvi",
-    title: "Příslušenství a náhradní díly",
-    note: "Základny, stojany, žerdě, dmychadla, rámy.",
+    title: "Příslušenství",
+    note: "Základny, stojany, žerdě i zemní vruty k vlajkám.",
+    href: "/prislusenstvi",
+    cta: "Vybrat příslušenství",
+    tone: "studio",
+    fit: "contain",
+    img: "/produkty/dily-vlajky.jpg",
+  },
+  {
+    id: "nahradni-dily",
+    title: "Náhradní díly",
+    note: "Rámy, střešní plachty, stěny i dmychadla zvlášť.",
     href: "/nahradni-dily",
     cta: "Prohlédnout díly",
     tone: "studio",
     fit: "contain",
-    img: "/produkty/dily-vlajky.jpg",
+    img: "/produkty/dily-stany.jpg",
   },
 ];
 
