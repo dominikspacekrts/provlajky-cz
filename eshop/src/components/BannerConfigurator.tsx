@@ -11,12 +11,12 @@ import {
   BANNER_MATERIAL_LABEL,
   bannerAreaM2,
   bannerPrice,
-  fmtMoney,
   type BannerMaterial,
 } from "@/lib/money";
 import type { Product } from "@/lib/types";
-import { CheckMark, PenMark } from "@/components/Icons";
+import { PenMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
+import CtaBar from "@/components/CtaBar";
 
 export default function BannerConfigurator({
   product,
@@ -203,15 +203,6 @@ export default function BannerConfigurator({
           Grafika není podmínkou — pokud ji nenahrajete, připravíme návrh po objednávce a pošleme ke schválení.
         </p>
 
-        <div className="qty-row">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <input
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-          />
-        </div>
         <div style={{ marginTop: 10 }}>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku
@@ -231,20 +222,14 @@ export default function BannerConfigurator({
         )}
       </div>
 
-        <div className="fc-cta">
-          <div className="fc-cta-price">
-            {unitPrice > 0 ? (
-              <>
-                {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-              </>
-            ) : (
-              <span>Cena na dotaz</span>
-            )}
-          </div>
-          <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
-          </button>
-        </div>
+        <CtaBar
+          qty={qty}
+          onQtyChange={setQty}
+          unitPrice={unitPrice}
+          disabled={unitPrice <= 0}
+          added={added}
+          onAdd={handleAdd}
+        />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />

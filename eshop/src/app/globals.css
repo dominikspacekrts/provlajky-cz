@@ -405,6 +405,20 @@ label:has(input[type="checkbox"]), .cb-line {
   font-size: clamp(19px, 2vw, 24px); font-variation-settings: "wght" 700, "wdth" 108;
   letter-spacing: -0.02em; white-space: nowrap;
 }
+/* Počet kusů sedí v liště hned vedle ceny, protože ji přepočítává.
+   Stepper je tu o kus menší než v těle panelu, ať se lišta nerozbují. */
+.fc-cta-main { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; min-width: 0; }
+.fc-cta .qty-stepper button { width: 34px; height: 34px; font-size: 16px; }
+.fc-cta .qty-stepper .qty-value { width: 38px; height: 34px; }
+/* Popisek pod částku na vlastní řádek — s jednotkovou cenou byl cenový
+   sloupec tak široký, že se stepper a cena v panelu zalomily pod sebe. */
+.fc-cta-price { white-space: nowrap; }
+.fc-cta-price .vat {
+  display: block; white-space: nowrap;
+  font-size: 12px; letter-spacing: 0;
+  font-variation-settings: "wght" 500, "wdth" 100;
+  margin-top: 1px;
+}
 .fc-cta .btn-yellow { flex: none; }
 /* Trochu hutnější odsazení možností uvnitř panelu, ať se toho vejde víc
    bez scrollu a k tlačítku je to blíž. */

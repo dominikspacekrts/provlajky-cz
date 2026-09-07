@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
-import { fmtMoney } from "@/lib/money";
 import { type Product } from "@/lib/types";
 import FlagConfigurator from "./FlagConfigurator";
 import BannerConfigurator from "./BannerConfigurator";
@@ -13,7 +12,8 @@ import OptionsConfigurator from "./OptionsConfigurator";
 import CustomFlagConfigurator from "./CustomFlagConfigurator";
 import TentWallsConfigurator from "./TentWallsConfigurator";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
-import { CheckMark, FlagMark } from "@/components/Icons";
+import CtaBar from "@/components/CtaBar";
+import { FlagMark } from "@/components/Icons";
 
 export default function ProductDetail({
   product,
@@ -83,10 +83,6 @@ function SimpleProductDetail({
         <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
-        <div className="qty-row">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <input type="number" min={1} value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))} />
-        </div>
         <div style={{ marginTop: 10 }}>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku
@@ -105,12 +101,14 @@ function SimpleProductDetail({
         )}
       </div>
 
-        <div className="fc-cta">
-          <div className="fc-cta-price">{fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span></div>
-          <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
-          </button>
-        </div>
+        <CtaBar
+          qty={qty}
+          onQtyChange={setQty}
+          unitPrice={unitPrice}
+          disabled={unitPrice <= 0}
+          added={added}
+          onAdd={handleAdd}
+        />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />

@@ -7,7 +7,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
-import { customFlagPrice, fmtMoney } from "@/lib/money";
+import { customFlagPrice } from "@/lib/money";
 import type { Product, FlagMaterial } from "@/lib/types";
 import { COUNTRIES, flagSrc, type Country } from "@/lib/countries";
 import {
@@ -17,8 +17,8 @@ import {
   type EyeletPlacement,
 } from "@/lib/flagOptions";
 import FlagWave from "./FlagWave";
-import { CheckMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
+import CtaBar from "@/components/CtaBar";
 
 type FlagType = "state" | "custom";
 
@@ -335,15 +335,6 @@ export default function CustomFlagConfigurator({
           Upevňovací oka každých 30 cm: +{surcharge} %
         </label>
 
-        <div className="qty-row">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <input
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-          />
-        </div>
         <div style={{ marginTop: 10 }}>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku
@@ -358,20 +349,14 @@ export default function CustomFlagConfigurator({
       </div>
 
         {/* Cena */}
-        <div className="fc-cta">
-          <div className="fc-cta-price">
-            {unitPrice > 0 ? (
-              <>
-                {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-              </>
-            ) : (
-              <span>Cena na dotaz</span>
-            )}
-          </div>
-          <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
-          </button>
-        </div>
+        <CtaBar
+          qty={qty}
+          onQtyChange={setQty}
+          unitPrice={unitPrice}
+          disabled={unitPrice <= 0}
+          added={added}
+          onAdd={handleAdd}
+        />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />

@@ -19,8 +19,8 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { Product, TentWallOption } from "@/lib/types";
-import { CheckMark } from "@/components/Icons";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
+import CtaBar from "@/components/CtaBar";
 import TentStage from "@/components/TentStage";
 import { geometryForWidth } from "@/lib/tentGeometry";
 
@@ -218,18 +218,6 @@ export default function TentWallsConfigurator({
           Poloviční stěna už zahrnuje boční tyč, která ji drží. Kombinovat lze libovolně.
         </p>
 
-        <div className="qty-row">
-          <span style={{ fontWeight: 600, fontSize: 14 }}>Počet kusů</span>
-          <div className="qty-stepper">
-            <button type="button" aria-label="Ubrat kus" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}>
-              −
-            </button>
-            <span className="qty-value">{qty}</span>
-            <button type="button" aria-label="Přidat kus" onClick={() => setQty((q) => q + 1)}>
-              +
-            </button>
-          </div>
-        </div>
         <div style={{ marginTop: 10 }}>
           <button className="btn-outline" onClick={() => router.push("/kosik")}>
             Přejít do košíku
@@ -248,26 +236,14 @@ export default function TentWallsConfigurator({
         )}
       </div>
 
-        <div className="fc-cta">
-          <div className="fc-cta-price">
-            {unitPrice > 0 ? (
-              qty > 1 ? (
-                <>
-                  {fmtMoney(unitPrice * qty)} <span className="vat">bez DPH celkem za {qty} ks</span>
-                </>
-              ) : (
-                <>
-                  {fmtMoney(unitPrice)} <span className="vat">bez DPH / ks</span>
-                </>
-              )
-            ) : (
-              <span>Cena na dotaz</span>
-            )}
-          </div>
-          <button className="btn-yellow" disabled={unitPrice <= 0} onClick={handleAdd}>
-            {added ? (<><CheckMark className="btn-mark" /> Přidáno</>) : ("Vložit do košíku")}
-          </button>
-        </div>
+        <CtaBar
+          qty={qty}
+          onQtyChange={setQty}
+          unitPrice={unitPrice}
+          disabled={unitPrice <= 0}
+          added={added}
+          onAdd={handleAdd}
+        />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
