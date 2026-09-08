@@ -2,8 +2,8 @@
 
 // Spodní lišta konfigurátoru: počet kusů, cena a tlačítko do košíku.
 //
-// Počet kusů sedí přímo vedle ceny, protože cena se podle něj mění — když
-// byl stepper schovaný nahoře v panelu, zákazník si ho u ceny nespojil.
+// Počet kusů sedí hned napravo od ceny, protože ji přepočítává — když
+// byl stepper schovaný nahoře v panelu, zákazník si ho s cenou nespojil.
 // Zobrazuje se cena za celé množství; jednotková se přidá do popisku,
 // jakmile jsou kusy víc než jeden, ať je pořád jasné, z čeho se počítá.
 //
@@ -35,16 +35,6 @@ export default function CtaBar({
   return (
     <div className="fc-cta">
       <div className="fc-cta-main">
-        <div className="qty-stepper" aria-label="Počet kusů">
-          <button type="button" aria-label="Ubrat kus" onClick={() => onQtyChange(Math.max(1, qty - 1))} disabled={qty <= 1}>
-            −
-          </button>
-          <span className="qty-value">{qty}</span>
-          <button type="button" aria-label="Přidat kus" onClick={() => onQtyChange(qty + 1)}>
-            +
-          </button>
-        </div>
-
         <div className="fc-cta-price">
           {hasPrice ? (
             <>
@@ -56,6 +46,16 @@ export default function CtaBar({
           ) : (
             <span>Cena na dotaz</span>
           )}
+        </div>
+
+        <div className="qty-stepper" aria-label="Počet kusů">
+          <button type="button" aria-label="Ubrat kus" onClick={() => onQtyChange(Math.max(1, qty - 1))} disabled={qty <= 1}>
+            −
+          </button>
+          <span className="qty-value">{qty}</span>
+          <button type="button" aria-label="Přidat kus" onClick={() => onQtyChange(qty + 1)}>
+            +
+          </button>
         </div>
       </div>
 
