@@ -5,7 +5,6 @@
 // rozměru a cena se spočítá podle plochy (cena/m² z adminu).
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import {
   BANNER_MATERIAL_LABEL,
@@ -26,7 +25,6 @@ export default function BannerConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
-  const router = useRouter();
 
   const banner = product.config?.banner;
   const [material, setMaterial] = useState<BannerMaterial>("pvc");
@@ -202,12 +200,6 @@ export default function BannerConfigurator({
         <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
           Grafika není podmínkou — pokud ji nenahrajete, připravíme návrh po objednávce a pošleme ke schválení.
         </p>
-
-        <div style={{ marginTop: 10 }}>
-          <button className="btn-outline" onClick={() => router.push("/kosik")}>
-            Přejít do košíku
-          </button>
-        </div>
         {unitPrice <= 0 && (
           <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
             Cena za m² pro tento materiál zatím není nastavená — napište nám na{" "}
