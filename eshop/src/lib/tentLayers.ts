@@ -17,11 +17,13 @@ export type StageSides = Record<SideKey, { type: WallType } | null>;
 /**
  * Pořadí vykreslování odzadu dopředu. Nohy stojí uvnitř stanu, takže patří
  * mezi vzdálené a blízké stěny — přes vzdálené jsou vidět, blízké je zakryjí.
- * Musí souhlasit s `FACE` v scripts/build-tent-walls.mjs (všechny tři fotky
- * mají stejné postavení kamery).
+ *
+ * Stan je na fotce natočený rohem ke kameře, takže zvenku vidíme zadní a pravou
+ * stěnu; levá a přední jsou za nimi. Musí souhlasit s `FACE`
+ * v scripts/build-tent-walls.mjs (všechny tři fotky mají stejné postavení kamery).
  */
-export const FAR_SIDES: SideKey[] = ["back", "right"];
-export const NEAR_SIDES: SideKey[] = ["left", "front"];
+export const FAR_SIDES: SideKey[] = ["left", "front"];
+export const NEAR_SIDES: SideKey[] = ["back", "right"];
 
 export type TentLayers = {
   /** Produktová fotka stanu bez stěn — spodní vrstva a nositel rozměru. */
