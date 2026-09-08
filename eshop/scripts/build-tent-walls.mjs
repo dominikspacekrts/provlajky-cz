@@ -39,11 +39,22 @@ const OVERSHOOT = 0.14;
 // ale na rozdíl od podhledu jim přisvětluje odraz od země — proto 0,74.
 const LIGHT_LR = 1.067;
 const INSIDE = 0.74;
+
+// Názvy stran jsou zákazníkovy, ne odvozené z pohledu kamery. Na fotce je stan
+// natočený rohem k nám, takže zvenku vidíme ZADNÍ a PRAVOU stěnu; LEVÁ a PŘEDNÍ
+// jsou za nimi a je jim vidět vnitřní líc. Rohy (L/F/R/B) naopak pojmenované
+// podle snímku zůstávají: L = levý sloupek, F = nejbližší, R = pravý, B = zadní.
+//
+//   zadní  = L–F  (blízká levá plocha)      přední = B–R  (vzdálená pravá)
+//   pravá  = F–R  (blízká pravá, s logem)   levá   = L–B  (vzdálená levá)
+//
+// Protilehlé stěny jsou rovnoběžné, takže sdílejí nasvícení: L–F ∥ B–R a
+// F–R ∥ L–B — vnitřní líc se od vnějšího liší násobkem INSIDE.
 const FACE = {
-  left: { gain: 1.0, near: true },
-  front: { gain: 1 / LIGHT_LR, near: true },
-  right: { gain: INSIDE, near: false },
-  back: { gain: INSIDE / LIGHT_LR, near: false },
+  back: { gain: 1.0, near: true },
+  right: { gain: 1 / LIGHT_LR, near: true },
+  front: { gain: INSIDE, near: false },
+  left: { gain: INSIDE / LIGHT_LR, near: false },
 };
 
 // --- projektivní transformace ------------------------------------------
@@ -231,12 +242,14 @@ async function build(size, tex) {
   const E = Object.fromEntries(Object.entries(tent.eave).map(([k, v]) => [k, px(v)]));
   const F = Object.fromEntries(Object.entries(tent.foot).map(([k, v]) => [k, px(v)]));
 
-  const widths = { front: size.sideDepthM, back: size.sideDepthM, left: size.backWidthM, right: size.backWidthM };
+  // Přední a zadní stěna jdou přes celou šířku stanu, boční jsou vždy 3 m —
+  // stejné dělení, jaké používá ceník v konfigurátoru (fullWallBack vs. Side).
+  const widths = { back: size.backWidthM, front: size.backWidthM, left: size.sideDepthM, right: size.sideDepthM };
   const edges = {
-    front: [E.F, E.R, F.R, F.F],
-    left: [E.L, E.F, F.F, F.L],
-    back: [E.L, E.B, F.B, F.L],
-    right: [E.B, E.R, F.R, F.B],
+    back: [E.L, E.F, F.F, F.L],
+    right: [E.F, E.R, F.R, F.F],
+    front: [E.B, E.R, F.R, F.B],
+    left: [E.L, E.B, F.B, F.L],
   };
 
   const clip = valanceClip(im, tent.eaveTrue);
