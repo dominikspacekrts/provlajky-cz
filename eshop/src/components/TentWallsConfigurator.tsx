@@ -9,10 +9,10 @@
 // Přední a zadní stěna mají stejnou šířku (podle velikosti stanu — cfg.backWidthM),
 // boční stěny jsou vždy 3 m (hloubka je u všech velikostí stejná).
 //
-// Náhled je produktová fotka stanu bez stěn, do které se stěny dokreslují
-// živě jako perspektivní polygony (TentStage + tentGeometry). Předgenerovat
-// kombinace nešlo — 4 strany × 3 stavy je 81 obrázků na velikost a vrstvy
-// z Viewmaxu na sebe nesedí, protože model scénu mezi generacemi posouvá.
+// Náhled je produktová fotka stanu bez stěn a přes ni předgenerované vrstvy
+// stěn (TentStage + tentLayers). Vrstvy nedělá generátor obrázků — ten scénu
+// mezi generacemi posouvá a čtyři strany od sebe nerozliší — ale skript
+// scripts/build-tent-walls.mjs, který si rohy změří přímo z fotky.
 
 import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
@@ -21,7 +21,7 @@ import type { Product, TentWallOption } from "@/lib/types";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
 import TentStage from "@/components/TentStage";
-import { geometryForWidth } from "@/lib/tentGeometry";
+import { layersForWidth } from "@/lib/tentLayers";
 
 type WallType = "half" | "full";
 type Side = { type: WallType; double: boolean } | null;
@@ -123,7 +123,7 @@ export default function TentWallsConfigurator({
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const image = product.images?.[0];
-  const geometry = geometryForWidth(cfg?.backWidthM);
+  const layers = layersForWidth(cfg?.backWidthM);
 
   const priceByPosition = useMemo(() => {
     const out = {} as Record<PositionKey, number>;
@@ -178,7 +178,7 @@ export default function TentWallsConfigurator({
   return (
     <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
       <div className="fc-stage">
-        <TentStage geometry={geometry} sides={sides} alt={product.name} />
+        <TentStage layers={layers} sides={sides} alt={product.name} />
       </div>
 
       <aside className="fc-panel reveal-stagger">
