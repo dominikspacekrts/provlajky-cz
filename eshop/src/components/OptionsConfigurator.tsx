@@ -4,7 +4,6 @@
 // cena se řídí prodejní cenou volby. Jednoduché — bez dopravy a nákladů.
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import type { Product, ProductOption } from "@/lib/types";
@@ -19,7 +18,6 @@ export default function OptionsConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
-  const router = useRouter();
 
   const options = useMemo<ProductOption[]>(() => product.config?.options ?? [], [product]);
   const [optionId, setOptionId] = useState<string>(options[0]?.id ?? "");
@@ -91,12 +89,6 @@ export default function OptionsConfigurator({
             </div>
           </>
         )}
-
-        <div style={{ marginTop: 10 }}>
-          <button className="btn-outline" onClick={() => router.push("/kosik")}>
-            Přejít do košíku
-          </button>
-        </div>
 
         {product.description && (
           <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>

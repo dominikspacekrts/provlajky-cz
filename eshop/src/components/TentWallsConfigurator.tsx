@@ -15,7 +15,6 @@
 // z Viewmaxu na sebe nesedí, protože model scénu mezi generacemi posouvá.
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { Product, TentWallOption } from "@/lib/types";
@@ -117,7 +116,6 @@ export default function TentWallsConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
-  const router = useRouter();
 
   const cfg = product.config?.tentWalls;
   const [sides, setSides] = useState<Record<PositionKey, Side>>({ front: null, back: null, left: null, right: null });
@@ -217,12 +215,6 @@ export default function TentWallsConfigurator({
         <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
           Poloviční stěna už zahrnuje boční tyč, která ji drží. Kombinovat lze libovolně.
         </p>
-
-        <div style={{ marginTop: 10 }}>
-          <button className="btn-outline" onClick={() => router.push("/kosik")}>
-            Přejít do košíku
-          </button>
-        </div>
         {unitPrice <= 0 && (
           <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
             Cena zatím není nastavená — napište nám na <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.

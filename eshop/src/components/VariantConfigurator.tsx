@@ -5,7 +5,6 @@
 // řídí prodejní cena nastavená v adminu. Doprava letecky/vlakem se nezobrazuje.
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import {
@@ -35,7 +34,6 @@ export default function VariantConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
-  const router = useRouter();
 
   // Když je zadaná velikost (split podle velikosti), zúžíme varianty jen na ni —
   // rozbalovátko pak nabízí čistě konfiguraci stěn (jako HS u vlajek).
@@ -169,12 +167,6 @@ export default function VariantConfigurator({
             </p>
           </>
         )}
-
-        <div style={{ marginTop: 10 }}>
-          <button className="btn-outline" onClick={() => router.push("/kosik")}>
-            Přejít do košíku
-          </button>
-        </div>
         {unitPrice <= 0 && (
           <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
             Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na{" "}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import { type Product } from "@/lib/types";
@@ -41,7 +40,6 @@ function SimpleProductDetail({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
-  const router = useRouter();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -82,12 +80,6 @@ function SimpleProductDetail({
 
         <h1 style={{ fontSize: 28 }}>{product.name}</h1>
         {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
-
-        <div style={{ marginTop: 10 }}>
-          <button className="btn-outline" onClick={() => router.push("/kosik")}>
-            Přejít do košíku
-          </button>
-        </div>
         {unitPrice <= 0 && (
           <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
             Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.

@@ -5,7 +5,6 @@
 // hustší oka +%, živý vlající náhled (FlagWave classic) s vlajkou země / návrhem.
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { customFlagPrice } from "@/lib/money";
 import type { Product, FlagMaterial } from "@/lib/types";
@@ -33,7 +32,6 @@ export default function CustomFlagConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
-  const router = useRouter();
 
   const cfg = product.config?.customFlag;
   const materials = useMemo<FlagMaterial[]>(() => cfg?.materials ?? [], [cfg]);
@@ -334,12 +332,6 @@ export default function CustomFlagConfigurator({
           <input type="checkbox" checked={dense} onChange={(e) => setDense(e.target.checked)} />
           Upevňovací oka každých 30 cm: +{surcharge} %
         </label>
-
-        <div style={{ marginTop: 10 }}>
-          <button className="btn-outline" onClick={() => router.push("/kosik")}>
-            Přejít do košíku
-          </button>
-        </div>
         {unitPrice <= 0 && (
           <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
             Cena za m² pro tento materiál zatím není nastavená — napište nám na{" "}
