@@ -37,7 +37,7 @@ const HOME_GROUPS = [
   },
   {
     id: "stany",
-    title: "Stany HEX a AIR",
+    title: "Nůžkové stany HEX a nafukovací AIR",
     href: "/stany",
     note: "Hliníková hexagonová i nafukovací konstrukce s potiskem na míru.",
     img: "/stany/nuzkovy-nafukovaci.jpg",

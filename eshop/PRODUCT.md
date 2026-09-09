@@ -23,7 +23,7 @@ Rychlost a jednoduchost celého procesu: online konfigurátor s cenou hned (žá
 ## Operating Context
 
 - Next.js (App Router) + TypeScript eshop, samostatný Next.js admin panel a Supabase backend sdílený s adminem (objednávky, produkty, sklad).
-- Produktové kategorie: plážové vlajky, vlajky na zakázku, PVC bannery/meshe, nafukovací reklama (totemy/brány), stany a náhradní díly. Stany se od 9. 9. 2026 na webu jmenují **Stany HEX** (nůžkové, hliníková hexagonová konstrukce) a **Stany AIR** (nafukovací) — slugy `/nuzkove-stany` a `/nafukovaci-stany` zůstávají kvůli SEO, stejně jako slova „nůžkový/nafukovací“ v title a popiscích.
+- Produktové kategorie: plážové vlajky, vlajky na zakázku, PVC bannery/meshe, nafukovací reklama (totemy/brány), stany a náhradní díly. Stany se od 9. 9. 2026 na webu jmenují **Nůžkové stany HEX** (hliníková hexagonová konstrukce) a **Nafukovací stany AIR** — kód řady jde vždy až za druhem stanu, samotné „HEX/AIR“ zákazníkovi nic neřekne — slugy `/nuzkove-stany` a `/nafukovaci-stany` zůstávají kvůli SEO, stejně jako slova „nůžkový/nafukovací“ v title a popiscích.
 - Online konfigurátory pro každou kategorii (tvar, rozměr, barva, vlastní grafika/logo).
 - Doručení přes vlastní dopravu (aktuální dodací lhůta u zboží dováženého vlakem: cca 2 měsíce; jinak individuálně dle produktu).
 - Firemní údaje v patičce: ACTUAL PRO S.R.O., nábřeží Míru 1055/82, 737 01 Český Těšín, IČO 25882201, DIČ CZ25882201; kontakt +420 605 981 155, info@provlajky.cz.
