@@ -57,55 +57,110 @@ export function repairedProfile(im) {
 }
 
 /**
- * Ořez střešní vrstvy = přední hrana okapu. Všechno nad ní jde navrch přes
- * stěny, takže se stěna o valanci ořízne přesně a nemá jak s ní nelícovat.
+ * Maska vnější střechy včetně valance — a jen jí.
  *
- * Nejde vzít „nejnižší žlutý pixel ve sloupci": v části sloupců to není přední
- * valance, ale **žlutý podhled střechy viděný skrz otevřený stan**, který se
- * promítá níž. Ořez by tam spadl dovnitř stanu a střešní vrstva by přes stěnu
- * namalovala příhradoví a podhled z fotky — a právě to roste směrem k přednímu
- * rohu, kde je vnitřku vidět nejvíc.
+ * Žlutá je na snímku dvojí: vnější plachta a podhled střechy viděný skrz
+ * otevřený stan. Rozdělit je podle polohy nejde (podhled se promítá NÍŽ než
+ * spodní hrana valance), ale jde to podle souvislosti: vnější plachta je jedna
+ * velká souvislá oblast (~81 % veškeré žluté, jas ~196), zatímco podhled jsou
+ * desítky malých ostrůvků mezi příhradami a je zřetelně tmavší (jas ~135).
  *
- * Základem je proto lomená čára mezi naměřenými rohy okapu (ty jdou z noh).
- * Skutečná hrana se od ní smí odchýlit jen v pásu ±`BAND` — tím se zachová
- * prověšení látky, ale prosvítající vnitřek se utne.
+ * Černé logo dělá v masce díry, takže se ještě zaplní uzavřené oblasti. Okapová
+ * příhrada valanci přetíná, ale ta uzavřená není — zůstane mimo masku a zakryje
+ * ji stěna, což je správně: s nasazenou stěnou konstrukci vidět není.
  */
-const BAND = 0.014;
-
-/**
- * Spodní hrana žluté měřená shora dolů. Na rozdíl od `valanceProfile` (sken
- * zdola) nespadne na podhled střechy uvnitř stanu. Černé logo hranu přerušuje,
- * takže se tmavé mezery překlenou; stříbrná konstrukce ne.
- */
-export function frontEdgeProfile(im) {
-  const out = new Array(im.W).fill(-1);
-  const maxGap = Math.round(im.H * 0.06);
-  for (let x = 0; x < im.W; x++) {
-    let end = -1, gap = 0, started = false;
-    for (let y = 0; y < im.H; y++) {
+export function roofMask(im) {
+  const { W, H } = im;
+  const yellow = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
       const [r, g, b] = im.rgb(x, y);
-      if (isYellow(r, g, b)) { started = true; end = y; gap = 0; continue; }
-      if (!started) continue;
-      if (r * 0.299 + g * 0.587 + b * 0.114 < 120 && gap < maxGap) { gap++; continue; } // logo
-      break;
+      if (isYellow(r, g, b)) yellow[y * W + x] = 1;
     }
-    out[x] = end;
-  }
-  return out;
-}
 
-export function valanceClip(im, eave) {
-  const raw = frontEdgeProfile(im);
-  const seg = (a, b) => (x) => a[1] + ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0] || 1e-9);
-  const left = seg(eave.L, eave.F), right = seg(eave.F, eave.R);
-  const out = new Float64Array(im.W);
-  for (let x = 0; x < im.W; x++) {
-    const fx = x / im.W;
-    const lineY = (fx <= eave.F[0] ? left(fx) : right(fx)) * im.H;
-    const lo = lineY - BAND * im.H, hi = lineY + BAND * im.H;
-    out[x] = raw[x] < 0 ? lineY : Math.min(Math.max(raw[x], lo), hi);
+  const seen = new Uint8Array(W * H);
+  const mask = new Uint8Array(W * H);
+  const stack = [];
+  let best = 0;
+  for (let i = 0; i < W * H; i++) {
+    if (!yellow[i] || seen[i]) continue;
+    const cells = [];
+    seen[i] = 1; stack.push(i);
+    while (stack.length) {
+      const k = stack.pop(); cells.push(k);
+      const x = k % W, y = (k / W) | 0;
+      if (x > 0 && yellow[k - 1] && !seen[k - 1]) { seen[k - 1] = 1; stack.push(k - 1); }
+      if (x < W - 1 && yellow[k + 1] && !seen[k + 1]) { seen[k + 1] = 1; stack.push(k + 1); }
+      if (y > 0 && yellow[k - W] && !seen[k - W]) { seen[k - W] = 1; stack.push(k - W); }
+      if (y < H - 1 && yellow[k + W] && !seen[k + W]) { seen[k + W] = 1; stack.push(k + W); }
+    }
+    if (cells.length > best) { best = cells.length; mask.fill(0); for (const c of cells) mask[c] = 1; }
   }
-  return out;
+  if (!best) throw new Error("na snímku není žlutá střecha");
+
+  // zaplnit uzavřené díry (písmena loga): co z okraje snímku nejde obejít
+  const outside = new Uint8Array(W * H);
+  const push = (k) => { if (!mask[k] && !outside[k]) { outside[k] = 1; stack.push(k); } };
+  for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x); }
+  for (let y = 0; y < H; y++) { push(y * W); push(y * W + W - 1); }
+  while (stack.length) {
+    const k = stack.pop(), x = k % W, y = (k / W) | 0;
+    if (x > 0) push(k - 1);
+    if (x < W - 1) push(k + 1);
+    if (y > 0) push(k - W);
+    if (y < H - 1) push(k + W);
+  }
+  for (let i = 0; i < W * H; i++) if (!mask[i] && !outside[i]) mask[i] = 1;
+
+  // Příhrady kříží valanci a dělají v masce svislé štěrbiny. Nejsou uzavřené,
+  // takže je zaplnění děr nechytne, a jako průhledné pruhy by jimi prosvítal
+  // vnitřek stanu. Maska se proto ve sloupci vyplní mezi svým vrchem a spodkem:
+  // cokoli v tom rozsahu je na fotce před střechou, takže se jen přerazítkuje.
+  for (let x = 0; x < W; x++) {
+    let top = -1, bot = -1;
+    for (let y = 0; y < H; y++) if (mask[y * W + x]) { if (top < 0) top = y; bot = y; }
+    for (let y = top; y <= bot; y++) mask[y * W + x] = 1;
+  }
+
+  const raw = new Float64Array(W).fill(-1);
+  for (let x = 0; x < W; x++)
+    for (let y = H - 1; y >= 0; y--) if (mask[y * W + x]) { raw[x] = y; break; }
+  let last = -1;
+  for (let x = 0; x < W; x++) { if (raw[x] >= 0) last = raw[x]; else raw[x] = last; }
+  for (let x = W - 1; x >= 0; x--) { if (raw[x] >= 0) last = raw[x]; else raw[x] = last; }
+
+  // Písmeno loga, které se dotkne spodní hrany valance, není uzavřená díra a
+  // zaplnění ho nechytne — hrana v tom sloupci vyskočí nahoru a stěna by tam
+  // ukousla kus valance. Zářez zacelí morfologické uzavření s poloměrem větším
+  // než písmeno; eroze pak vrátí tvar, takže se nesníží ani roh, kde je hrana
+  // nejníž.
+  const win = (a, R, pick) =>
+    a.map((_, x) => {
+      let b = a[x];
+      for (let k = -R; k <= R; k++) {
+        const j = x + k;
+        if (j >= 0 && j < W) b = pick(b, a[j]);
+      }
+      return b;
+    });
+  const closed = win(win(raw, Math.round(W * 0.022), Math.max), Math.round(W * 0.022), Math.min);
+
+  // Rohový kus valance je na fotce oddělený sloupkem a příhradou, takže do
+  // souvislé oblasti nespadne a hrana masky tam vyskočí o ~0,04 výšky nahoru.
+  // Stěna ořezaná takovou hranou má viditelný schod. Ořez se proto vede horní
+  // obálkou: nikdy nevyjde nad masku (stěna tedy nepřeleze přes plachtu), ale
+  // je hladký — nad stěnou pak zůstane plynulý klín podhledu místo zubu.
+  const env = win(closed, Math.round(W * 0.06), Math.max);
+  const S = Math.round(W * 0.03);
+  const bottom = env.map((_, x) => {
+    let sum = 0, n = 0;
+    for (let k = -S; k <= S; k++) {
+      const j = x + k;
+      if (j >= 0 && j < W) { sum += env[j]; n++; }
+    }
+    return Math.max(sum / n, closed[x]);
+  });
+  return { mask, bottom };
 }
 
 /** Nohy: sloupky mají tmavé svislé hrany, měkký stín na zemi je nemá. */

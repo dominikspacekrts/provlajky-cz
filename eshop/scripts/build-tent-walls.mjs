@@ -14,7 +14,7 @@ import sharp from "sharp";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadPhoto, measureTent, valanceClip, checkFootprint } from "./tent-photo.mjs";
+import { loadPhoto, measureTent, roofMask, checkFootprint } from "./tent-photo.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUB = path.join(ROOT, "public", "stany");
@@ -31,8 +31,9 @@ const SIZES = [
 
 // Poloviční stěna je pultová: stojí na zemi a sahá do zhruba poloviny výšky.
 const HALF = 0.5;
-// O kolik se celá stěna kreslí nad okap (podíl výšky stěny).
-const OVERSHOOT = 0.14;
+// O kolik blízká celá stěna přesahuje nad okap (podíl výšky stěny). Přesah se
+// tvrdě ořízne spodní hranou plachty, takže může být štědrý.
+const OVERSHOOT = 0.45;
 // Nasvícení odečtené přímo z fotky (scripts/tent-photo.mjs → valance je svislá
 // plocha ve stejných rovinách jako stěny): levá strana je o 6,7 % světlejší než
 // pravá, podhled střechy má 0,65 jasu vnějšku. Vzdálené stěny vidíme zevnitř,
@@ -40,21 +41,20 @@ const OVERSHOOT = 0.14;
 const LIGHT_LR = 1.067;
 const INSIDE = 0.74;
 
-// Názvy stran jsou zákazníkovy, ne odvozené z pohledu kamery. Na fotce je stan
-// natočený rohem k nám, takže zvenku vidíme ZADNÍ a PRAVOU stěnu; LEVÁ a PŘEDNÍ
-// jsou za nimi a je jim vidět vnitřní líc. Rohy (L/F/R/B) naopak pojmenované
-// podle snímku zůstávají: L = levý sloupek, F = nejbližší, R = pravý, B = zadní.
+// Strany stanu obcházejí půdorys v pořadí levá → přední → pravá → zadní, což
+// při rozích pojmenovaných podle snímku (L = levý sloupek, F = nejbližší,
+// R = pravý, B = zadní) vychází takhle:
 //
-//   zadní  = L–F  (blízká levá plocha)      přední = B–R  (vzdálená pravá)
-//   pravá  = F–R  (blízká pravá, s logem)   levá   = L–B  (vzdálená levá)
+//   levá  = L–F  (blízká, zvenku)          pravá = B–R  (vzdálená, vnitřní líc)
+//   přední = F–R (blízká, zvenku, s logem) zadní = L–B  (vzdálená, vnitřní líc)
 //
 // Protilehlé stěny jsou rovnoběžné, takže sdílejí nasvícení: L–F ∥ B–R a
 // F–R ∥ L–B — vnitřní líc se od vnějšího liší násobkem INSIDE.
 const FACE = {
-  back: { gain: 1.0, near: true },
-  right: { gain: 1 / LIGHT_LR, near: true },
-  front: { gain: INSIDE, near: false },
-  left: { gain: INSIDE / LIGHT_LR, near: false },
+  left: { gain: 1.0, near: true },
+  front: { gain: 1 / LIGHT_LR, near: true },
+  right: { gain: INSIDE, near: false },
+  back: { gain: INSIDE / LIGHT_LR, near: false },
 };
 
 // --- projektivní transformace ------------------------------------------
@@ -126,7 +126,7 @@ const inside = (q, x, y) => {
  * Vykreslí jednu stěnu: měkký kontaktní stín + látka napasovaná do rohů.
  *
  */
-function renderWall(W, H, quad, draw, tex, repeat, face) {
+function renderWall(W, H, quad, draw, tex, repeat, face, topClip) {
   const { gain, near } = face;
   const rgba = Buffer.alloc(W * H * 4, 0);
   const xs = draw.map((p) => p[0]), ys = draw.map((p) => p[1]);
@@ -157,6 +157,7 @@ function renderWall(W, H, quad, draw, tex, repeat, face) {
       for (let sy = 0; sy < SS; sy++)
         for (let sx = 0; sx < SS; sx++) {
           const px = x + (sx + 0.5) / SS, py = y + (sy + 0.5) / SS;
+          if (topClip && py < topClip[x]) continue;
           if (!inside(draw, px, py)) continue;
           const [u, v] = apply(inv, px, py);
           if (v < -OVERSHOOT - 0.01 || v > 1.002) continue;
@@ -189,19 +190,19 @@ function renderWall(W, H, quad, draw, tex, repeat, face) {
   return rgba;
 }
 
-/** Výřez fotky nad hranou okapu = střecha, valance, konstrukce, horní část noh. */
-function renderRoof(im, clip) {
+/**
+ * Střešní vrstva = jen vnější plachta s valancí (viz roofMask). Dřív se brala
+ * jako „všechno nad hranou okapu", jenže v tom pásu je na fotce vidět i vnitřek
+ * stanu — a ten se pak maloval přes stěnu, takže stěna nelícovala se stropem
+ * a bylo skrz ni vidět dovnitř.
+ */
+function renderRoof(im, mask) {
   const rgba = Buffer.alloc(im.W * im.H * 4, 0);
-  for (let x = 0; x < im.W; x++) {
-    const edge = clip[x];
-    for (let y = 0; y < im.H; y++) {
-      const d = edge - y;
-      if (d < -1) continue;
-      const a = d >= 0 ? 255 : Math.round(255 * (1 + d));
-      const [r, g, b] = im.rgb(x, y);
-      const i = (y * im.W + x) * 4;
-      rgba[i] = r; rgba[i + 1] = g; rgba[i + 2] = b; rgba[i + 3] = a;
-    }
+  for (let i = 0; i < im.W * im.H; i++) {
+    if (!mask[i]) continue;
+    const x = i % im.W, y = (i / im.W) | 0;
+    const [r, g, b] = im.rgb(x, y);
+    rgba[i * 4] = r; rgba[i * 4 + 1] = g; rgba[i * 4 + 2] = b; rgba[i * 4 + 3] = 255;
   }
   return rgba;
 }
@@ -244,21 +245,22 @@ async function build(size, tex) {
 
   // Přední a zadní stěna jdou přes celou šířku stanu, boční jsou vždy 3 m —
   // stejné dělení, jaké používá ceník v konfigurátoru (fullWallBack vs. Side).
-  const widths = { back: size.backWidthM, front: size.backWidthM, left: size.sideDepthM, right: size.sideDepthM };
+  const widths = { front: size.backWidthM, back: size.backWidthM, left: size.sideDepthM, right: size.sideDepthM };
   const edges = {
-    back: [E.L, E.F, F.F, F.L],
-    right: [E.F, E.R, F.R, F.F],
-    front: [E.B, E.R, F.R, F.B],
-    left: [E.L, E.B, F.B, F.L],
+    left: [E.L, E.F, F.F, F.L],
+    front: [E.F, E.R, F.R, F.F],
+    right: [E.B, E.R, F.R, F.B],
+    back: [E.L, E.B, F.B, F.L],
   };
 
-  const clip = valanceClip(im, tent.eaveTrue);
+  const roof = roofMask(im);
+  const clip = roof.bottom; // nohy začínají pod plachtou
   const write = (name, rgba) =>
     sharp(rgba, { raw: { width: im.W, height: im.H, channels: 4 } })
       .webp({ quality: 88, alphaQuality: 90 })
       .toFile(path.join(OUT, `${size.key}-${name}.webp`));
 
-  await write("strecha", renderRoof(im, clip));
+  await write("strecha", renderRoof(im, roof.mask));
   await write("nohy", renderPosts(im, tent.posts, clip));
 
   for (const [side, q] of Object.entries(edges)) {
@@ -271,7 +273,7 @@ async function build(size, tex) {
       const over = type === "full" && FACE[side].near ? OVERSHOOT : 0;
       const draw = over ? [lerp(quad[0], quad[3], -over), lerp(quad[1], quad[2], -over), quad[2], quad[3]] : quad;
       const repeat = Math.max(1, Math.round((widths[side] / 3) * 2) / 2);
-      await write(`${side}-${type}`, renderWall(im.W, im.H, quad, draw, tex, repeat, FACE[side]));
+      await write(`${side}-${type}`, renderWall(im.W, im.H, quad, draw, tex, repeat, FACE[side], FACE[side].near ? roof.bottom : null));
     }
   }
 
