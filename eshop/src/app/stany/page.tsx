@@ -5,8 +5,8 @@ import Image from "next/image";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Nůžkové a nafukovací stany s potiskem — PROVLAJKY.CZ",
-  description: "Skládací nůžkové stany a nafukovací stany s plnobarevným potiskem na míru.",
+  title: "Stany HEX a AIR — nůžkové a nafukovací stany s potiskem — PROVLAJKY.CZ",
+  description: "Stany HEX s hliníkovou hexagonovou konstrukcí a nafukovací stany AIR s plnobarevným potiskem na míru.",
 };
 
 // Tři samostatné vstupy — klikem na dlaždici se otevře jen ta jedna skupina
@@ -14,20 +14,20 @@ export const metadata: Metadata = {
 const GROUPS = [
   {
     href: "/nuzkove-stany",
-    title: "Nůžkové stany",
-    note: "Skládací hliníková konstrukce, rozložený za minutu.",
+    title: "Stany HEX",
+    note: "Hliníková hexagonová konstrukce — nůžkový stan rozložený za minutu.",
     img: "/stany/nuzkovy-3x3.jpg",
   },
   {
     href: "/nafukovaci-stany",
-    title: "Nafukovací stany",
-    note: "Postaví jeden člověk, plnobarevný potisk stěn i střechy.",
+    title: "Stany AIR",
+    note: "Nafukovací konstrukce bez tyčí — postaví ji jeden člověk.",
     img: "/produkty/nafukovaci-stan.jpg",
   },
   {
     href: "/nahradni-dily",
-    title: "Náhradní díly",
-    note: "Rámy, plachty, dmychadla a další příslušenství ke stanům.",
+    title: "Náhradní díly a příslušenství",
+    note: "Rámy, plachty, dmychadla a další díly ke stanům HEX i AIR.",
     img: "/produkty/dily-stany.jpg",
   },
 ] as const;
@@ -35,7 +35,7 @@ const GROUPS = [
 export default function StanyPage() {
   return (
     <div className="container stany-page">
-      <h1>Nůžkové a nafukovací stany</h1>
+      <h1>Stany HEX a AIR</h1>
       <section className="stany-groups reveal-stagger">
         {GROUPS.map((g) => (
           <Link key={g.href} href={g.href} className="group-tile">

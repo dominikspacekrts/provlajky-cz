@@ -2,14 +2,15 @@
 
 /*
  * Homepage (`/`) — jednoduchý hero: nadpis "Vyberte, nahrajte logo,
- * hotovo." + text vpravo, pod tím reálné fotky z akcí ("Vlajky v akci"),
- * a hned pod tím tři ostré dlaždice pro hlavní produktové rodiny (stejný
- * vzor .group-tile jako na /stany — žádné diagonální švy, jen fotka +
- * titulek + CTA). Zbytek stránky (NovaFields mřížka, jak-na-to kroky,
- * registrace, závěrečná výzva) je beze změny.
+ * hotovo." + text vpravo, pod tím tři ostré dlaždice pro hlavní produktové
+ * rodiny (stejný vzor .group-tile jako na /stany — jen fotka + titulek +
+ * CTA), čísla a hned za nimi galerie referencí (HomeReferences), která
+ * nahradila statické fotky "Vlajky v akci". Zbytek stránky (NovaFields
+ * mřížka, jak-na-to kroky, registrace, závěrečná výzva) je beze změny.
  */
 
 import Link from "next/link";
+import HomeReferences from "@/components/HomeReferences";
 import NovaFields from "@/components/NovaFields";
 import { NovaArrow, useInView } from "@/components/NovaReveal";
 import RegisterForm from "@/components/RegisterForm";
@@ -36,9 +37,9 @@ const HOME_GROUPS = [
   },
   {
     id: "stany",
-    title: "Nůžkové a nafukovací stany",
+    title: "Stany HEX a AIR",
     href: "/stany",
-    note: "Skládací i nafukovací konstrukce s potiskem na míru.",
+    note: "Hliníková hexagonová i nafukovací konstrukce s potiskem na míru.",
     img: "/stany/nuzkovy-nafukovaci.jpg",
   },
 ] as const;
@@ -50,10 +51,6 @@ const STATS = [
   { num: "600+", label: "vytištěných bannerů a meshů" },
   { num: "180+", label: "postavených stanů" },
 ] as const;
-
-// foto-01/foto-02 se používají jako fotky dlaždic v NovaFields níž na téže stránce —
-// tady jen ty dvě, co se jinde neopakují, ať se galerie nekryje se stejnými snímky.
-const GALLERY_PHOTOS = ["/fotky/foto-03.jpg", "/fotky/foto-04.jpg"];
 
 const STEPS = [
   {
@@ -79,7 +76,6 @@ export default function Nova2Client({
   salePctByCategory: Partial<Record<ProductCategory, number>>;
 }) {
   const lead = useInView<HTMLElement>();
-  const gallery = useInView<HTMLElement>();
   const how = useInView<HTMLElement>();
   const register = useInView<HTMLElement>();
   const call = useInView<HTMLDivElement>();
@@ -133,27 +129,7 @@ export default function Nova2Client({
         </div>
       </section>
 
-      <section ref={gallery.ref} className={`nv-gallery${gallery.inView ? " nv-in" : ""}`}>
-        <div className="nv-gallery-head" data-reveal>
-          <span className="nv-gallery-kicker">Vlajky v akci</span>
-          <p className="nv-gallery-note">
-            Fotky přímo z akcí, kam jsme vlajky dodali — Zápal to!, Race the Streets a Dolní Vítkovice.
-          </p>
-        </div>
-        <div className="nv-gallery-grid">
-          {GALLERY_PHOTOS.map((src, i) => (
-            <div
-              key={src}
-              className="nv-gallery-item"
-              data-reveal
-              style={{ "--rd": `${i * 90}ms` } as React.CSSProperties}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="Vlajky PROVLAJKY.CZ nasazené na motoristické akci" loading="lazy" />
-            </div>
-          ))}
-        </div>
-      </section>
+      <HomeReferences />
 
       <NovaFields salePctByCategory={salePctByCategory} />
 
