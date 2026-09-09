@@ -1,9 +1,18 @@
 // Měření geometrie nůžkového stanu ze studiové fotky.
 //
-// Z fotky potřebujeme dvě věci: čtyři rohy okapu (spodní hrana žluté valance)
-// a čtyři paty nohou. Z nich se pak staví stěny jako perspektivní čtyřúhelníky.
+// Z fotky potřebujeme tři věci: paty noh, spodní hranu blízké plachty (dolní
+// silueta střechy) a spodní hranu vzdálené plachty (nejnižší žlutá — okap
+// protější strany, na který je vidět zespodu pod střechou). Z nich se staví
+// stěny: blízké končí u blízké hrany, vzdálené u vzdálené.
 //
-// Vstupem je půdorys odečtený z noh, ne z valance — proč, viz measureTent().
+// Proč se okap NEPOČÍTÁ z paty a výšky nohy, jak to bylo dřív: fotky jsou
+// generované a nedrží jednu projekci. Půdorys je nakreslený v perspektivě
+// (přední pata je o 73 px níž než boční), ale střecha je skoro symetrická —
+// přední noha je tím pádem o 14 % delší než boční. Okap odvozený z paty plus
+// konstantní výšky proto u předního rohu minul skutečnou plachtu o 80 px a
+// mezi stěnou a střechou zůstala díra, kterou bylo vidět na příhradu. Obě
+// hrany se teď berou přímo tak, jak jsou na fotce nakreslené, takže stěna
+// vždycky přesně vyplní prostor mezi zemí a plachtou.
 
 import sharp from "sharp";
 
@@ -23,144 +32,172 @@ export async function loadPhoto(file) {
   return im;
 }
 
-/** Pro každý sloupec nejnižší žlutý pixel = spodní hrana valance (v pixelech). */
-export function valanceProfile(im) {
-  const out = new Array(im.W).fill(-1);
-  for (let x = 0; x < im.W; x++)
-    for (let y = im.H - 1; y >= 0; y--) {
-      const [r, g, b] = im.rgb(x, y);
-      if (isYellow(r, g, b)) { out[x] = y; break; }
-    }
+// --- profily hran střechy ----------------------------------------------
+/** Sloupce bez dat (−1) dostanou hodnotu nejbližšího souseda. */
+function fillGaps(a) {
+  const out = Float64Array.from(a);
+  let last = -1;
+  for (let x = 0; x < out.length; x++) { if (out[x] >= 0) last = out[x]; else out[x] = last; }
+  for (let x = out.length - 1; x >= 0; x--) { if (out[x] >= 0) last = out[x]; else out[x] = last; }
   return out;
 }
 
+/** Posuvné okno přes profil. */
+const win = (a, R, pick) =>
+  a.map((_, x) => {
+    let b = a[x];
+    for (let k = -R; k <= R; k++) {
+      const j = x + k;
+      if (j >= 0 && j < a.length) b = pick(b, a[j]);
+    }
+    return b;
+  });
+
 /**
- * Spodní hrana valance zacelená přes zaclonění nohami. Noha ubírá žlutou jen
- * shora, takže morfologické uzavření (max, pak min) s poloměrem větším než
- * sloupek zářez vyplní a tvar hrany nezmění.
+ * Morfologické uzavření: dilatace a pak eroze. Zacelí zářez, který do hrany
+ * ukousla noha nebo příhrada, a tvar hrany přitom nechá být — poloměr musí být
+ * větší než polovina šířky zářezu.
  */
-export function repairedProfile(im) {
-  const raw = valanceProfile(im);
-  const R = Math.round(im.W * 0.022);
-  const pass = (a, pick) =>
-    a.map((_, x) => {
-      let best = null;
-      for (let k = -R; k <= R; k++) {
-        const j = x + k;
-        if (j < 0 || j >= a.length) continue;
-        if (a[j] < 0) continue;
-        best = best === null ? a[j] : pick(best, a[j]);
-      }
-      return best === null ? -1 : best;
-    });
-  return pass(pass(raw, Math.max), Math.min);
+const close = (a, R) => win(win(a, R, Math.max), R, Math.min);
+
+/**
+ * Hrana zacelená přes zaclonění nohou nebo příhradou.
+ *
+ * Samotné uzavření zářez vyplní, ale zároveň by srovnalo i pravé prověšení
+ * plachty mezi úchyty (u 3×3 hluboké 40 px) a stěna by se pak usekla pod
+ * plachtou — mezi stěnou a střechou by byla vidět příhrada. Zacelená hodnota
+ * se proto použije jen ve sloupcích, kde je zářez hlubší než `minDepth`, a
+ * v jejich okolí (okraj zaclonění je taky nespolehlivý). Jinde platí hrana
+ * tak, jak byla naměřená.
+ *
+ * Vyhlazuje se minimem, tedy směrem nahoru: nad hranou stěnu překryje střecha,
+ * pod ní by zůstala škvíra do vnitřku stanu.
+ */
+function edgeProfile(raw, R, minDepth) {
+  const smooth = win(fillGaps(raw), 4, Math.min);
+  const filled = close(smooth, R);
+  const bad = win(filled.map((v, x) => (v - smooth[x] > minDepth ? 1 : 0)), Math.round(R / 3), Math.max);
+  return smooth.map((v, x) => (bad[x] ? filled[x] : v));
 }
 
-/**
- * Maska vnější střechy včetně valance — a jen jí.
- *
- * Žlutá je na snímku dvojí: vnější plachta a podhled střechy viděný skrz
- * otevřený stan. Rozdělit je podle polohy nejde (podhled se promítá NÍŽ než
- * spodní hrana valance), ale jde to podle souvislosti: vnější plachta je jedna
- * velká souvislá oblast (~81 % veškeré žluté, jas ~196), zatímco podhled jsou
- * desítky malých ostrůvků mezi příhradami a je zřetelně tmavší (jas ~135).
- *
- * Černé logo dělá v masce díry, takže se ještě zaplní uzavřené oblasti. Okapová
- * příhrada valanci přetíná, ale ta uzavřená není — zůstane mimo masku a zakryje
- * ji stěna, což je správně: s nasazenou stěnou konstrukci vidět není.
- */
-export function roofMask(im) {
-  const { W, H } = im;
-  const yellow = new Uint8Array(W * H);
-  for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) {
-      const [r, g, b] = im.rgb(x, y);
-      if (isYellow(r, g, b)) yellow[y * W + x] = 1;
-    }
+/** Otsuův práh: rozdělí hodnoty na dvě skupiny s nejmenším rozptylem uvnitř. */
+function otsu(hist, n) {
+  let sum = 0;
+  for (let i = 0; i < hist.length; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, best = -1, T = 0;
+  for (let i = 0; i < hist.length; i++) {
+    wB += hist[i];
+    if (!wB) continue;
+    const wF = n - wB;
+    if (!wF) break;
+    sumB += i * hist[i];
+    const v = wB * wF * (sumB / wB - (sum - sumB) / wF) ** 2;
+    if (v > best) { best = v; T = i; }
+  }
+  return T;
+}
 
+/** Největší souvislá oblast masky (4-okolí). */
+function largestBlob(src, W, H) {
   const seen = new Uint8Array(W * H);
-  const mask = new Uint8Array(W * H);
+  const out = new Uint8Array(W * H);
   const stack = [];
   let best = 0;
   for (let i = 0; i < W * H; i++) {
-    if (!yellow[i] || seen[i]) continue;
+    if (!src[i] || seen[i]) continue;
     const cells = [];
     seen[i] = 1; stack.push(i);
     while (stack.length) {
       const k = stack.pop(); cells.push(k);
       const x = k % W, y = (k / W) | 0;
-      if (x > 0 && yellow[k - 1] && !seen[k - 1]) { seen[k - 1] = 1; stack.push(k - 1); }
-      if (x < W - 1 && yellow[k + 1] && !seen[k + 1]) { seen[k + 1] = 1; stack.push(k + 1); }
-      if (y > 0 && yellow[k - W] && !seen[k - W]) { seen[k - W] = 1; stack.push(k - W); }
-      if (y < H - 1 && yellow[k + W] && !seen[k + W]) { seen[k + W] = 1; stack.push(k + W); }
+      if (x > 0 && src[k - 1] && !seen[k - 1]) { seen[k - 1] = 1; stack.push(k - 1); }
+      if (x < W - 1 && src[k + 1] && !seen[k + 1]) { seen[k + 1] = 1; stack.push(k + 1); }
+      if (y > 0 && src[k - W] && !seen[k - W]) { seen[k - W] = 1; stack.push(k - W); }
+      if (y < H - 1 && src[k + W] && !seen[k + W]) { seen[k + W] = 1; stack.push(k + W); }
     }
-    if (cells.length > best) { best = cells.length; mask.fill(0); for (const c of cells) mask[c] = 1; }
+    if (cells.length > best) { best = cells.length; out.fill(0); for (const c of cells) out[c] = 1; }
   }
-  if (!best) throw new Error("na snímku není žlutá střecha");
+  return best ? out : null;
+}
 
-  // zaplnit uzavřené díry (písmena loga): co z okraje snímku nejde obejít
-  const outside = new Uint8Array(W * H);
-  const push = (k) => { if (!mask[k] && !outside[k]) { outside[k] = 1; stack.push(k); } };
-  for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x); }
-  for (let y = 0; y < H; y++) { push(y * W); push(y * W + W - 1); }
-  while (stack.length) {
-    const k = stack.pop(), x = k % W, y = (k / W) | 0;
-    if (x > 0) push(k - 1);
-    if (x < W - 1) push(k + 1);
-    if (y > 0) push(k - W);
-    if (y < H - 1) push(k + W);
-  }
-  for (let i = 0; i < W * H; i++) if (!mask[i] && !outside[i]) mask[i] = 1;
+/**
+ * Hrany střechy po sloupcích, v pixelech:
+ *   top  — nejvyšší žlutá, horní silueta plachty,
+ *   near — spodní hrana vnější plachty (blízký okap),
+ *   far  — nejnižší žlutá vůbec, tedy okap na protější straně stanu.
+ *
+ * Žlutá je na snímku dvojí: osvětlená vnější plachta a podhled střechy viděný
+ * skrz otevřený stan. Rozdělit je podle polohy nejde — podhled se promítá NÍŽ
+ * než spodní hrana plachty — ale spolehlivě je rozdělí jas: Otsuův práh vyjde
+ * na všech třech fotkách na 171–173 a plachta z něj vychází jako jeden velký
+ * souvislý kus. Souvislost samotná nestačí: u 4,5m a 6m stanu plachta do
+ * podhledu plynule přechází a spadly by do jedné oblasti.
+ */
+export function hems(im) {
+  const { W, H } = im;
+  const yellow = new Uint8Array(W * H);
+  const hist = new Array(256).fill(0);
+  let n = 0;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const [r, g, b] = im.rgb(x, y);
+      if (!isYellow(r, g, b)) continue;
+      yellow[y * W + x] = 1;
+      hist[Math.round(im.lum(x, y))]++;
+      n++;
+    }
+  if (!n) throw new Error("na snímku není žlutá střecha");
 
-  // Příhrady kříží valanci a dělají v masce svislé štěrbiny. Nejsou uzavřené,
-  // takže je zaplnění děr nechytne, a jako průhledné pruhy by jimi prosvítal
-  // vnitřek stanu. Maska se proto ve sloupci vyplní mezi svým vrchem a spodkem:
-  // cokoli v tom rozsahu je na fotce před střechou, takže se jen přerazítkuje.
+  const T = otsu(hist, n);
+  const bright = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if (yellow[y * W + x] && im.lum(x, y) >= T) bright[y * W + x] = 1;
+  const main = largestBlob(bright, W, H);
+  if (!main) throw new Error("na snímku není osvětlená plachta");
+
+  const topRaw = new Float64Array(W).fill(-1);
+  const nearRaw = new Float64Array(W).fill(-1);
+  const farRaw = new Float64Array(W).fill(-1);
   for (let x = 0; x < W; x++) {
-    let top = -1, bot = -1;
-    for (let y = 0; y < H; y++) if (mask[y * W + x]) { if (top < 0) top = y; bot = y; }
-    for (let y = top; y <= bot; y++) mask[y * W + x] = 1;
+    for (let y = 0; y < H; y++) if (yellow[y * W + x]) { topRaw[x] = y; break; }
+    for (let y = H - 1; y >= 0; y--) if (main[y * W + x]) { nearRaw[x] = y; break; }
+    for (let y = H - 1; y >= 0; y--) if (yellow[y * W + x]) { farRaw[x] = y; break; }
   }
+  const cols = [];
+  for (let x = 0; x < W; x++) if (farRaw[x] >= 0) cols.push(x);
+  const xMin = cols[0], xMax = cols[cols.length - 1];
 
-  const raw = new Float64Array(W).fill(-1);
-  for (let x = 0; x < W; x++)
-    for (let y = H - 1; y >= 0; y--) if (mask[y * W + x]) { raw[x] = y; break; }
-  let last = -1;
-  for (let x = 0; x < W; x++) { if (raw[x] >= 0) last = raw[x]; else raw[x] = last; }
-  for (let x = W - 1; x >= 0; x--) { if (raw[x] >= 0) last = raw[x]; else raw[x] = last; }
+  // Sloupek i s příhradou ukrojí u předního rohu z blízké hrany pás široký
+  // skoro 0,15 šířky snímku; zacelí ho až uzavření s poloměrem přes polovinu
+  // toho pásu. S menším poloměrem hrana v tom místě vyskočí o 60 px nahoru,
+  // stěna se pod ní usekne a mezi stěnou a plachtou je vidět dovnitř stanu.
+  const near = edgeProfile(nearRaw, Math.round(W * 0.09), H * 0.03);
+  // Vzdálenou hranu cloní jen samotné nohy, tam stačí poloměr přes sloupek.
+  const far = edgeProfile(farRaw, Math.round(W * 0.03), H * 0.03);
+  const top = fillGaps(topRaw);
+  // Blízká hrana nemůže ležet níž než vzdálená; u rohů siluety splývají.
+  for (let x = 0; x < W; x++) near[x] = Math.min(near[x], far[x]);
 
-  // Písmeno loga, které se dotkne spodní hrany valance, není uzavřená díra a
-  // zaplnění ho nechytne — hrana v tom sloupci vyskočí nahoru a stěna by tam
-  // ukousla kus valance. Zářez zacelí morfologické uzavření s poloměrem větším
-  // než písmeno; eroze pak vrátí tvar, takže se nesníží ani roh, kde je hrana
-  // nejníž.
-  const win = (a, R, pick) =>
-    a.map((_, x) => {
-      let b = a[x];
-      for (let k = -R; k <= R; k++) {
-        const j = x + k;
-        if (j >= 0 && j < W) b = pick(b, a[j]);
-      }
-      return b;
-    });
-  const closed = win(win(raw, Math.round(W * 0.022), Math.max), Math.round(W * 0.022), Math.min);
+  return { top, near, far, xMin, xMax };
+}
 
-  // Rohový kus valance je na fotce oddělený sloupkem a příhradou, takže do
-  // souvislé oblasti nespadne a hrana masky tam vyskočí o ~0,04 výšky nahoru.
-  // Stěna ořezaná takovou hranou má viditelný schod. Ořez se proto vede horní
-  // obálkou: nikdy nevyjde nad masku (stěna tedy nepřeleze přes plachtu), ale
-  // je hladký — nad stěnou pak zůstane plynulý klín podhledu místo zubu.
-  const env = win(closed, Math.round(W * 0.06), Math.max);
-  const S = Math.round(W * 0.03);
-  const bottom = env.map((_, x) => {
-    let sum = 0, n = 0;
-    for (let k = -S; k <= S; k++) {
-      const j = x + k;
-      if (j >= 0 && j < W) { sum += env[j]; n++; }
-    }
-    return Math.max(sum / n, closed[x]);
-  });
-  return { mask, bottom };
+/**
+ * Maska střechy = všechno mezi horní a spodní hranou vnější plachty. Cokoli
+ * v tom pásu leží (plachta, logo, sloupek před ní) je na fotce před stěnou,
+ * takže se to jen přerazítkuje. Dřív se maska brala jako souvislá žlutá
+ * oblast, jenže rohový kus plachty je od zbytku oddělený nohou a příhradou,
+ * takže do ní nespadl a v rohu zůstala díra.
+ */
+export function roofMask(im, h = hems(im)) {
+  const { W, H } = im;
+  const mask = new Uint8Array(W * H);
+  for (let x = h.xMin; x <= h.xMax; x++) {
+    const a = Math.max(0, Math.round(h.top[x]));
+    const b = Math.min(H - 1, Math.round(h.near[x]));
+    for (let y = a; y <= b; y++) mask[y * W + x] = 1;
+  }
+  return { mask, bottom: h.near };
 }
 
 /** Nohy: sloupky mají tmavé svislé hrany, měkký stín na zemi je nemá. */
@@ -198,24 +235,18 @@ export function measurePosts(im) {
 }
 
 /**
- * Půdorys a okap stanu odvozené z noh.
+ * Půdorys z noh a k němu vrcholy stěn odečtené z hran střechy.
  *
- * Rohy se NEberou z valance. U dlouhého stanu se valance přes 4,5 m prověsí
- * o víc, než je rozdíl výšek jejích konců, takže proložení dvou přímek najde
- * vrchol prověšení místo skutečného rohu — a stěny pak kreslí každá jiný
- * půdorys. Nohy jsou naproti tomu jednoznačné, takže se z nich vezme celý
- * půdorys (rohové nohy = vrcholy konvexní obálky, prostřední leží na hraně)
- * a okap se dopočítá jako svislé zvednutí o výšku úměrnou vzdálenosti paty od
- * horizontu, který vedou úběžníky půdorysu.
+ * Rohy půdorysu se berou z noh, ne z plachty: u dlouhého stanu se plachta přes
+ * 4,5 m prověsí o víc, než je rozdíl výšek jejích konců, takže proložení dvou
+ * přímek najde vrchol prověšení místo skutečného rohu. Nohy jsou jednoznačné
+ * (rohové = vrcholy konvexní obálky, prostřední leží na hraně).
  *
- * Chyba nahoře je přitom neškodná: střešní vrstva se kreslí až po stěnách, a
- * tak se stěna přesahující nad okap jen schová za valanci. Proto se okap ještě
- * schválně zvedne o `BLEED` — ať nikde nezůstane škvíra.
+ * Stěna je svislá v rovině noh, takže její horní roh leží přímo nad patou —
+ * jen se v tom sloupci odečte hrana střechy. `eave` je pro blízké stěny,
+ * `eaveFar` pro vzdálené; v rozích siluety (L, R) obě splývají.
  */
-const BLEED = 0.02;
-
-export function measureTent(im) {
-  const prof = repairedProfile(im);
+export function measureTent(im, h = hems(im)) {
   const posts = measurePosts(im);
   if (posts.length < 3) throw new Error("našel jsem míň než tři nohy — fotka je na měření nepoužitelná");
 
@@ -260,49 +291,13 @@ export function measureTent(im) {
   const side = corners.filter((p) => p !== F && p !== B).sort((a, b) => a[0] - b[0]);
   const foot = { L: side[0], F, R: side[1], B };
 
-  // Výška okapu nad patou. Nohy jsou svislé a stejně vysoké, takže jejich
-  // obrazová výška je úměrná vzdálenosti paty od horizontu. Horizont vede
-  // úběžníky obou směrů půdorysu, které se dají z těch čtyř pat spočítat
-  // přesně — na rozdíl od proložení výšek dvou postranních rohů, kde jsou
-  // hloubky skoro stejné a extrapolace na přední roh se rozhoupe.
-  const line = (a, b) => [a[1] - b[1], b[0] - a[0], a[0] * b[1] - b[0] * a[1]];
-  const meet = (p, q) => [p[1] * q[2] - p[2] * q[1], p[2] * q[0] - p[0] * q[2], p[0] * q[1] - p[1] * q[0]];
-  const horizon = meet(
-    meet(line(foot.L, foot.F), line(foot.B, foot.R)), // úběžník jednoho směru
-    meet(line(foot.F, foot.R), line(foot.L, foot.B))  // a druhého
-  );
-  // U rovnoběžníku (souměrný pohled, oba úběžníky v nekonečnu) vyjde horizont
-  // degenerovaný — pak je promítání prakticky ortografické a výška konstantní.
-  const degenerate = Math.abs(horizon[0]) + Math.abs(horizon[1]) < 1e-9 * Math.abs(horizon[2] || 1);
-  const horizonY = (x) => (degenerate ? -Infinity : -(horizon[0] * x + horizon[2]) / horizon[1]);
-
-  // Rozsah valance se bere ze SUROVÉ masky — zacelený profil je morfologií
-  // roztažený o poloměr okna do stran a přesah stříšky by z něj vyšel dvakrát
-  // větší, než ve skutečnosti je.
-  const raw = valanceProfile(im);
-  const cols = [];
-  for (let x = 0; x < im.W; x++) if (raw[x] >= 0) cols.push(x);
-  const xMin = cols[0], xMax = cols[cols.length - 1];
-  const readAt = (x) => prof[Math.min(im.W - 1, Math.max(0, Math.round(x)))] / im.H;
-  const hL = foot.L[1] - readAt(xMin + im.W * 0.004);
-  const dL = foot.L[1] - horizonY(foot.L[0]);
-  const h = ([x, y]) => (degenerate || !Number.isFinite(dL) || Math.abs(dL) < 1e-6 ? hL : hL * ((y - horizonY(x)) / dL));
-
-  // Přesah stříšky do stran; u předního a zadního rohu míří hlavně do hloubky.
-  const oxL = xMin / im.W - foot.L[0];
-  const oxR = xMax / im.W - foot.R[0];
-  const ox = { L: oxL, R: oxR, F: (oxL + oxR) / 2, B: (oxL + oxR) / 2 };
-
-  // `eave` je zvednutý o BLEED a používá se na čtyřúhelníky stěn; `eaveTrue`
-  // je bez něj a slouží jako ořez střešní vrstvy, aby padl na skutečnou hranu.
-  const eave = {}, eaveTrue = {};
-  for (const key of ["L", "F", "R", "B"]) {
-    const p = foot[key];
-    const hh = h(p);
-    eave[key] = [p[0] + ox[key], p[1] - hh * (1 + BLEED)];
-    eaveTrue[key] = [p[0] + ox[key], p[1] - hh];
+  const at = (prof, xr) => prof[Math.min(im.W - 1, Math.max(0, Math.round(xr * im.W)))] / im.H;
+  const eave = {}, eaveFar = {};
+  for (const k of ["L", "F", "R", "B"]) {
+    eave[k] = [foot[k][0], at(h.near, foot[k][0])];
+    eaveFar[k] = [foot[k][0], at(h.far, foot[k][0])];
   }
-  return { eave, eaveTrue, foot, posts, prof };
+  return { eave, eaveFar, foot, posts, hems: h };
 }
 
 /**
