@@ -14,7 +14,7 @@ import sharp from "sharp";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadPhoto, measureTent, roofMask, checkFootprint } from "./tent-photo.mjs";
+import { loadPhoto, measureTent, roofMask, hems, checkFootprint } from "./tent-photo.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUB = path.join(ROOT, "public", "stany");
@@ -29,11 +29,14 @@ const SIZES = [
   { key: "6", file: "nuzkovy-3x6.jpg", backWidthM: 6, sideDepthM: 3, minEdgeRatio: 1.6 },
 ];
 
-// Poloviční stěna je pultová: stojí na zemi a sahá do zhruba poloviny výšky.
-const HALF = 0.5;
-// O kolik blízká celá stěna přesahuje nad okap (podíl výšky stěny). Přesah se
-// tvrdě ořízne spodní hranou plachty, takže může být štědrý.
-const OVERSHOOT = 0.45;
+// Poloviční stěna je pultová: stojí na zemi a horní hranou se chytá za plastový
+// úchyt na noze. Ten je na všech nohách a všech třech fotkách shodně v 0,588
+// výšky stěny (měřeno od okapu k patě — rozptyl 0,587–0,595), takže se stěna
+// v tomhle podílu na každé noze trefí přesně do úchytu a horní hrana je
+// v rovině. Pozor: vychází to jen s okapem odečteným z plachty; se starým
+// odhadem z výšky nohy padl podíl u přední nohy na 0,52 a u bočních na 0,41,
+// takže hrana byla u jedné nohy nad úchytem a u druhé pod ním.
+const HALF = 0.588;
 // Nasvícení odečtené přímo z fotky (scripts/tent-photo.mjs → valance je svislá
 // plocha ve stejných rovinách jako stěny): levá strana je o 6,7 % světlejší než
 // pravá, podhled střechy má 0,65 jasu vnějšku. Vzdálené stěny vidíme zevnitř,
@@ -90,6 +93,24 @@ const apply = (h, x, y) => {
 };
 const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
+/**
+ * Zvedne horní rohy čtyřúhelníku tak, aby spojnice nikde neklesla pod ořezovou
+ * hranu. Plachta se mezi rohy prověsí, takže hrana jde v půli rozpětí výš než
+ * spojnice rohů — a nad spojnicí už textura není, takže by tam zůstal pruh
+ * roztaženého horního řádku. Látka se místo toho napne až nad hranu a ořez ji
+ * zase seřízne.
+ */
+function liftTop([a, b, c, d], clip) {
+  let lift = 0;
+  const x0 = Math.max(0, Math.ceil(Math.min(a[0], b[0])));
+  const x1 = Math.min(clip.length - 1, Math.floor(Math.max(a[0], b[0])));
+  for (let x = x0; x <= x1; x++) {
+    const t = (x - a[0]) / (b[0] - a[0] || 1);
+    lift = Math.max(lift, a[1] + (b[1] - a[1]) * t - clip[x]);
+  }
+  return [[a[0], a[1] - lift], [b[0], b[1] - lift], c, d];
+}
+
 // --- vzorkování textury -------------------------------------------------
 /** Bilineárně, vodorovně zrcadlově opakovaně (široké stěny jsou víc dílů). */
 function sample(tex, u, v) {
@@ -126,10 +147,10 @@ const inside = (q, x, y) => {
  * Vykreslí jednu stěnu: měkký kontaktní stín + látka napasovaná do rohů.
  *
  */
-function renderWall(W, H, quad, draw, tex, repeat, face, topClip) {
+function renderWall(W, H, quad, tex, repeat, face, topClip) {
   const { gain, near } = face;
   const rgba = Buffer.alloc(W * H * 4, 0);
-  const xs = draw.map((p) => p[0]), ys = draw.map((p) => p[1]);
+  const xs = quad.map((p) => p[0]), ys = quad.map((p) => p[1]);
   const pad = Math.round(H * 0.045);
   const x0 = Math.max(0, Math.floor(Math.min(...xs)) - 2), x1 = Math.min(W - 1, Math.ceil(Math.max(...xs)) + 2);
   const y0 = Math.max(0, Math.floor(Math.min(...ys)) - 2), y1 = Math.min(H - 1, Math.ceil(Math.max(...ys)) + pad);
@@ -158,9 +179,9 @@ function renderWall(W, H, quad, draw, tex, repeat, face, topClip) {
         for (let sx = 0; sx < SS; sx++) {
           const px = x + (sx + 0.5) / SS, py = y + (sy + 0.5) / SS;
           if (topClip && py < topClip[x]) continue;
-          if (!inside(draw, px, py)) continue;
+          if (!inside(quad, px, py)) continue;
           const [u, v] = apply(inv, px, py);
-          if (v < -OVERSHOOT - 0.01 || v > 1.002) continue;
+          if (v < -0.002 || v > 1.002) continue;
           const vv = Math.min(Math.max(v, 0), 1);
           const [tr, tg, tb] = sample(tex, u * repeat, vv);
           // Přehyb látky u obou rohů — bez něj sousední stěny splynou v jednu
@@ -236,48 +257,58 @@ function renderPosts(im, posts, clip) {
 // --- sestavení jedné velikosti -----------------------------------------
 async function build(size, tex) {
   const im = await loadPhoto(path.join(PUB, size.file));
-  const tent = measureTent(im);
+  const h = hems(im);
+  const tent = measureTent(im, h);
   const check = checkFootprint(tent, { minEdgeRatio: size.minEdgeRatio });
 
   const px = (p) => [p[0] * im.W, p[1] * im.H];
   const E = Object.fromEntries(Object.entries(tent.eave).map(([k, v]) => [k, px(v)]));
+  const EF = Object.fromEntries(Object.entries(tent.eaveFar).map(([k, v]) => [k, px(v)]));
   const F = Object.fromEntries(Object.entries(tent.foot).map(([k, v]) => [k, px(v)]));
 
   // Přední a zadní stěna jdou přes celou šířku stanu, boční jsou vždy 3 m —
   // stejné dělení, jaké používá ceník v konfigurátoru (fullWallBack vs. Side).
   const widths = { front: size.backWidthM, back: size.backWidthM, left: size.sideDepthM, right: size.sideDepthM };
+  // Blízké stěny končí u spodní hrany vnější plachty, vzdálené až u okapu
+  // protější strany, na který je vidět zespodu pod střechou.
   const edges = {
     left: [E.L, E.F, F.F, F.L],
     front: [E.F, E.R, F.R, F.F],
-    right: [E.B, E.R, F.R, F.B],
-    back: [E.L, E.B, F.B, F.L],
+    right: [EF.B, EF.R, F.R, F.B],
+    back: [EF.L, EF.B, F.B, F.L],
   };
 
-  const roof = roofMask(im);
-  const clip = roof.bottom; // nohy začínají pod plachtou
+  const roof = roofMask(im, h);
+  const nearClip = h.near.map((v) => v - im.H * 0.02);
   const write = (name, rgba) =>
     sharp(rgba, { raw: { width: im.W, height: im.H, channels: 4 } })
       .webp({ quality: 88, alphaQuality: 90 })
       .toFile(path.join(OUT, `${size.key}-${name}.webp`));
 
   await write("strecha", renderRoof(im, roof.mask));
-  await write("nohy", renderPosts(im, tent.posts, clip));
+  await write("nohy", renderPosts(im, tent.posts, h.near));
 
   for (const [side, q] of Object.entries(edges)) {
     for (const type of ["full", "half"]) {
-      const quad = type === "full" ? q : [lerp(q[0], q[3], HALF), lerp(q[1], q[2], HALF), q[2], q[3]];
-      // Blízká celá stěna se kreslí kus nad okap a pak se usekne o horní hranu
-      // valance — nepřesnost v odhadu výšky okapu tak nemůže nechat škvíru.
-      // Vzdálené stěny přesah nedostávají: jsou uvnitř stanu, nic je shora
-      // neořízne a přesahem by prostřelily střechu.
-      const over = type === "full" && FACE[side].near ? OVERSHOOT : 0;
-      const draw = over ? [lerp(quad[0], quad[3], -over), lerp(quad[1], quad[2], -over), quad[2], quad[3]] : quad;
+      // Celá stěna se ořezává hranou plachty naměřenou v tom sloupci: rovná
+      // horní hrana čtyřúhelníku by u prověšené plachty místy nedosáhla a
+      // byla by tam vidět příhrada.
+      //
+      // Blízká stěna se ořízne o kousek VÝŠ, než kam sahá plachta: přebytek
+      // zakryje střešní vrstva, která se kreslí až po ní, takže o hranu se
+      // stará jedno jediné měření a nepřesnost nemá kde nechat škvíru.
+      // Vzdálená stěna takový polštář nemá — nad ní je vidět podhled, takže
+      // se musí trefit přesně.
+      const clip = type !== "full" ? null : FACE[side].near ? nearClip : h.far;
+      const quad = clip
+        ? liftTop(q, clip)
+        : [lerp(q[0], q[3], HALF), lerp(q[1], q[2], HALF), q[2], q[3]];
       const repeat = Math.max(1, Math.round((widths[side] / 3) * 2) / 2);
-      await write(`${side}-${type}`, renderWall(im.W, im.H, quad, draw, tex, repeat, FACE[side], FACE[side].near ? roof.bottom : null));
+      await write(`${side}-${type}`, renderWall(im.W, im.H, quad, tex, repeat, FACE[side], clip));
     }
   }
 
-  return { size, check, E, F };
+  return { size, check, E, EF, F };
 }
 
 // --- běh ----------------------------------------------------------------
@@ -302,7 +333,7 @@ for (const size of SIZES) {
 await writeFile(
   path.join(OUT, "geometrie.json"),
   JSON.stringify(
-    report.map((r) => ({ key: r.size.key, file: r.size.file, okap: r.E, paty: r.F, kontrola: r.check })),
+    report.map((r) => ({ key: r.size.key, file: r.size.file, okap: r.E, okapVzdaleny: r.EF, paty: r.F, kontrola: r.check })),
     null,
     2
   )

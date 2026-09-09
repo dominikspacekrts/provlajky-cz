@@ -15,6 +15,14 @@ import { FAR_SIDES, NEAR_SIDES, type SideKey, type StageSides, type TentLayers, 
 
 const TYPES: WallType[] = ["full", "half"];
 
+// Blízké stěny (levá a přední) stojí mezi divákem a zbytkem stanu, takže by
+// jinak zakryly, co je nakonfigurované za nimi. Kreslí se proto poloprůhledné
+// — zákazník tak vidí i zadní a pravou stěnu a nemusí stan otáčet.
+//
+// 0,7 je kompromis: níž už blízká stěna přestává vypadat jako stěna a náhled
+// se dá číst špatně, výš není vzdálená stěna skrz ni poznat.
+const NEAR_OPACITY = 0.7;
+
 export default function TentStage({
   layers,
   sides,
@@ -24,7 +32,7 @@ export default function TentStage({
   sides: StageSides;
   alt: string;
 }) {
-  const wall = (side: SideKey) =>
+  const wall = (side: SideKey, on: number) =>
     TYPES.map((type) => (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -33,7 +41,7 @@ export default function TentStage({
         alt=""
         aria-hidden="true"
         className="tent-stage-layer"
-        style={{ opacity: sides[side]?.type === type ? 1 : 0 }}
+        style={{ opacity: sides[side]?.type === type ? on : 0 }}
       />
     ));
 
@@ -41,10 +49,10 @@ export default function TentStage({
     <div className="tent-stage">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={layers.photo} alt={alt} className="tent-stage-base" />
-      {FAR_SIDES.map(wall)}
+      {FAR_SIDES.map((side) => wall(side, 1))}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={layers.posts} alt="" aria-hidden="true" className="tent-stage-layer" style={{ opacity: 1 }} />
-      {NEAR_SIDES.map(wall)}
+      {NEAR_SIDES.map((side) => wall(side, NEAR_OPACITY))}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={layers.roof} alt="" aria-hidden="true" className="tent-stage-layer" style={{ opacity: 1 }} />
     </div>
