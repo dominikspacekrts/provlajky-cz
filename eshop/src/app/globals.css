@@ -1054,6 +1054,124 @@ html:has(.nv) { scroll-behavior: smooth; }
   display: inline-flex; align-items: center; justify-content: center; padding: 0 5px;
 }
 
+/* --- hamburger + vysouvací menu (do 1280 px) ------------------------
+   Nad 1280 px jsou kategorie vypsané rovnou v liště, takže tlačítko ani
+   panel neexistují. Panel je tmavý jako lišta, jede zprava a drží se
+   pod ní, aby logo i košík zůstaly na místě. */
+.nv-nav-burger {
+  display: none; width: 44px; height: 44px; padding: 0; cursor: pointer;
+  align-items: center; justify-content: center;
+  background: transparent; border: 1px solid rgba(255, 255, 255, 0.34); color: #fff;
+  transition: background 0.35s var(--nv-ease), border-color 0.35s var(--nv-ease),
+    color 0.35s var(--nv-ease), transform 0.3s var(--nv-ease);
+}
+.nv-nav-burger svg { width: 21px; height: 21px; display: block; }
+.nv-nav-burger:hover { background: #fff; border-color: #fff; color: var(--nv-ink); }
+.nv-nav-burger:active { transform: scale(0.95); }
+@media (max-width: 1280px) {
+  .nv-nav-burger { display: inline-flex; }
+}
+
+.nv-menu-root {
+  position: fixed; inset: 0; z-index: 120;
+  visibility: hidden; pointer-events: none;
+}
+.nv-menu-root.is-open { visibility: visible; pointer-events: auto; }
+.nv-menu-backdrop {
+  position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0;
+  background: rgba(8, 8, 10, 0.62); backdrop-filter: blur(3px);
+  opacity: 0; transition: opacity 0.45s var(--nv-ease); cursor: default;
+}
+.nv-menu-root.is-open .nv-menu-backdrop { opacity: 1; }
+.nv-menu {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: min(420px, 88vw); display: flex; flex-direction: column;
+  background: var(--nv-ink); color: #fff;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: -30px 0 60px -30px rgba(0, 0, 0, 0.9);
+  transform: translate3d(100%, 0, 0);
+  transition: transform 0.52s var(--nv-ease-io);
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.nv-menu-root.is-open .nv-menu { transform: translate3d(0, 0, 0); }
+.nv-menu-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 18px 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.nv-menu-label {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  font-variation-settings: "wght" 620, "wdth" 96; color: rgba(255, 255, 255, 0.5);
+}
+.nv-menu-close {
+  width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid rgba(255, 255, 255, 0.24); color: #fff;
+  cursor: pointer; padding: 0;
+  transition: background 0.3s var(--nv-ease), border-color 0.3s var(--nv-ease), color 0.3s var(--nv-ease);
+}
+.nv-menu-close svg { width: 19px; height: 19px; display: block; }
+.nv-menu-close:hover { background: #fff; border-color: #fff; color: var(--nv-ink); }
+
+.nv-menu-groups { display: flex; flex-direction: column; }
+.nv-menu-groups a {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 19px 24px; text-decoration: none; color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: clamp(16px, 4.6vw, 19px); line-height: 1.2;
+  font-variation-settings: "wght" 620, "wdth" 108; letter-spacing: -0.018em;
+  transition: background 0.3s var(--nv-ease);
+}
+.nv-menu-groups a > span { transition: transform 0.3s var(--nv-ease); }
+.nv-menu-groups a .nv-arrow {
+  width: 19px; height: 19px; flex-shrink: 0; color: var(--nv-yellow);
+  opacity: 0.55; transition: transform 0.35s var(--nv-ease), opacity 0.35s var(--nv-ease);
+}
+.nv-menu-groups a:hover, .nv-menu-groups a:focus-visible { background: rgba(255, 255, 255, 0.06); }
+.nv-menu-groups a:hover > span, .nv-menu-groups a:focus-visible > span { transform: translateX(6px); }
+.nv-menu-groups a:hover .nv-arrow, .nv-menu-groups a:focus-visible .nv-arrow { opacity: 1; transform: translateX(4px); }
+.nv-menu-groups a.is-current { color: var(--nv-yellow); }
+/* Položky dojedou po otevření panelu, aby se seznam „rozbalil“, ne objevil. */
+.nv-menu-root.is-open .nv-menu-groups a { animation: nv-menu-item 0.5s var(--nv-ease) both; }
+.nv-menu-groups a:nth-child(1) { animation-delay: 0.13s; }
+.nv-menu-groups a:nth-child(2) { animation-delay: 0.18s; }
+.nv-menu-groups a:nth-child(3) { animation-delay: 0.23s; }
+.nv-menu-groups a:nth-child(4) { animation-delay: 0.28s; }
+.nv-menu-groups a:nth-child(5) { animation-delay: 0.33s; }
+.nv-menu-groups a:nth-child(6) { animation-delay: 0.38s; }
+@keyframes nv-menu-item {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+.nv-menu-foot {
+  margin-top: auto; display: flex; flex-direction: column; gap: 16px;
+  padding: 26px 24px calc(26px + env(safe-area-inset-bottom));
+}
+.nv-menu-foot .nv-btn { width: 100%; }
+.nv-menu-links {
+  display: flex; justify-content: center; gap: 26px;
+  padding-bottom: 2px;
+}
+.nv-menu-links a {
+  color: rgba(255, 255, 255, 0.62); text-decoration: none;
+  font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-variation-settings: "wght" 600, "wdth" 96;
+  padding: 6px 2px; transition: color 0.3s var(--nv-ease);
+}
+.nv-menu-links a:hover, .nv-menu-links a:focus-visible { color: var(--nv-yellow); }
+.nv-menu-phone {
+  text-align: center; color: rgba(255, 255, 255, 0.72); text-decoration: none;
+  font-size: 14px; letter-spacing: 0.06em;
+  font-variation-settings: "wght" 560, "wdth" 100;
+  transition: color 0.3s var(--nv-ease);
+}
+.nv-menu-phone:hover { color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nv-menu { transition-duration: 0.01ms; }
+  .nv-menu-backdrop { transition-duration: 0.01ms; }
+  .nv-menu-root.is-open .nv-menu-groups a { animation: none; }
+}
+
 /* --- hero --------------------------------------------------------- */
 .nv-hero {
   position: relative; min-height: 560px; height: calc(100svh - var(--nv-nav-h));
@@ -1167,35 +1285,145 @@ html:has(.nv) { scroll-behavior: smooth; }
   color: rgba(8, 8, 10, 0.66); max-width: 58ch; padding-bottom: 0.5em;
 }
 
-/* --- galerie reálných fotek z akcí --------------------------------- */
-.nv-gallery {
+/* --- reference z akcí: fotka + citace zákazníka, posun po 20 s -------
+   Slidy leží vedle sebe v jednom pásu, přepínání je posun pásu doleva.
+   Výška sekce = nejvyšší slide, takže se stránka pod ní nehýbe. */
+.nv-refs {
+  position: relative;
   background: var(--nv-paper);
   padding: 0 var(--nv-pad) clamp(70px, 11vh, 140px);
 }
-.nv-gallery-head {
-  display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
-  margin-bottom: clamp(20px, 3vh, 34px);
+.nv-refs-head {
+  display: flex; align-items: end; justify-content: space-between; gap: 28px;
+  padding-bottom: clamp(18px, 2.6vh, 28px); margin-bottom: clamp(26px, 4vh, 44px);
+  border-bottom: 1px solid var(--nv-line);
 }
-.nv-gallery-kicker {
-  font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
-  font-variation-settings: "wght" 640, "wdth" 100; color: var(--nv-ink);
+.nv-refs-title {
+  font-size: clamp(21px, 2.6vw, 34px); line-height: 1.1;
+  font-variation-settings: "wght" 680, "wdth" 114; letter-spacing: -0.028em;
+  max-width: 22ch;
 }
-.nv-gallery-note { font-size: 14px; color: rgba(8, 8, 10, 0.56); }
-.nv-gallery-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(8px, 1.4vw, 16px);
+.nv-refs-nav { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.nv-refs-arrow {
+  width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--nv-line); border-radius: 0;
+  color: var(--nv-ink); cursor: pointer; padding: 0;
+  transition: background 0.35s var(--nv-ease), border-color 0.35s var(--nv-ease),
+    color 0.35s var(--nv-ease), transform 0.3s var(--nv-ease);
 }
-.nv-gallery-item {
-  position: relative; overflow: hidden; border-radius: 14px;
-  aspect-ratio: 16 / 10; background: var(--nv-ink);
+.nv-refs-arrow svg { width: 19px; height: 19px; display: block; }
+.nv-refs-arrow:hover { background: var(--nv-ink); border-color: var(--nv-ink); color: #fff; }
+.nv-refs-arrow:active { transform: scale(0.95); }
+.nv-refs-count {
+  font-size: 12px; letter-spacing: 0.1em; color: rgba(8, 8, 10, 0.5);
+  font-variation-settings: "wght" 620, "wdth" 100; font-style: normal;
+  min-width: 62px; text-align: center;
 }
-.nv-gallery-item img {
+.nv-refs-count i { font-style: normal; color: rgba(8, 8, 10, 0.28); padding: 0 2px; }
+
+.nv-refs-window { overflow: hidden; }
+.nv-refs-track {
+  display: flex; align-items: stretch;
+  transform: translate3d(calc(var(--i) * -100%), 0, 0);
+  transition: transform 0.95s var(--nv-ease-io);
+  touch-action: pan-y;
+}
+.nv-refs-slide {
+  flex: 0 0 100%; min-width: 0;
+  display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  gap: clamp(20px, 3.4vw, 56px); align-items: stretch;
+}
+.nv-refs-photo {
+  position: relative; overflow: hidden; background: var(--nv-ink);
+  aspect-ratio: 16 / 10;
+}
+.nv-refs-photo img {
   width: 100%; height: 100%; object-fit: cover; display: block;
-  transition: transform 1.1s var(--nv-ease-io);
+  transform: scale(1.04); transition: transform 1.4s var(--nv-ease-io), filter 0.9s var(--nv-ease);
+  filter: saturate(0.94);
+  -webkit-user-drag: none; user-select: none;
 }
-.nv-gallery-item:hover img { transform: scale(1.06); }
-@media (max-width: 720px) {
-  .nv-gallery-grid { grid-template-columns: 1fr; }
-  .nv-gallery-item { aspect-ratio: 4 / 3; }
+/* Fotka na aktivním slidu dosedne do klidu — ostatní zůstanou lehce najeté,
+   takže přepnutí má vlastní pohyb i po dojezdu pásu. */
+.nv-refs-slide:not([aria-hidden]) .nv-refs-photo img { transform: scale(1); }
+
+.nv-refs-copy {
+  display: flex; flex-direction: column; justify-content: space-between; gap: clamp(22px, 3vw, 40px);
+  padding: clamp(4px, 1vw, 14px) 0 2px;
+}
+.nv-refs-quote {
+  margin: 0; font-size: clamp(19px, 1.85vw, 27px); line-height: 1.42;
+  font-variation-settings: "wght" 560, "wdth" 106; letter-spacing: -0.022em;
+  color: var(--nv-ink); max-width: 34ch; text-wrap: pretty;
+}
+.nv-refs-quote::before { content: "„"; }
+.nv-refs-quote::after { content: "“"; }
+.nv-refs-by {
+  display: flex; flex-direction: column; gap: 5px;
+  padding-top: clamp(16px, 2vw, 22px); border-top: 1px solid var(--nv-line);
+}
+.nv-refs-company {
+  font-size: clamp(14px, 1.1vw, 16px); letter-spacing: 0.01em;
+  font-variation-settings: "wght" 680, "wdth" 108;
+}
+.nv-refs-role { font-size: 13px; line-height: 1.5; color: rgba(8, 8, 10, 0.56); }
+
+/* Jména firem slouží zároveň jako přepínač i jako přehled referencí. */
+.nv-refs-tabs {
+  display: flex; flex-wrap: wrap; gap: 0;
+  margin-top: clamp(22px, 3vh, 34px); border-top: 1px solid var(--nv-line);
+}
+.nv-refs-tab {
+  position: relative; flex: 1 1 180px; min-width: 0;
+  background: transparent; border: 0; border-right: 1px solid var(--nv-line);
+  padding: 16px 18px 16px 0; margin-right: 18px; text-align: left; cursor: pointer;
+  font: inherit; font-size: 12.5px; letter-spacing: 0.05em; text-transform: uppercase;
+  font-variation-settings: "wght" 620, "wdth" 96;
+  color: rgba(8, 8, 10, 0.42);
+  transition: color 0.35s var(--nv-ease);
+}
+.nv-refs-tab:last-child { border-right: 0; margin-right: 0; }
+.nv-refs-tab:hover { color: rgba(8, 8, 10, 0.78); }
+.nv-refs-tab.is-active { color: var(--nv-ink); }
+.nv-refs-tab span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Odpočet do dalšího slidu — jediný pruh, který se plní 20 s. */
+.nv-refs-progress {
+  position: absolute; left: 0; top: -1px; height: 2px; width: 100%;
+  transform-origin: left; transform: scaleX(0); background: var(--nv-yellow);
+  animation: nv-refs-fill 20s linear forwards;
+}
+.nv-refs-progress.is-paused { animation-play-state: paused; }
+@keyframes nv-refs-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Text pro odečítače obrazovky; vizuálně ho nese slide sám. */
+.nv-refs-live {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+@media (max-width: 900px) {
+  .nv-refs-slide { grid-template-columns: 1fr; gap: 20px; }
+  .nv-refs-photo { aspect-ratio: 4 / 3; }
+  .nv-refs-quote { max-width: none; font-size: clamp(17px, 4.4vw, 22px); }
+  /* Dva sloupce v mřížce: každý tab si nese vlastní horní linku, aby druhá
+     řada nevisela ve vzduchu. */
+  .nv-refs-tabs { display: grid; grid-template-columns: 1fr 1fr; border-top: 0; }
+  .nv-refs-tab {
+    padding: 14px 12px 14px 0; margin-right: 12px; font-size: 11.5px;
+    border-top: 1px solid var(--nv-line);
+  }
+  .nv-refs-tab:nth-child(2n) { border-right: 0; margin-right: 0; }
+}
+@media (max-width: 560px) {
+  .nv-refs-head { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .nv-refs-nav { align-self: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nv-refs-track { transition-duration: 0.01ms; }
+  .nv-refs-photo img { transition-duration: 0.01ms; transform: scale(1); }
 }
 
 /* --- tři ostré vstupní dlaždice pod herem (hlavní produktové rodiny) --
