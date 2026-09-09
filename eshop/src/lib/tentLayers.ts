@@ -22,8 +22,8 @@ export type StageSides = Record<SideKey, { type: WallType } | null>;
  * stěnu; levá a přední jsou za nimi. Musí souhlasit s `FACE`
  * v scripts/build-tent-walls.mjs (všechny tři fotky mají stejné postavení kamery).
  */
-export const FAR_SIDES: SideKey[] = ["left", "front"];
-export const NEAR_SIDES: SideKey[] = ["back", "right"];
+export const FAR_SIDES: SideKey[] = ["back", "right"];
+export const NEAR_SIDES: SideKey[] = ["left", "front"];
 
 export type TentLayers = {
   /** Produktová fotka stanu bez stěn — spodní vrstva a nositel rozměru. */
