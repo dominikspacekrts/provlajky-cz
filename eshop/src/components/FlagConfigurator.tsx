@@ -2,6 +2,12 @@
 
 // Konfigurátor plážové vlajky: 3D vlající náhled, tvar A–F (zavlní se při přepnutí),
 // velikost, HS tunel s vysvětlivkou, editor vlastního návrhu a vložení do košíku.
+//
+// Na mobilu je obrazovka rozdělená na půl: nahoře vlající vlajka jako na
+// desktopu, dole panel s jedním krokem po druhém (tvar a velikost → tunel →
+// vlastní grafika) a úplně na spodku pořád viditelná cena, počet kusů a
+// tlačítko do košíku. Na širokém displeji zůstává všechno pod sebou v jednom
+// panelu — kroky by tam jen přidávaly kliky.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -23,6 +29,7 @@ import {
   type FlagDesign,
 } from "@/lib/flagShapes";
 import { CheckMark, PenMark } from "@/components/Icons";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
 
@@ -33,6 +40,9 @@ import CtaBar from "@/components/CtaBar";
 // prokřížfaduje do živé 3D plachty.
 const FlagWave = dynamic(() => import("./FlagWave"), { ssr: false });
 const FlagEditorModal = dynamic(() => import("./FlagEditorModal"), { ssr: false });
+
+// Mobilní kroky: jeden krok = jedno rozhodnutí, náhled a cena zůstávají vidět.
+const MOBILE_STEPS = ["Tvar a velikost", "Tunel na tyč", "Vlastní grafika"] as const;
 
 function ShapeIcon({ shape, size = 44 }: { shape: FlagShape; size?: number }) {
   const h = 100;
@@ -64,6 +74,57 @@ export default function FlagConfigurator({
   const [editorOpen, setEditorOpen] = useState(false);
   const [askNext, setAskNext] = useState(false);
   const thumbRef = useRef<HTMLCanvasElement | null>(null);
+
+  const isMobile = useMediaQuery("(max-width: 860px)");
+  const [step, setStep] = useState(0);
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  // Výšku krokového layoutu měříme, ne počítáme: nad konfigurátorem sedí
+  // lišta a někdy i promo pruh a jejich výška se na mobilu liší podle toho,
+  // na kolik řádků se text zalomí. Odhad přes CSS proměnné dostal spodní
+  // lištu s cenou pod spodní hranu displeje.
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    if (!isMobile) {
+      el.style.removeProperty("height");
+      return;
+    }
+    const fit = () => {
+      // Měříme jen s nescrollovanou stránkou: rect.top je vůči viewportu,
+      // takže odscrollovaná stránka by výšku nafoukla.
+      if (window.scrollY > 4) return;
+      const top = el.getBoundingClientRect().top;
+      const next = Math.max(480, Math.round(window.innerHeight - top - 8));
+      if (Math.abs(parseFloat(el.style.height || "0") - next) > 1) el.style.height = `${next}px`;
+    };
+    fit();
+    // Lišta a promo pruh nad konfigurátorem se dorovnávají až po mountu
+    // (promo čeká na sessionStorage), takže první měření bývá o jejich
+    // výšku vedle — přeměříme, jakmile se cokoli nad tím pohne.
+    const raf = requestAnimationFrame(fit);
+    // Promo pruh naskakuje i dorůstá (zalomení textu po načtení fontu) až
+    // nějakou dobu po mountu, a ResizeObserver na to nestačí — přeměříme
+    // ještě několikrát po sobě, než se stránka ustálí.
+    const timers = [80, 300, 900, 1800].map((ms) => window.setTimeout(fit, ms));
+    const ro = new ResizeObserver(fit);
+    ro.observe(document.body);
+    for (const sel of [".nv-nav", ".nv-promo"]) {
+      const bar = document.querySelector(sel);
+      if (bar) ro.observe(bar);
+    }
+    window.addEventListener("resize", fit);
+    window.addEventListener("orientationchange", fit);
+    window.addEventListener("load", fit);
+    return () => {
+      cancelAnimationFrame(raf);
+      timers.forEach(window.clearTimeout);
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("orientationchange", fit);
+      window.removeEventListener("load", fit);
+    };
+  }, [isMobile]);
 
   useEffect(() => {
     if (!design?.logoDataUrl || design.logoIsPdf) {
@@ -169,8 +230,107 @@ export default function FlagConfigurator({
     setAskNext(true);
   }
 
+  const shapeAndSizeBlock = (
+    <>
+      <div className="option-label">Tvar vlajky</div>
+      <div className="shape-row">
+        {FLAG_SHAPES.map((s) => (
+          <button
+            key={s}
+            className={`shape-btn${shape === s ? " active" : ""}`}
+            onClick={() => setShape(s)}
+            aria-label={`Tvar ${s}`}
+          >
+            <ShapeIcon shape={s} />
+            <span>{s}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="option-label">Velikost</div>
+      <div className="option-row">
+        {FLAG_SIZES.map((s) => (
+          <button key={s} className={`option-chip${size === s ? " active" : ""}`} onClick={() => setSize(s)}>
+            {s}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  const sleeveBlock = (
+    <>
+      <div className="option-label">
+        Provedení tunelu
+        <span className="info-tip" tabIndex={0}>
+          i
+          <span className="info-pop" role="tooltip">
+            HS znamená vyztužený tunel na tyč vlajky — vlajka drží tvar i za bezvětří. U typu HS vyrábíme
+            tunel pouze v černé nebo bílé barvě.
+          </span>
+        </span>
+      </div>
+      <div className="option-row">
+        <button className={`option-chip${!hs ? " active" : ""}`} onClick={() => setHs(false)}>
+          Standardní
+        </button>
+        <button className={`option-chip${hs ? " active" : ""}`} onClick={() => setHs(true)}>
+          HS — vyztužený
+        </button>
+      </div>
+      {hs && (
+        <div className="option-row" style={{ marginTop: 10 }}>
+          {(["black", "white"] as const).map((c) => (
+            <button key={c} className={`option-chip${sleeveColor === c ? " active" : ""}`} onClick={() => setSleeveColor(c)}>
+              Tunel {c === "black" ? "černý" : "bílý"}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  const designBlock = (
+    <>
+      <div style={{ marginTop: 22 }}>
+        <button className={`btn-outline btn-design${design ? "" : " btn-design-required"}`} onClick={() => setEditorOpen(true)}>
+          <PenMark className="btn-mark" />
+          {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
+        </button>
+        {design && (
+          <button className="link-reset" onClick={() => setDesign(null)}>
+            Odebrat návrh
+          </button>
+        )}
+      </div>
+      <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
+        {design
+          ? "Návrh je uložený a propíše se do objednávky."
+          : "Povinný krok — zadejte barvu podkladu a nahrajte logo, ať víme, jak má vlajka vypadat."}
+      </p>
+    </>
+  );
+
+  const hintsBlock = (
+    <>
+      {unitPrice <= 0 && (
+        <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+          Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
+        </p>
+      )}
+      {unitPrice > 0 && !design?.logoDataUrl && (
+        <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+          Nejdřív navrhněte vlajku (barva podkladu + logo) — pak půjde přidat do košíku.
+        </p>
+      )}
+    </>
+  );
+
   return (
-    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+    <div
+      ref={pageRef}
+      className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}${isMobile ? " fc-page-steps" : ""}`}
+    >
       <div className="fc-stage">
         <div className="fc-stage-shape" aria-hidden="true">
           <ShapeIcon shape={shape} size={220} />
@@ -185,100 +345,80 @@ export default function FlagConfigurator({
         />
       </div>
 
-      <aside className="fc-panel reveal-stagger">
-      <div className="fc-panel-scroll">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
+      <aside className={`fc-panel reveal-stagger${isMobile ? " fc-panel-steps" : ""}`}>
+        <div className="fc-panel-scroll">
+          {isMobile ? (
+            <>
+              <div className="fc-step-head">
+                <span className="fc-step-name">{MOBILE_STEPS[step]}</span>
+                <span className="fc-step-count">
+                  Krok {step + 1} ze {MOBILE_STEPS.length}
+                </span>
+              </div>
+              <div className="fc-step-bar" aria-hidden="true">
+                {MOBILE_STEPS.map((s, i) => (
+                  <i key={s} className={i <= step ? "is-done" : undefined} />
+                ))}
+              </div>
+              {/* key na kroku → nový uzel → krok dojede zprava, ať je poznat pohyb vpřed */}
+              <div className="fc-step" key={step}>
+                {step === 0 && shapeAndSizeBlock}
+                {step === 1 && sleeveBlock}
+                {step === 2 && (
+                  <>
+                    {designBlock}
+                    {unitPrice <= 0 && (
+                      <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+                        Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
 
-        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
-        {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
+              <h1 style={{ fontSize: 28 }}>{product.name}</h1>
+              {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
 
-        <div className="option-label">Tvar vlajky</div>
-        <div className="shape-row">
-          {FLAG_SHAPES.map((s) => (
-            <button
-              key={s}
-              className={`shape-btn${shape === s ? " active" : ""}`}
-              onClick={() => setShape(s)}
-              aria-label={`Tvar ${s}`}
-            >
-              <ShapeIcon shape={s} />
-              <span>{s}</span>
-            </button>
-          ))}
-        </div>
+              {shapeAndSizeBlock}
+              {sleeveBlock}
+              {designBlock}
+              {hintsBlock}
 
-        <div className="option-label">Velikost</div>
-        <div className="option-row">
-          {FLAG_SIZES.map((s) => (
-            <button key={s} className={`option-chip${size === s ? " active" : ""}`} onClick={() => setSize(s)}>
-              {s}
-            </button>
-          ))}
-        </div>
-
-        <div className="option-label">
-          Provedení tunelu
-          <span className="info-tip" tabIndex={0}>
-            i
-            <span className="info-pop" role="tooltip">
-              HS znamená vyztužený tunel na tyč vlajky — vlajka drží tvar i za bezvětří. U typu HS vyrábíme
-              tunel pouze v černé nebo bílé barvě.
-            </span>
-          </span>
-        </div>
-        <div className="option-row">
-          <button className={`option-chip${!hs ? " active" : ""}`} onClick={() => setHs(false)}>
-            Standardní
-          </button>
-          <button className={`option-chip${hs ? " active" : ""}`} onClick={() => setHs(true)}>
-            HS — vyztužený
-          </button>
-        </div>
-        {hs && (
-          <div className="option-row" style={{ marginTop: 10 }}>
-            {(["black", "white"] as const).map((c) => (
-              <button key={c} className={`option-chip${sleeveColor === c ? " active" : ""}`} onClick={() => setSleeveColor(c)}>
-                Tunel {c === "black" ? "černý" : "bílý"}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div style={{ marginTop: 22 }}>
-          <button className={`btn-outline btn-design${design ? "" : " btn-design-required"}`} onClick={() => setEditorOpen(true)}>
-            <PenMark className="btn-mark" />
-            {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
-          </button>
-          {design && (
-            <button className="link-reset" onClick={() => setDesign(null)}>
-              Odebrat návrh
-            </button>
+              {product.description && (
+                <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
+                  {product.description}
+                </p>
+              )}
+            </>
           )}
         </div>
-        <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
-          {design
-            ? "Návrh je uložený a propíše se do objednávky."
-            : "Povinný krok — zadejte barvu podkladu a nahrajte logo, ať víme, jak má vlajka vypadat."}
-        </p>
 
-        {unitPrice <= 0 && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
-          </p>
+        {isMobile && step < MOBILE_STEPS.length - 1 && (
+          <div className="fc-step-nav">
+            {step > 0 ? (
+              <button type="button" className="fc-step-back" onClick={() => setStep(step - 1)}>
+                Zpět
+              </button>
+            ) : (
+              <span />
+            )}
+            <button type="button" className="btn-yellow" onClick={() => setStep(step + 1)}>
+              Pokračovat
+            </button>
+          </div>
         )}
-        {unitPrice > 0 && !design?.logoDataUrl && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Nejdřív navrhněte vlajku (barva podkladu + logo) — pak půjde přidat do košíku.
-          </p>
+        {isMobile && step === MOBILE_STEPS.length - 1 && (
+          <div className="fc-step-nav">
+            <button type="button" className="fc-step-back" onClick={() => setStep(step - 1)}>
+              Zpět
+            </button>
+          </div>
         )}
-
-        {product.description && (
-          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
-            {product.description}
-          </p>
-        )}
-      </div>
 
         <CtaBar
           qty={qty}
