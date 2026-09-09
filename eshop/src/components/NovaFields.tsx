@@ -86,7 +86,7 @@ const TILES: Tile[] = [
   },
   {
     id: "nuzkove-stany",
-    title: "Stany HEX",
+    title: "Nůžkové stany HEX",
     note: "Hexagonový hliník, rozložený za minutu, potisk střechy i stěn.",
     href: "/nuzkove-stany",
     cta: "Vybrat stan",
@@ -96,7 +96,7 @@ const TILES: Tile[] = [
   },
   {
     id: "nafukovaci-stany",
-    title: "Stany AIR",
+    title: "Nafukovací stany AIR",
     note: "Nafukovací konstrukce, postaví ji jeden člověk. Potisk stěn i střechy.",
     href: "/nafukovaci-stany",
     cta: "Vybrat stan",
