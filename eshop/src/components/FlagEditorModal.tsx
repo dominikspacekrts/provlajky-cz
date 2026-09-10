@@ -340,20 +340,23 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
             {!design.logoDataUrl && (
               <p className="editor-note editor-note-warn">Nahrajte prosím logo — bez něj návrh nejde uložit.</p>
             )}
-            <div className="editor-actions">
-              <button
-                className="btn-yellow"
-                disabled={!design.logoDataUrl}
-                onClick={() => {
-                  onSave(design);
-                  requestClose();
-                }}
-              >
-                Uložit návrh
-              </button>
-              <button className="btn-outline" onClick={requestClose}>Zrušit</button>
-            </div>
           </div>
+        </div>
+
+        {/* Pata panelu — mimo sloupec s volbami, aby "Uložit návrh" zůstalo
+            vidět i u HS vlajky, kde přibude barva tunelu a poznámka k ní. */}
+        <div className="editor-actions">
+          <button
+            className="btn-yellow"
+            disabled={!design.logoDataUrl}
+            onClick={() => {
+              onSave(design);
+              requestClose();
+            }}
+          >
+            Uložit návrh
+          </button>
+          <button className="btn-outline" onClick={requestClose}>Zrušit</button>
         </div>
       </div>
     </div>
