@@ -372,15 +372,32 @@ export default function CustomFlagConfigurator({
       className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}${isMobile ? " fc-page-steps" : ""}`}
     >
       <div className="fc-stage">
-        <FlagWave
-          shape="B"
-          classic
-          color={flagType === "custom" && design ? design.bgColor || "#e5e7eb" : "#e5e7eb"}
-          logoSrc={flagType === "custom" && !design ? "/logo/logo-tmave.png" : undefined}
-          logoPlate={flagType === "custom" && !design}
-          flagImageSrc={flagImageSrc}
-          wind={0.28}
-        />
+        {flagType === "state" ? (
+          <FlagWave
+            shape="B"
+            classic
+            color="#e5e7eb"
+            flagImageSrc={flagImageSrc}
+            wind={0.28}
+          />
+        ) : (
+          <div
+            className="banner-preview"
+            style={{ aspectRatio: `${Math.max(w, 1)} / ${Math.max(h, 1)}` }}
+          >
+            {designThumb ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={designThumb} alt="Náhled vlajky" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : design?.logoIsPdf ? (
+              <span className="banner-preview-hint">PDF nahráno</span>
+            ) : (
+              <span className="banner-preview-hint">Navrhněte vlastní vlajku</span>
+            )}
+            <span className="banner-preview-dims">
+              {w} × {h} cm
+            </span>
+          </div>
+        )}
         <FcContactLink />
       </div>
 

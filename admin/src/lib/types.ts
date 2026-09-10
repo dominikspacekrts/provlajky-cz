@@ -318,6 +318,12 @@ export type TentWallOption = { buySingle: number; buyDouble: number; sellSingle:
 export type TentWallsConfig = {
   baseBuy: number;
   baseSell: number;
+  /** Základ bez potisku střechy (frame + canopy). 0 = použít baseBuy/baseSell. */
+  stockBaseBuy?: number;
+  stockBaseSell?: number;
+  /** Příplatek za barvení rámu (výchozí 1000 / 2000). */
+  frameColorBuy?: number;
+  frameColorSell?: number;
   backWidthM: number;
   fullWallBack: TentWallOption;
   halfWallBack: TentWallOption;
