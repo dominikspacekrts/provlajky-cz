@@ -274,14 +274,18 @@ label:has(input[type="checkbox"]), .cb-line {
   font-variation-settings: "wght" 600, "wdth" 94;
 }
 
-/* volba jako hranatý štítek, vybraná se vyplní inkoustem */
+/* volba jako štítek s uříznutým rohem (echo tvaru vlajky/cedulky) místo
+   obyčejného zaobleného obdélníku — vybraná se vyplní inkoustem. Rohy se
+   při najetí prohodí, ať je znát, že to žije. */
 .option-chip {
   position: relative; isolation: isolate; overflow: hidden;
   display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
-  padding: 12px 18px; margin: 0 8px 8px 0; border: 1px solid var(--border); border-radius: 11px;
-  background: #fff; color: var(--ink); font-family: inherit; font-size: 13px;
+  padding: 11px 17px; margin: 0 6px 6px 0; border: 1px solid var(--border);
+  border-radius: 13px 3px 13px 3px;
+  background: #fff; color: var(--ink); font-family: inherit; font-size: 12.5px;
   font-variation-settings: "wght" 580, "wdth" 100;
-  transition: border-color 0.3s var(--nv-ease), color 0.3s var(--nv-ease), transform 0.25s var(--nv-ease), box-shadow 0.3s var(--nv-ease);
+  transition: border-color 0.3s var(--nv-ease), color 0.3s var(--nv-ease), transform 0.25s var(--nv-ease),
+    box-shadow 0.3s var(--nv-ease), border-radius 0.35s var(--nv-ease);
 }
 .option-chip::before {
   content: ""; position: absolute; inset: 0; z-index: -1;
@@ -289,7 +293,7 @@ label:has(input[type="checkbox"]), .cb-line {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
   transform: scaleY(0); transform-origin: 50% 100%; transition: transform 0.4s var(--nv-ease);
 }
-.option-chip:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -14px rgba(8, 8, 10, 0.4); }
+.option-chip:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -14px rgba(8, 8, 10, 0.4); border-radius: 3px 13px 3px 13px; }
 .option-chip:active { transform: translateY(0) scale(0.98); }
 .option-chip:hover { border-color: var(--ink); }
 .option-chip.active { color: #fff; border-color: var(--ink); }
@@ -298,13 +302,20 @@ label:has(input[type="checkbox"]), .cb-line {
 .shape-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .shape-btn {
   display: flex; align-items: center; justify-content: center; cursor: pointer;
-  width: 56px; height: 72px; padding: 7px; background: #fff;
-  border: 1px solid var(--border); border-radius: 12px;
-  transition: border-color 0.3s var(--nv-ease), background 0.3s var(--nv-ease), transform 0.25s var(--nv-ease), box-shadow 0.3s var(--nv-ease);
+  width: 46px; height: 58px; padding: 6px; background: #fff;
+  border: 1px solid var(--border); border-radius: 16px 5px 16px 5px;
+  transition: border-color 0.3s var(--nv-ease), background 0.3s var(--nv-ease), transform 0.25s var(--nv-ease),
+    box-shadow 0.3s var(--nv-ease), border-radius 0.35s var(--nv-ease);
 }
 .shape-btn svg { width: 100%; height: 100%; }
-.shape-btn:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 10px 22px -14px rgba(8, 8, 10, 0.4); }
-.shape-btn.active { border-color: var(--ink); background: var(--yellow); box-shadow: 0 10px 24px -12px rgba(255, 231, 1, 0.6); }
+.shape-btn:hover {
+  border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 10px 22px -14px rgba(8, 8, 10, 0.4);
+  border-radius: 5px 16px 5px 16px;
+}
+.shape-btn.active {
+  border-color: var(--ink); background: var(--yellow); box-shadow: 0 10px 24px -12px rgba(255, 231, 1, 0.6);
+  border-radius: 5px 16px 5px 16px;
+}
 
 .variant-select { max-width: 420px; }
 .qty-row { display: flex; align-items: center; gap: 14px; }
@@ -403,39 +414,48 @@ label:has(input[type="checkbox"]), .cb-line {
    konfigurátorů — text pod lištou prosvítal). */
 .fc-panel-scroll {
   flex: 1 1 auto; min-height: 0; overflow: hidden auto;
-  padding: clamp(24px, 3vw, 44px);
+  padding: clamp(18px, 2.4vw, 32px);
 }
+/* Cena, počet kusů a tlačítko do košíku v jednom řádku — dřív se tlačítko
+   zalamovalo pod cenu a lišta zbytečně rostla do výšky. Prvky jsou zmenšené
+   tak, aby se i s "Přidat do košíku" vešly vedle sebe i v užším panelu
+   (bez galerie realizací vedle). */
 .fc-cta {
   flex: none; position: relative; z-index: 5;
-  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
-  padding: 14px clamp(24px, 3vw, 44px) clamp(20px, 2.4vw, 32px);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: nowrap;
+  padding: 14px clamp(18px, 2.4vw, 32px) clamp(16px, 2vw, 24px);
   border-radius: 0 0 22px 22px;
   background: #f8f8f6;
   box-shadow: 0 -14px 22px -18px rgba(8, 8, 10, 0.28);
 }
 .fc-cta-price {
-  font-size: clamp(19px, 2vw, 24px); font-variation-settings: "wght" 700, "wdth" 108;
+  font-size: clamp(16px, 1.6vw, 20px); font-variation-settings: "wght" 700, "wdth" 108;
   letter-spacing: -0.02em; white-space: nowrap;
 }
 /* Počet kusů sedí v liště hned vedle ceny, protože ji přepočítává.
    Stepper je tu o kus menší než v těle panelu, ať se lišta nerozbují. */
-.fc-cta-main { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; min-width: 0; }
-.fc-cta .qty-stepper button { width: 34px; height: 34px; font-size: 16px; }
-.fc-cta .qty-stepper .qty-value { width: 38px; height: 34px; }
+.fc-cta-main { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; }
+.fc-cta .qty-stepper button { width: 28px; height: 30px; font-size: 15px; }
+.fc-cta .qty-stepper .qty-value { width: 30px; height: 30px; font-size: 13px; }
 /* Popisek pod částku na vlastní řádek — s jednotkovou cenou byl cenový
    sloupec tak široký, že se stepper a cena v panelu zalomily pod sebe. */
 .fc-cta-price { white-space: nowrap; }
 .fc-cta-price .vat {
   display: block; white-space: nowrap;
-  font-size: 12px; letter-spacing: 0;
+  font-size: 10.5px; letter-spacing: 0;
   font-variation-settings: "wght" 500, "wdth" 100;
   margin-top: 1px;
 }
-.fc-cta .btn-yellow { flex: none; }
+.fc-cta .btn-yellow { flex: none; padding: 14px 18px; font-size: 11px; letter-spacing: 0.09em; }
 /* Trochu hutnější odsazení možností uvnitř panelu, ať se toho vejde víc
    bez scrollu a k tlačítku je to blíž. */
-.fc-panel .option-row { padding: 16px 0; }
-.fc-panel .option-label { margin-bottom: 10px; }
+.fc-panel .option-row { padding: 10px 0; }
+.fc-panel .option-label { margin-bottom: 8px; }
+.fc-panel .shape-btn { width: 46px; height: 58px; }
+/* Tvary vlajky a velikosti drží jeden řádek i v nejužším panelu — proto
+   menší dlaždice tvarů (viz .shape-btn výš) a zákaz zalomení tady. */
+.fc-panel .shape-row { flex-wrap: nowrap; }
+.fc-panel .option-row-nowrap { flex-wrap: nowrap; }
 @media (max-width: 860px) {
   .fc-page { grid-template-columns: 1fr; height: auto; min-height: 0; }
   .fc-stage { height: 46vh; min-height: 280px; }
@@ -598,18 +618,73 @@ label:has(input[type="checkbox"]), .cb-line {
   animation: fc-lightbox-in 0.25s var(--nv-ease) both;
 }
 @keyframes fc-lightbox-in { from { opacity: 0; } to { opacity: 1; } }
-.fc-lightbox-img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.7); }
-.fc-lightbox-close {
-  position: absolute; top: clamp(12px, 3vw, 28px); right: clamp(12px, 3vw, 28px);
-  width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1;
-  transition: background 0.25s var(--nv-ease), transform 0.25s var(--nv-ease);
+.fc-lightbox-img {
+  max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.7);
+  animation: fc-lightbox-img-in 0.3s var(--nv-ease) both;
 }
-.fc-lightbox-close:hover { background: rgba(255, 255, 255, 0.2); transform: rotate(90deg); }
+@keyframes fc-lightbox-img-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: none; } }
+.fc-lightbox-close, .fc-lightbox-nav {
+  position: absolute; display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%; cursor: pointer; padding: 0;
+  transition: background 0.25s var(--nv-ease), transform 0.25s var(--nv-ease), border-color 0.25s var(--nv-ease);
+}
+.fc-lightbox-close svg, .fc-lightbox-nav svg {
+  width: 44%; height: 44%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.fc-lightbox-close {
+  top: clamp(12px, 3vw, 28px); right: clamp(12px, 3vw, 28px); width: 42px; height: 42px;
+}
+.fc-lightbox-close:hover { background: rgba(255, 255, 255, 0.2); border-color: #fff; transform: rotate(90deg); }
+/* Šipky na listování fotkami — vždycky svisle uprostřed, mimo dosah obrázku,
+   ať nikdy nepřekrývají to, co se zrovna prohlíží. */
+.fc-lightbox-nav {
+  top: 50%; width: 48px; height: 48px; transform: translateY(-50%);
+}
+.fc-lightbox-nav.is-prev { left: clamp(8px, 2.5vw, 24px); }
+.fc-lightbox-nav.is-next { right: clamp(8px, 2.5vw, 24px); }
+.fc-lightbox-nav:hover { background: rgba(255, 255, 255, 0.2); border-color: #fff; }
+.fc-lightbox-nav.is-prev:hover { transform: translateY(-50%) translateX(-3px); }
+.fc-lightbox-nav.is-next:hover { transform: translateY(-50%) translateX(3px); }
+.fc-lightbox-count {
+  position: absolute; bottom: clamp(12px, 3vw, 24px); left: 50%; transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.75); font-size: 12px; letter-spacing: 0.1em;
+  font-variation-settings: "wght" 600, "wdth" 96; font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px) {
+  .fc-lightbox-nav { width: 40px; height: 40px; }
+}
 @media (max-width: 1180px) {
   .fc-page-3col { grid-template-columns: minmax(0, 1.35fr) minmax(380px, 460px); }
   .fc-page-3col .fc-gallery { display: none; }
+}
+
+/* --- galerie na mobilu: úzká lišta čipů vlevo od vlající vlajky ------ */
+/* Sloupec s velkými náhledy by v horní půlce obrazovky nešel — místo něj
+   svislá řada malých kulatých čipů přilepená k levé hraně náhledu. Sedí ve
+   stejné grid buňce jako .fc-stage (viz pořadí v DOM — vykreslí se nad ní)
+   a otevírá stejný lightbox se šipkami jako na desktopu. */
+@media (max-width: 860px) {
+  .fc-page.fc-page-3col.fc-page-steps { grid-template-columns: 1fr; position: relative; }
+  /* position:absolute (ne grid placement) — jako grid položka by si nárokovala
+     vlastní buňku a rozhodila by řádky stage/panelu na tři místo dvou.
+     Takhle jede mimo grid tok a jen se vizuálně opře o levý horní roh. */
+  .fc-page.fc-page-3col.fc-page-steps .fc-gallery {
+    position: absolute; top: 8px; left: 8px; z-index: 6;
+    display: flex; flex-direction: column;
+    width: auto; max-height: 210px; margin: 0;
+    padding: 6px; gap: 0; border-radius: 18px 6px 18px 6px;
+    background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(14px) saturate(1.3);
+    box-shadow: 0 10px 26px -16px rgba(8, 8, 10, 0.35);
+    overflow: hidden auto; scrollbar-width: none; animation: none;
+  }
+  .fc-page.fc-page-3col.fc-page-steps .fc-gallery::-webkit-scrollbar { display: none; }
+  .fc-page.fc-page-3col.fc-page-steps .fc-gallery-head { display: none; }
+  .fc-page.fc-page-3col.fc-page-steps .fc-gallery-grid { flex-direction: column; gap: 6px; }
+  .fc-page.fc-page-3col.fc-page-steps .fc-gallery-item {
+    width: 34px; height: 34px; aspect-ratio: 1; border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 0 3px 10px -5px rgba(8, 8, 10, 0.5);
+  }
 }
 
 /* --- konfigurátor vlajek na zakázku --------------------------------- */
@@ -904,17 +979,21 @@ label:has(input[type="checkbox"]), .cb-line {
 .config-preview .tentgraphic { width: 88%; height: auto; }
 
 /* --- nápověda u pole ------------------------------------------------- */
-/* Nápověda je <span tabIndex>, ne <button> — rámeček proto nese sám .info-tip. */
+/* Nápověda je <span tabIndex>, ne <button> — rámeček proto nese sám .info-tip.
+   Předtím byl jen tenký obrys skoro neviditelné barvy — v praxi bylo znát
+   hlavně jeho spodní hrana, takže to vypadalo jako "i" nalepené na
+   podtržítko rovnou za textem popisku. Teď je to plný kroužek s vlastním
+   pozadím, jasně oddělený od textu, s ink-fill efektem jako u chipů. */
 .info-tip {
-  position: relative; isolation: isolate; z-index: 50;
+  position: relative; isolation: isolate; z-index: 50; margin-left: 2px;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 19px; height: 19px; flex: none; cursor: help;
-  border: 1px solid var(--border); color: var(--gray);
-  font-size: 10.5px; letter-spacing: 0; text-transform: none;
+  width: 20px; height: 20px; flex: none; cursor: help; border-radius: 50%;
+  border: 1px solid rgba(8, 8, 10, 0.16); background: rgba(8, 8, 10, 0.045); color: var(--gray);
+  font-size: 10.5px; line-height: 1; letter-spacing: 0; text-transform: none; font-style: italic;
   font-variation-settings: "wght" 660, "wdth" 100;
-  transition: border-color 0.25s var(--nv-ease), color 0.25s var(--nv-ease);
+  transition: border-color 0.25s var(--nv-ease), color 0.25s var(--nv-ease), background 0.25s var(--nv-ease);
 }
-.info-tip:hover, .info-tip:focus-visible { border-color: var(--ink); color: var(--ink); }
+.info-tip:hover, .info-tip:focus-visible { border-color: var(--ink); background: var(--ink); color: var(--yellow); }
 .info-pop {
   position: absolute; left: 0; top: calc(100% + 8px); z-index: 30; width: max-content; max-width: 280px;
   background: var(--ink); color: #fff; border-radius: 0; padding: 12px 14px;
