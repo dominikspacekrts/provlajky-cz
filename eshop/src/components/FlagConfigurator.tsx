@@ -248,7 +248,7 @@ export default function FlagConfigurator({
       </div>
 
       <div className="option-label">Velikost</div>
-      <div className="option-row">
+      <div className="option-row option-row-nowrap">
         {FLAG_SIZES.map((s) => (
           <button key={s} className={`option-chip${size === s ? " active" : ""}`} onClick={() => setSize(s)}>
             {s}
@@ -292,7 +292,7 @@ export default function FlagConfigurator({
 
   const designBlock = (
     <>
-      <div style={{ marginTop: 22 }}>
+      <div style={{ marginTop: 14 }}>
         <button className={`btn-outline btn-design${design ? "" : " btn-design-required"}`} onClick={() => setEditorOpen(true)}>
           <PenMark className="btn-mark" />
           {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
@@ -303,7 +303,7 @@ export default function FlagConfigurator({
           </button>
         )}
       </div>
-      <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
+      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
         {design
           ? "Návrh je uložený a propíše se do objednávky."
           : "Povinný krok — zadejte barvu podkladu a nahrajte logo, ať víme, jak má vlajka vypadat."}
@@ -314,12 +314,12 @@ export default function FlagConfigurator({
   const hintsBlock = (
     <>
       {unitPrice <= 0 && (
-        <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
           Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
         </p>
       )}
       {unitPrice > 0 && !design?.logoDataUrl && (
-        <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
+        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
           Nejdřív navrhněte vlajku (barva podkladu + logo) — pak půjde přidat do košíku.
         </p>
       )}
@@ -379,10 +379,10 @@ export default function FlagConfigurator({
           ) : (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
+              <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 14 }} />
 
-              <h1 style={{ fontSize: 28 }}>{product.name}</h1>
-              {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
+              <h1 style={{ fontSize: 23 }}>{product.name}</h1>
+              {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 4, fontSize: 13.5 }}>{product.subtitle}</p>}
 
               {shapeAndSizeBlock}
               {sleeveBlock}
@@ -390,7 +390,7 @@ export default function FlagConfigurator({
               {hintsBlock}
 
               {product.description && (
-                <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
+                <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
                   {product.description}
                 </p>
               )}
@@ -425,9 +425,9 @@ export default function FlagConfigurator({
           onQtyChange={setQty}
           unitPrice={unitPrice}
           disabled={unitPrice <= 0 || !design?.logoDataUrl}
-          // Na mobilu stojí tlačítko v jednom řádku s cenou a kusy, kde se
-          // delší popisek nevejde.
-          addLabel={isMobile ? "Do košíku" : "Přidat do košíku"}
+          // Lišta drží cenu, počet kusů i tlačítko v jednom řádku — kratší
+          // popisek se tam vejde na desktopu stejně jako na mobilu.
+          addLabel="Do košíku"
           onAdd={handleAdd}
         />
       </aside>
