@@ -361,6 +361,12 @@ label:has(input[type="checkbox"]), .cb-line {
   animation: fc-skeleton-pulse 1.8s ease-in-out infinite;
 }
 @keyframes fc-skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+/* Jakmile FlagWave dorazí a vloží plátno, obrys zmizí — jinak prosvítal
+   zpod hotové vlajky a vypadal jako stín pod ní. */
+.fc-stage:has(canvas) .fc-stage-shape {
+  animation: none; opacity: 0; visibility: hidden;
+  transition: opacity 0.4s var(--nv-ease), visibility 0.4s;
+}
 .fc-stage canvas { position: relative; z-index: 1; }
 
 /* Živý náhled stanu — fotka a přes ni předgenerované vrstvy stěn.
@@ -480,6 +486,9 @@ label:has(input[type="checkbox"]), .cb-line {
   .fc-page.fc-page-steps .fc-cta .btn-yellow {
     flex: 0 1 auto; padding: 14px 14px; font-size: 11px; letter-spacing: 0.08em; white-space: nowrap;
   }
+  /* Konfigurátor drží celou obrazovku, takže tmavá patička pod ním jen
+     mate — na telefonu ji tu neukazujeme. */
+  main:has(.fc-page-steps) + footer.nv-close { display: none; }
   .fc-page.fc-page-steps .fc-step-nav { padding: 8px 18px; }
   .fc-page.fc-page-steps .fc-step-nav .btn-yellow { padding: 13px 24px; }
   .fc-page.fc-page-steps .fc-cta .btn-yellow { flex: 1 1 auto; }
