@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCart } from "@/lib/cart";
 import {
@@ -28,7 +29,7 @@ import {
   flagPathD,
   type FlagDesign,
 } from "@/lib/flagShapes";
-import { CheckMark, PenMark } from "@/components/Icons";
+import { CheckMark, MailMark, PenMark } from "@/components/Icons";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
@@ -349,6 +350,13 @@ export default function FlagConfigurator({
           drawDesign={drawDesign}
           wind={0.3}
         />
+        {/* Plovoucí odkaz nad náhledem — nezabírá místo v panelu s kroky/volbami,
+            takže se nikde neřeže do "vejde se bez scrollu". Nová záložka, ať
+            zákazník při dotazu nepřijde o rozestavěný návrh vlajky. */}
+        <Link href="/kontakt" target="_blank" className="fc-contact-link">
+          <MailMark className="fc-contact-link-icon" />
+          <span>Kontaktujte nás</span>
+        </Link>
       </div>
 
       <aside className={`fc-panel reveal-stagger${isMobile ? " fc-panel-steps" : ""}`}>

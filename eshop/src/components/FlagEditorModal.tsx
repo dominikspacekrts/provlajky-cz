@@ -4,6 +4,7 @@
 // u HS vlajek barva tunelu. Náhled se kreslí přesně podle tvaru vlajky.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import type { FlagShape } from "@/lib/types";
 import {
   DEFAULT_DESIGN,
@@ -11,7 +12,7 @@ import {
   drawFlagCanvas,
   type FlagDesign,
 } from "@/lib/flagShapes";
-import { CloseMark, PaletteMark, UploadMark } from "@/components/Icons";
+import { CloseMark, MailMark, PaletteMark, UploadMark } from "@/components/Icons";
 
 const BG_PRESETS = ["#ffe701", "#ffffff", "#111111", "#e02020", "#0a54c2", "#0a8f3c", "#f97316", "#7c3aed"];
 
@@ -278,7 +279,13 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
       <div className={`editor-panel${closing ? " closing" : ""}`} role="dialog" aria-modal="true" aria-label="Editor vlastní vlajky" onClick={(e) => e.stopPropagation()}>
         <div className="editor-head">
           <h2>Navrhněte si vlastní vlajku</h2>
-          <button className="editor-close" onClick={requestClose} aria-label="Zavřít"><CloseMark /></button>
+          <div className="editor-head-actions">
+            <Link href="/kontakt" target="_blank" className="editor-contact-link">
+              <MailMark className="editor-contact-link-icon" />
+              <span>Kontakt</span>
+            </Link>
+            <button className="editor-close" onClick={requestClose} aria-label="Zavřít"><CloseMark /></button>
+          </div>
         </div>
 
         <div className="editor-body">
