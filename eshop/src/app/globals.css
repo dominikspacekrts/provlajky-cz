@@ -704,9 +704,35 @@ label:has(input[type="checkbox"]), .cb-line {
 .country-flag-mini { width: 24px; height: 18px; object-fit: cover; border: 1px solid var(--border); }
 
 .flag-upload, .editor-upload {
-  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  padding: 18px; border: 1px dashed var(--border); background: #fff;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; cursor: pointer;
+  padding: 18px; border: 1px dashed var(--border); border-radius: 14px; background: #fff;
+  transition: border-color 0.3s var(--nv-ease), background 0.3s var(--nv-ease),
+    transform 0.25s var(--nv-ease), box-shadow 0.3s var(--nv-ease);
 }
+.flag-upload:hover, .editor-upload:hover {
+  border-color: var(--ink); border-style: solid; background: #fafaf8;
+  transform: translateY(-1px); box-shadow: 0 10px 24px -16px rgba(8, 8, 10, 0.35);
+}
+.flag-upload:active, .editor-upload:active { transform: translateY(0); }
+/* Nahrání loga je jasně tlačítko: kulatý odznak s ikonou, který na hoveru
+   ožije (inkoust natáhne pozadí zespoda, ikona zbělá) — dřív to byl jen
+   tichý přerušovaný rámeček bez náznaku, že se na něj dá kliknout. */
+.editor-upload {
+  position: relative; isolation: isolate; overflow: hidden; font-size: 13px;
+  font-variation-settings: "wght" 600, "wdth" 100; letter-spacing: 0.02em;
+}
+.editor-upload::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; background: var(--ink);
+  transform: scaleY(0); transform-origin: 50% 100%; transition: transform 0.4s var(--nv-ease);
+}
+.editor-upload:hover::before { transform: scaleY(1); }
+.editor-upload:hover { color: #fff; border-color: var(--ink); box-shadow: 0 14px 30px -18px rgba(8, 8, 10, 0.5); }
+.editor-upload-icon {
+  width: 34px; height: 34px; flex: none; padding: 7px; border-radius: 50%;
+  background: rgba(8, 8, 10, 0.06); color: var(--ink);
+  transition: background 0.3s var(--nv-ease), color 0.3s var(--nv-ease), transform 0.35s var(--nv-ease);
+}
+.editor-upload:hover .editor-upload-icon { background: var(--yellow); color: var(--ink); transform: translateY(-2px); }
 .flag-packaging-note {
   margin-top: 14px; padding: 14px 16px; background: #fff;
   border-left: 2px solid var(--yellow); font-size: 13.5px; line-height: 1.6; color: var(--gray);
@@ -743,16 +769,24 @@ label:has(input[type="checkbox"]), .cb-line {
 .banner-preview-hint { margin-top: 12px; font-size: 12.5px; color: var(--gray); text-align: center; }
 
 /* --- editor vlastního návrhu ---------------------------------------- */
+/* Editor je vždy vysoký přesně jako dostupná výška obrazovky (backdrop
+   padding odečtený přes proměnnou) — hlavička a pata mají pevnou výšku,
+   tělo (--editor-pad) dostane zbytek a jeho sloupce se natáhnou přes celou
+   výšku řádku. Canvas pak škáluje na max-height:100 % svého sloupce místo
+   odhadu přes vh, takže se editor vejde na výšku bez vlastního scrollování
+   — dřív se u kratších oken celý panel i s patičkou "Uložit návrh" odscrolloval pryč. */
 .editor-backdrop {
+  --editor-pad: clamp(12px, 3vw, 40px);
   position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center;
-  padding: clamp(12px, 3vw, 40px); background: rgba(8, 8, 10, 0.6); backdrop-filter: blur(14px) saturate(1.2);
+  padding: var(--editor-pad); background: rgba(8, 8, 10, 0.6); backdrop-filter: blur(14px) saturate(1.2);
   animation: editor-backdrop-in 0.3s var(--nv-ease) both;
 }
 .editor-backdrop.closing { animation: editor-backdrop-out 0.22s var(--nv-ease) both; }
 @keyframes editor-backdrop-in { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; } }
 @keyframes editor-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
 .editor-panel {
-  width: min(1080px, 100%); max-height: 92vh; overflow: auto;
+  width: min(1080px, 100%); height: min(860px, calc(100svh - var(--editor-pad) * 2));
+  display: flex; flex-direction: column; overflow: hidden;
   background: rgba(250, 249, 245, 0.88); backdrop-filter: blur(26px) saturate(1.5);
   border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 22px;
   box-shadow: 0 60px 120px -40px rgba(8, 8, 10, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -765,6 +799,7 @@ label:has(input[type="checkbox"]), .cb-line {
   .editor-backdrop, .editor-backdrop.closing, .editor-panel, .editor-panel.closing { animation: none; }
 }
 .editor-head {
+  flex: none;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 20px clamp(18px, 3vw, 30px); background: var(--ink); color: #fff;
   border-radius: 22px 22px 0 0;
@@ -773,22 +808,31 @@ label:has(input[type="checkbox"]), .cb-line {
 .editor-close {
   width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
   background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1;
+  border-radius: 50%; cursor: pointer; padding: 0;
   transition: background 0.25s var(--nv-ease), color 0.25s var(--nv-ease), transform 0.25s var(--nv-ease);
 }
+.editor-close svg { width: 16px; height: 16px; }
 .editor-close:hover { transform: rotate(90deg); }
 .editor-close:hover { background: #fff; color: var(--ink); }
 .editor-body {
+  flex: 1 1 auto; min-height: 0;
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
   gap: 1px; background: rgba(8, 8, 10, 0.08);
 }
-.editor-preview { background: rgba(255, 255, 255, 0.55); padding: clamp(16px, 3vw, 32px); display: flex;
-  align-items: center; justify-content: center; min-height: 320px; }
+.editor-preview {
+  background: rgba(255, 255, 255, 0.55); padding: clamp(14px, 2.4vw, 28px);
+  display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0;
+}
 /* Canvas se kreslí na fixní vnitřní rozlišení (viz FLAG_H/TEXTURE_H) — bez tohohle
    by na malém displeji přetékal z panelu. Tažení/zvětšení počítá s poměrem
-   getBoundingClientRect() vs. canvas.width, takže zmenšené CSS rozměry nevadí. */
-.editor-preview canvas { max-width: 100%; max-height: min(70vh, 640px); width: auto; height: auto; display: block; }
-.editor-controls { background: rgba(255, 255, 255, 0.4); padding: clamp(18px, 3vw, 26px); }
+   getBoundingClientRect() vs. canvas.width, takže zmenšené CSS rozměry nevadí.
+   max-height/-width 100 % vychází ze skutečně dostupného místa ve sloupci
+   (ten má díky flex/grid vždy pevnou výšku), ne z odhadu přes vh. */
+.editor-preview canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
+.editor-controls {
+  background: rgba(255, 255, 255, 0.4); padding: clamp(16px, 2.2vw, 24px);
+  min-height: 0; overflow: hidden auto;
+}
 .editor-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch {
   width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
@@ -806,8 +850,9 @@ label:has(input[type="checkbox"]), .cb-line {
 .editor-hint, .editor-note { font-size: 12.5px; line-height: 1.6; color: var(--gray); margin-top: 12px; }
 .editor-note-warn { color: #b3540c; font-variation-settings: "wght" 600, "wdth" 100; }
 .editor-actions {
+  flex: none;
   display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
-  padding: 18px clamp(18px, 3vw, 30px); border-top: 1px solid rgba(8, 8, 10, 0.08);
+  padding: 14px clamp(18px, 3vw, 30px); border-top: 1px solid rgba(8, 8, 10, 0.08);
   background: rgba(255, 255, 255, 0.35); border-radius: 0 0 22px 22px;
 }
 
@@ -1030,9 +1075,14 @@ label:has(input[type="checkbox"]), .cb-line {
 .page-panel a.btn-outline:hover { color: #fff; }
 
 /* --- responzivita podstránek ------------------------------------------ */
-@media (max-width: 1000px) {
+@media (max-width: 1000px) and (min-width: 861px) {
   .configurator { grid-template-columns: 1fr; }
-  .editor-body { grid-template-columns: 1fr; }
+  /* Mezi mobilním a plným desktop rozložením (editor pod 861px řeší vlastní
+     media blok výš) se náhled a ovládání zalomí pod sebe — v jedné pevné
+     výšce panelu by se to bez scrollu nevešlo, tak tu tělo scrolluje samo. */
+  .editor-body { grid-template-columns: 1fr; overflow: hidden auto; }
+  .editor-preview { flex: none; min-height: 260px; }
+  .editor-preview canvas { max-height: 46vh; }
 }
 @media (max-width: 700px) {
   .form-grid { grid-template-columns: 1fr; }
