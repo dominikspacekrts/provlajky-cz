@@ -13,6 +13,8 @@ import TentWallsConfigurator from "./TentWallsConfigurator";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
 import { FlagMark } from "@/components/Icons";
+import { useConfiguratorLayout } from "@/lib/useConfiguratorLayout";
+import { AddedToCartDialog, FcContactLink, FcDesktopHeader } from "@/components/ConfiguratorChrome";
 
 export default function ProductDetail({
   product,
@@ -40,8 +42,9 @@ function SimpleProductDetail({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
+  const { isMobile, pageRef } = useConfiguratorLayout();
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
+  const [askNext, setAskNext] = useState(false);
 
   const unitPrice = useMemo(() => product.price, [product]);
   const shapeImage = product.images?.[0];
@@ -59,51 +62,51 @@ function SimpleProductDetail({
       vatRate: product.vat_rate,
       thumb: shapeImage || null,
     });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
+    setAskNext(true);
   }
 
   return (
-    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+    <div
+      ref={pageRef}
+      className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}${isMobile ? " fc-page-steps" : ""}`}
+    >
       <div className="fc-stage">
         {shapeImage ? (
           <Image src={shapeImage} alt={product.name} width={480} height={600} style={{ width: "100%", height: "100%", objectFit: "contain" }} unoptimized />
         ) : (
           <FlagMark className="thumb-empty" />
         )}
+        <FcContactLink />
       </div>
 
-      <aside className="fc-panel reveal-stagger">
-      <div className="fc-panel-scroll">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
-
-        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
-        {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
-        {unitPrice <= 0 && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
-          </p>
-        )}
-
-        {product.description && (
-          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
-            {product.description}
-          </p>
-        )}
-      </div>
+      <aside className={`fc-panel reveal-stagger${isMobile ? " fc-panel-steps" : ""}`}>
+        <div className="fc-panel-scroll">
+          <FcDesktopHeader name={product.name} subtitle={product.subtitle} />
+          {unitPrice <= 0 && (
+            <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
+              Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
+            </p>
+          )}
+          {product.description && (
+            <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+              {product.description}
+            </p>
+          )}
+        </div>
 
         <CtaBar
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
           disabled={unitPrice <= 0}
-          added={added}
+          addLabel="Do košíku"
           onAdd={handleAdd}
         />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
+
+      <AddedToCartDialog open={askNext} onClose={() => setAskNext(false)} summary={product.name} />
     </div>
   );
 }

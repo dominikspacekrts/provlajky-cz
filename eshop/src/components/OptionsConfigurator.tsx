@@ -1,14 +1,25 @@
 "use client";
 
 // Produkt s volbami (např. těžká základna dle hmotnosti). Uživatel vybere volbu,
-// cena se řídí prodejní cenou volby. Jednoduché — bez dopravy a nákladů.
+// cena se řídí prodejní cenou volby.
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import type { Product, ProductOption } from "@/lib/types";
+import { FlagMark } from "@/components/Icons";
+import { useConfiguratorLayout } from "@/lib/useConfiguratorLayout";
+import {
+  AddedToCartDialog,
+  FcContactLink,
+  FcDesktopHeader,
+  FcStepBody,
+  FcStepHeader,
+} from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+
+const MOBILE_STEPS = ["Varianta"] as const;
 
 export default function OptionsConfigurator({
   product,
@@ -18,12 +29,13 @@ export default function OptionsConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
+  const { isMobile, pageRef } = useConfiguratorLayout();
 
   const options = useMemo<ProductOption[]>(() => product.config?.options ?? [], [product]);
   const [optionId, setOptionId] = useState<string>(options[0]?.id ?? "");
   const selected = options.find((o) => o.id === optionId) ?? options[0];
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
+  const [askNext, setAskNext] = useState(false);
 
   const unitPrice = selected?.sellPrice ?? 0;
   const image = product.images?.[0];
@@ -44,12 +56,40 @@ export default function OptionsConfigurator({
       note: selected.label,
       optionId: selected.id,
     });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
+    setAskNext(true);
   }
 
+  const optionsBlock = (
+    <>
+      {options.length > 1 && (
+        <>
+          <div className="option-label">Hmotnost / varianta</div>
+          <div className="option-row">
+            {options.map((o) => (
+              <button
+                key={o.id}
+                className={`option-chip${selected?.id === o.id ? " active" : ""}`}
+                onClick={() => setOptionId(o.id)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {unitPrice <= 0 && (
+        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
+          Cena zatím není nastavená — napište nám na info@provlajky.cz.
+        </p>
+      )}
+    </>
+  );
+
   return (
-    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+    <div
+      ref={pageRef}
+      className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}${isMobile ? " fc-page-steps" : ""}`}
+    >
       <div className="fc-stage">
         {image ? (
           <Image
@@ -61,53 +101,52 @@ export default function OptionsConfigurator({
             unoptimized
           />
         ) : (
-          <span style={{ fontSize: 60 }}>🧰</span>
+          <FlagMark className="thumb-empty" />
         )}
+        <FcContactLink />
       </div>
 
-      <aside className="fc-panel reveal-stagger">
-      <div className="fc-panel-scroll">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
-
-        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
-        {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
-
-        {options.length > 1 && (
-          <>
-            <div className="option-label">Hmotnost / varianta</div>
-            <div className="option-row">
-              {options.map((o) => (
-                <button
-                  key={o.id}
-                  className={`option-chip${selected?.id === o.id ? " active" : ""}`}
-                  onClick={() => setOptionId(o.id)}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {product.description && (
-          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
-            {product.description}
-          </p>
-        )}
-      </div>
+      <aside className={`fc-panel reveal-stagger${isMobile ? " fc-panel-steps" : ""}`}>
+        <div className="fc-panel-scroll">
+          {isMobile ? (
+            <>
+              {options.length > 1 ? (
+                <FcStepHeader steps={MOBILE_STEPS} step={0} />
+              ) : (
+                <FcDesktopHeader name={product.name} subtitle={product.subtitle} />
+              )}
+              <FcStepBody step={0}>{optionsBlock}</FcStepBody>
+            </>
+          ) : (
+            <>
+              <FcDesktopHeader name={product.name} subtitle={product.subtitle} />
+              {optionsBlock}
+              {product.description && (
+                <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                  {product.description}
+                </p>
+              )}
+            </>
+          )}
+        </div>
 
         <CtaBar
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
           disabled={unitPrice <= 0}
-          added={added}
+          addLabel="Do košíku"
           onAdd={handleAdd}
         />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
+
+      <AddedToCartDialog
+        open={askNext}
+        onClose={() => setAskNext(false)}
+        summary={`${product.name}${selected ? ` · ${selected.label}` : ""}`}
+      />
     </div>
   );
 }

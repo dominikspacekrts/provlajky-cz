@@ -14,8 +14,19 @@ import {
 } from "@/lib/money";
 import type { Product } from "@/lib/types";
 import { PenMark } from "@/components/Icons";
+import { useConfiguratorLayout } from "@/lib/useConfiguratorLayout";
+import {
+  AddedToCartDialog,
+  FcContactLink,
+  FcDesktopHeader,
+  FcStepBody,
+  FcStepHeader,
+  FcStepNav,
+} from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+
+const MOBILE_STEPS = ["Materiál a rozměr", "Grafika"] as const;
 
 export default function BannerConfigurator({
   product,
@@ -25,6 +36,7 @@ export default function BannerConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
+  const { isMobile, pageRef } = useConfiguratorLayout();
 
   const banner = product.config?.banner;
   const [material, setMaterial] = useState<BannerMaterial>("pvc");
@@ -32,7 +44,8 @@ export default function BannerConfigurator({
   const [h, setH] = useState(100);
   const [qty, setQty] = useState(1);
   const [artwork, setArtwork] = useState<string | null>(null);
-  const [added, setAdded] = useState(false);
+  const [askNext, setAskNext] = useState(false);
+  const [step, setStep] = useState(0);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const pricing = banner?.[material];
@@ -42,7 +55,6 @@ export default function BannerConfigurator({
     [pricing, w, h]
   );
 
-  // Náhled drží poměr stran zadaného rozměru (max 360×260 px).
   const preview = useMemo(() => {
     const ratio = w > 0 && h > 0 ? w / h : 2;
     let pw = 360;
@@ -63,12 +75,10 @@ export default function BannerConfigurator({
     const reader = new FileReader();
     reader.onload = () => {
       const src = reader.result as string;
-      // PDF nejde vykreslit jako <img> náhled — uložíme ho rovnou jako přílohu bez rastrového náhledu.
       if (isPdf) {
         setArtwork(src);
         return;
       }
-      // Downscale SVG náhledu na ~1000 px delší strany kvůli velikosti v košíku.
       const img = new Image();
       img.onload = () => {
         const max = 1000;
@@ -103,15 +113,76 @@ export default function BannerConfigurator({
       note: `${w}×${h} cm (${m2.toFixed(2)} m²) · ${BANNER_MATERIAL_LABEL[material]}${
         artwork ? " · s grafikou" : " · grafiku dodáme ke schválení"
       }`,
-      // Grafiku předáme do objednávky přes design.thumb (route posílá jen design, ne thumb).
       design: artwork ? { thumb: artwork, source: "eshop" } : null,
     });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
+    setAskNext(true);
   }
 
+  const materialSizeBlock = (
+    <>
+      <div className="option-label">Materiál</div>
+      <div className="option-row">
+        {(["pvc", "mesh"] as const).map((mat) => (
+          <button
+            key={mat}
+            className={`option-chip${material === mat ? " active" : ""}`}
+            onClick={() => setMaterial(mat)}
+          >
+            {BANNER_MATERIAL_LABEL[mat]}
+          </button>
+        ))}
+      </div>
+      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
+        {material === "pvc"
+          ? "Plná PVC plachtovina 510 g/m² — univerzální, sytý potisk, oka po obvodu."
+          : "Mesh se síťovou strukturou propouští vítr — ideální na ploty a vysoké budovy."}
+      </p>
+
+      <div className="option-label">Rozměr banneru</div>
+      <div className="banner-dim-row">
+        <label>
+          Šířka (cm)
+          <input type="number" min={10} value={w} onChange={(e) => setW(Math.max(0, Number(e.target.value) || 0))} />
+        </label>
+        <span className="banner-dim-x">×</span>
+        <label>
+          Výška (cm)
+          <input type="number" min={10} value={h} onChange={(e) => setH(Math.max(0, Number(e.target.value) || 0))} />
+        </label>
+        <div className="banner-area">{m2.toFixed(2)} m²</div>
+      </div>
+    </>
+  );
+
+  const artworkBlock = (
+    <>
+      <div style={{ marginTop: isMobile ? 0 : 14 }}>
+        <button className="btn-outline btn-design" onClick={() => fileRef.current?.click()}>
+          <PenMark className="btn-mark" />
+          {artwork ? "Změnit grafiku" : "Nahrát vlastní grafiku"}
+        </button>
+        {artwork && (
+          <button className="link-reset" onClick={() => setArtwork(null)}>
+            Odebrat
+          </button>
+        )}
+      </div>
+      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
+        Grafika není podmínkou — pokud ji nenahrajete, připravíme návrh po objednávce a pošleme ke schválení.
+      </p>
+      {unitPrice <= 0 && (
+        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
+          Cena za m² pro tento materiál zatím není nastavená — napište nám na info@provlajky.cz.
+        </p>
+      )}
+    </>
+  );
+
   return (
-    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+    <div
+      ref={pageRef}
+      className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}${isMobile ? " fc-page-steps" : ""}`}
+    >
       <div className="fc-stage">
         <div
           className="banner-preview"
@@ -122,7 +193,7 @@ export default function BannerConfigurator({
         >
           {artwork ? (
             artwork.startsWith("data:application/pdf") ? (
-              <span className="banner-preview-hint">📄 PDF nahráno</span>
+              <span className="banner-preview-hint">PDF nahráno</span>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={artwork} alt="Náhled grafiky" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -144,87 +215,59 @@ export default function BannerConfigurator({
           hidden
           onChange={(e) => pickArtwork(e.target.files)}
         />
+        <FcContactLink />
       </div>
 
-      <aside className="fc-panel reveal-stagger">
-      <div className="fc-panel-scroll">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
-
-        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
-        {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
-
-        <div className="option-label">Materiál</div>
-        <div className="option-row">
-          {(["pvc", "mesh"] as const).map((mat) => (
-            <button
-              key={mat}
-              className={`option-chip${material === mat ? " active" : ""}`}
-              onClick={() => setMaterial(mat)}
-            >
-              {BANNER_MATERIAL_LABEL[mat]}
-            </button>
-          ))}
-        </div>
-        <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
-          {material === "pvc"
-            ? "Plná PVC plachtovina 510 g/m² — univerzální, sytý potisk, oka po obvodu."
-            : "Mesh se síťovou strukturou propouští vítr — ideální na ploty a vysoké budovy."}
-        </p>
-
-        <div className="option-label">Rozměr banneru</div>
-        <div className="banner-dim-row">
-          <label>
-            Šířka (cm)
-            <input type="number" min={10} value={w} onChange={(e) => setW(Math.max(0, Number(e.target.value) || 0))} />
-          </label>
-          <span className="banner-dim-x">×</span>
-          <label>
-            Výška (cm)
-            <input type="number" min={10} value={h} onChange={(e) => setH(Math.max(0, Number(e.target.value) || 0))} />
-          </label>
-          <div className="banner-area">{m2.toFixed(2)} m²</div>
-        </div>
-
-        <div style={{ marginTop: 18 }}>
-          <button className="btn-outline btn-design" onClick={() => fileRef.current?.click()}>
-            <PenMark className="btn-mark" />
-            {artwork ? "Změnit grafiku" : "Nahrát vlastní grafiku"}
-          </button>
-          {artwork && (
-            <button className="link-reset" onClick={() => setArtwork(null)}>
-              Odebrat
-            </button>
+      <aside className={`fc-panel reveal-stagger${isMobile ? " fc-panel-steps" : ""}`}>
+        <div className="fc-panel-scroll">
+          {isMobile ? (
+            <>
+              <FcStepHeader steps={MOBILE_STEPS} step={step} />
+              <FcStepBody step={step}>
+                {step === 0 && materialSizeBlock}
+                {step === 1 && artworkBlock}
+              </FcStepBody>
+            </>
+          ) : (
+            <>
+              <FcDesktopHeader name={product.name} subtitle={product.subtitle} />
+              {materialSizeBlock}
+              {artworkBlock}
+              {product.description && (
+                <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                  {product.description}
+                </p>
+              )}
+            </>
           )}
         </div>
-        <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 8, lineHeight: 1.5 }}>
-          Grafika není podmínkou — pokud ji nenahrajete, připravíme návrh po objednávce a pošleme ke schválení.
-        </p>
-        {unitPrice <= 0 && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Cena za m² pro tento materiál zatím není nastavená — napište nám na{" "}
-            <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.
-          </p>
-        )}
 
-        {product.description && (
-          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
-            {product.description}
-          </p>
+        {isMobile && (
+          <FcStepNav
+            step={step}
+            stepsCount={MOBILE_STEPS.length}
+            onBack={() => setStep(step - 1)}
+            onNext={() => setStep(step + 1)}
+          />
         )}
-      </div>
 
         <CtaBar
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
           disabled={unitPrice <= 0}
-          added={added}
+          addLabel="Do košíku"
           onAdd={handleAdd}
         />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
+
+      <AddedToCartDialog
+        open={askNext}
+        onClose={() => setAskNext(false)}
+        summary={`${product.name} · ${BANNER_MATERIAL_LABEL[material]} · ${w}×${h} cm`}
+      />
     </div>
   );
 }

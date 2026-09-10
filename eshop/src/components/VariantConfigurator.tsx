@@ -1,8 +1,7 @@
 "use client";
 
 // Konfigurátor variant (nůžkové/nafukovací stany, totemy, brány, díly).
-// Uživatel vybere variantu a rychlost dodání (do 14 dní / do 2 měsíců) — cenu
-// řídí prodejní cena nastavená v adminu. Doprava letecky/vlakem se nezobrazuje.
+// Uživatel vybere variantu a rychlost dodání (do 14 dní / do 2 měsíců).
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
@@ -21,6 +20,16 @@ import {
   type Product,
   type ProductVariant,
 } from "@/lib/types";
+import { FlagMark } from "@/components/Icons";
+import { useConfiguratorLayout } from "@/lib/useConfiguratorLayout";
+import {
+  AddedToCartDialog,
+  FcContactLink,
+  FcDesktopHeader,
+  FcStepBody,
+  FcStepHeader,
+  FcStepNav,
+} from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
 
@@ -34,9 +43,8 @@ export default function VariantConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
+  const { isMobile, pageRef } = useConfiguratorLayout();
 
-  // Když je zadaná velikost (split podle velikosti), zúžíme varianty jen na ni —
-  // rozbalovátko pak nabízí čistě konfiguraci stěn (jako HS u vlajek).
   const variants = useMemo<ProductVariant[]>(() => {
     const all = product.config?.variants ?? [];
     if (!size) return all;
@@ -48,9 +56,6 @@ export default function VariantConfigurator({
   const isNafukovaci = product.category === "nafukovaci-stany";
   const title = size ? `${product.name} ${size}` : product.name;
 
-  // Když je velikost už daná (viz filtr variants výš), je zbytečné ji
-  // opakovat v každém štítku ("3×3 m · rám + strop..." pro každou volbu) —
-  // ať jde vidět jen to, čím se možnosti liší.
   const stripSizePrefix = (label: string) =>
     size ? label.replace(new RegExp(`^\\s*${size.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*·\\s*`), "") : label;
 
@@ -62,10 +67,16 @@ export default function VariantConfigurator({
   const activeSpeed: DeliverySpeed = speeds.includes(speed) ? speed : speeds[0] ?? "fast";
 
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
+  const [askNext, setAskNext] = useState(false);
+  const [step, setStep] = useState(0);
 
   const unitPrice = selected ? variantSellPrice(selected, activeSpeed) : 0;
   const image = product.images?.[0];
+
+  const mobileSteps = useMemo(() => {
+    if (speeds.length > 0) return ["Varianta", "Dodání"] as const;
+    return ["Varianta"] as const;
+  }, [speeds.length]);
 
   function handleAdd() {
     if (!selected || unitPrice <= 0) return;
@@ -83,8 +94,7 @@ export default function VariantConfigurator({
       note: `${selected.label} · ${DELIVERY_LABEL[activeSpeed]}`,
       variantId: selected.id,
     });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
+    setAskNext(true);
   }
 
   if (variants.length === 0) {
@@ -101,8 +111,58 @@ export default function VariantConfigurator({
     );
   }
 
+  const variantBlock = (
+    <>
+      <div className="option-label">{isNuzkovy ? "Konfigurace stěn" : "Varianta"}</div>
+      <div className="option-row">
+        {variants.map((v) => (
+          <button
+            key={v.id}
+            className={`option-chip${selected?.id === v.id ? " active" : ""}`}
+            onClick={() => setVariantId(v.id)}
+          >
+            {stripSizePrefix(v.label)}
+          </button>
+        ))}
+      </div>
+      {unitPrice <= 0 && speeds.length === 0 && (
+        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
+          Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
+        </p>
+      )}
+    </>
+  );
+
+  const deliveryBlock = (
+    <>
+      <div className="option-label">Rychlost dodání</div>
+      <div className="option-row">
+        {speeds.map((s) => (
+          <button
+            key={s}
+            className={`option-chip${activeSpeed === s ? " active" : ""}`}
+            onClick={() => setSpeed(s)}
+          >
+            {DELIVERY_LABEL[s]} · {fmtMoney(variantSellPrice(selected, s))}
+          </button>
+        ))}
+      </div>
+      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 4, lineHeight: 1.45 }}>
+        Lhůta dodání běží od přijetí platby na náš účet.
+      </p>
+      {unitPrice <= 0 && (
+        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
+          Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
+        </p>
+      )}
+    </>
+  );
+
   return (
-    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+    <div
+      ref={pageRef}
+      className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}${isMobile ? " fc-page-steps" : ""}`}
+    >
       <div className="fc-stage">
         {(isNuzkovy || isNafukovaci) && selected ? (
           <Image
@@ -123,75 +183,61 @@ export default function VariantConfigurator({
             unoptimized
           />
         ) : (
-          <span style={{ fontSize: 60 }}>⛺</span>
+          <FlagMark className="thumb-empty" />
         )}
+        <FcContactLink />
       </div>
 
-      <aside className="fc-panel reveal-stagger">
-      <div className="fc-panel-scroll">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
-
-        <h1 style={{ fontSize: 28 }}>{title}</h1>
-        {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
-
-        <div className="option-label">{isNuzkovy ? "Konfigurace stěn" : "Varianta"}</div>
-        <div className="option-row">
-          {variants.map((v) => (
-            <button
-              key={v.id}
-              className={`option-chip${selected?.id === v.id ? " active" : ""}`}
-              onClick={() => setVariantId(v.id)}
-            >
-              {stripSizePrefix(v.label)}
-            </button>
-          ))}
+      <aside className={`fc-panel reveal-stagger${isMobile ? " fc-panel-steps" : ""}`}>
+        <div className="fc-panel-scroll">
+          {isMobile ? (
+            <>
+              <FcStepHeader steps={mobileSteps} step={step} />
+              <FcStepBody step={step}>
+                {step === 0 && variantBlock}
+                {step === 1 && speeds.length > 0 && deliveryBlock}
+              </FcStepBody>
+            </>
+          ) : (
+            <>
+              <FcDesktopHeader name={title} subtitle={product.subtitle} />
+              {variantBlock}
+              {speeds.length > 0 && deliveryBlock}
+              {product.description && (
+                <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                  {product.description}
+                </p>
+              )}
+            </>
+          )}
         </div>
 
-        {speeds.length > 0 && (
-          <>
-            <div className="option-label">Rychlost dodání</div>
-            <div className="option-row">
-              {speeds.map((s) => (
-                <button
-                  key={s}
-                  className={`option-chip${activeSpeed === s ? " active" : ""}`}
-                  onClick={() => setSpeed(s)}
-                >
-                  {DELIVERY_LABEL[s]} · {fmtMoney(variantSellPrice(selected, s))}
-                </button>
-              ))}
-            </div>
-            <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
-              Lhůta dodání běží od přijetí platby na náš účet.
-            </p>
-          </>
+        {isMobile && (
+          <FcStepNav
+            step={step}
+            stepsCount={mobileSteps.length}
+            onBack={() => setStep(step - 1)}
+            onNext={() => setStep(step + 1)}
+          />
         )}
-        {unitPrice <= 0 && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Pro tuto variantu zatím nemáme nastavenou cenu — napište nám na{" "}
-            <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.
-          </p>
-        )}
-
-        {product.description && (
-          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
-            {product.description}
-          </p>
-        )}
-      </div>
 
         <CtaBar
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
           disabled={unitPrice <= 0}
-          added={added}
+          addLabel="Do košíku"
           onAdd={handleAdd}
         />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
+
+      <AddedToCartDialog
+        open={askNext}
+        onClose={() => setAskNext(false)}
+        summary={`${title} · ${selected?.label ?? ""} · ${DELIVERY_LABEL[activeSpeed]}`}
+      />
     </div>
   );
 }
