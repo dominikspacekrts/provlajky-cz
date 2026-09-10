@@ -11,7 +11,7 @@ import {
   drawFlagCanvas,
   type FlagDesign,
 } from "@/lib/flagShapes";
-import { PaletteMark } from "@/components/Icons";
+import { CloseMark, PaletteMark, UploadMark } from "@/components/Icons";
 
 const BG_PRESETS = ["#ffe701", "#ffffff", "#111111", "#e02020", "#0a54c2", "#0a8f3c", "#f97316", "#7c3aed"];
 
@@ -278,7 +278,7 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
       <div className={`editor-panel${closing ? " closing" : ""}`} role="dialog" aria-modal="true" aria-label="Editor vlastní vlajky" onClick={(e) => e.stopPropagation()}>
         <div className="editor-head">
           <h2>Navrhněte si vlastní vlajku</h2>
-          <button className="editor-close" onClick={requestClose} aria-label="Zavřít">✕</button>
+          <button className="editor-close" onClick={requestClose} aria-label="Zavřít"><CloseMark /></button>
         </div>
 
         <div className="editor-body">
@@ -303,7 +303,8 @@ export default function FlagEditorModal({ shape, hs, sleeveColor, initial, onSle
             <div className="option-label" style={{ marginTop: 0 }}>Vaše logo</div>
             <label className="editor-upload">
               <input type="file" accept="image/svg+xml,.svg,application/pdf,.pdf" onChange={(e) => handleFile(e.target.files?.[0])} hidden />
-              {design.logoDataUrl ? "Nahrát jiné logo" : "Nahrát logo (SVG nebo PDF)"}
+              <UploadMark className="editor-upload-icon" />
+              <span>{design.logoDataUrl ? "Nahrát jiné logo" : "Nahrát logo (SVG nebo PDF)"}</span>
             </label>
 
             <div className="option-label">Barva pozadí</div>
