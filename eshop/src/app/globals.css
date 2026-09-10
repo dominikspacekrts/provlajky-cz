@@ -619,6 +619,38 @@ label:has(input[type="checkbox"]), .cb-line {
   font-size: 13px; line-height: 1.55;
 }
 .fc-tent-summary li { margin: 0 0 4px; }
+
+/* popis materiálu / stanů v konfigurátoru */
+.fc-material-card {
+  margin: 12px 0 4px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: rgba(8, 8, 10, 0.02);
+}
+.fc-material-card-title {
+  font-size: 13px; letter-spacing: 0.04em;
+  font-variation-settings: "wght" 650, "wdth" 96;
+}
+.fc-material-card-body {
+  margin: 6px 0 0; color: var(--gray);
+  font-size: 12.5px; line-height: 1.5;
+}
+.fc-product-blurb {
+  margin: 10px 0 4px; color: var(--gray);
+  font-size: 12.5px; line-height: 1.55;
+}
+.fc-delivery-row { align-items: stretch; }
+.fc-delivery-chip {
+  flex-direction: column; align-items: flex-start; gap: 2px;
+  padding-top: 10px; padding-bottom: 10px;
+}
+.fc-delivery-main { display: block; }
+.fc-delivery-hint {
+  display: block; font-size: 11px; line-height: 1.3;
+  letter-spacing: 0.02em; text-transform: none;
+  font-variation-settings: "wght" 500, "wdth" 100;
+  color: var(--gray); opacity: 0.9;
+}
+.fc-delivery-chip.active .fc-delivery-hint { color: rgba(255, 255, 255, 0.72); }
 /* Nižší monitor/okno (šířka OK, výška ne) — konfigurátor musí pořád jít
    vidět celý bez posouvání stránky; sevřenější odstupy v panelu udělají
    místo, ať je "Přidat do košíku" vidět bez scrollu i tady. */
