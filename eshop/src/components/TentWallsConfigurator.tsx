@@ -1,23 +1,24 @@
 "use client";
 
 // Nůžkový stan skládaný po stěnách: zákazník začíná se stanem jen se
-// střechou a u každé ze 4 stran (přední/zadní/levá boční/pravá boční) si
-// zvlášť přidá "celou stěnu" nebo "poloviční stěnu" (tlačítkem), u přidané
-// stěny zvolí jednostranný/oboustranný potisk a jde ji zase smazat (×).
-// Cena se u každého řádku i celkem počítá živě.
+// střechou a u každé ze 4 stran si přidá celou/poloviční stěnu a potisk.
 //
-// Přední a zadní stěna mají stejnou šířku (podle velikosti stanu — cfg.backWidthM),
-// boční stěny jsou vždy 3 m (hloubka je u všech velikostí stejná).
-//
-// Náhled je produktová fotka stanu bez stěn a přes ni předgenerované vrstvy
-// stěn (TentStage + tentLayers). Vrstvy nedělá generátor obrázků — ten scénu
-// mezi generacemi posouvá a čtyři strany od sebe nerozliší — ale skript
-// scripts/build-tent-walls.mjs, který si rohy změří přímo z fotky.
+// Desktop: vše najednou, zhuštěné řádky. Mobil: kroky
+// Střecha → Přední+zadní → Boční → Shrnutí (bez scrollu stránky).
 
 import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { Product, TentWallOption } from "@/lib/types";
+import { useConfiguratorLayout } from "@/lib/useConfiguratorLayout";
+import {
+  AddedToCartDialog,
+  FcContactLink,
+  FcDesktopHeader,
+  FcStepBody,
+  FcStepHeader,
+  FcStepNav,
+} from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
 import TentStage from "@/components/TentStage";
@@ -27,12 +28,14 @@ type WallType = "half" | "full";
 type Side = { type: WallType; double: boolean } | null;
 
 type PositionKey = "front" | "back" | "left" | "right";
-const POSITIONS: { key: PositionKey; label: string }[] = [
-  { key: "front", label: "Přední stěna" },
-  { key: "back", label: "Zadní stěna" },
-  { key: "left", label: "Levá boční stěna" },
-  { key: "right", label: "Pravá boční stěna" },
+const POSITIONS: { key: PositionKey; label: string; short: string }[] = [
+  { key: "front", label: "Přední stěna", short: "Přední" },
+  { key: "back", label: "Zadní stěna", short: "Zadní" },
+  { key: "left", label: "Levá boční stěna", short: "Levá" },
+  { key: "right", label: "Pravá boční stěna", short: "Pravá" },
 ];
+
+const MOBILE_STEPS = ["Střecha", "Přední a zadní", "Boční stěny", "Shrnutí"] as const;
 
 function optionFor(cfg: NonNullable<Product["config"]>["tentWalls"], key: PositionKey) {
   if (!cfg) return null;
@@ -53,22 +56,24 @@ function PositionRow({
   side,
   onChange,
   price,
+  compact,
 }: {
   label: string;
   side: Side;
   onChange: (next: Side) => void;
   price: number;
+  compact?: boolean;
 }) {
   if (!side) {
     return (
-      <div className="option-row" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div className={`fc-tent-row${compact ? " is-compact" : ""}`}>
+        <span className="fc-tent-row-label">{label}</span>
+        <div className="fc-tent-row-actions">
           <button className="option-chip" onClick={() => onChange({ type: "full", double: false })}>
-            + Celá stěna
+            + Celá
           </button>
           <button className="option-chip" onClick={() => onChange({ type: "half", double: false })}>
-            + Poloviční stěna
+            + Poloviční
           </button>
         </div>
       </div>
@@ -76,23 +81,23 @@ function PositionRow({
   }
 
   return (
-    <div className="option-row" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-        <span style={{ fontSize: 14, fontWeight: 600 }}>
-          {label} — {side.type === "full" ? "celá stěna" : "poloviční stěna"}
+    <div className={`fc-tent-row is-set${compact ? " is-compact" : ""}`}>
+      <div className="fc-tent-row-top">
+        <span className="fc-tent-row-label">
+          {label} — {side.type === "full" ? "celá" : "poloviční"}
         </span>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
-          <span style={{ fontSize: 13, color: "var(--gray)", whiteSpace: "nowrap" }}>+{fmtMoney(price)}</span>
+        <div className="fc-tent-row-meta">
+          <span className="fc-tent-row-price">+{fmtMoney(price)}</span>
           <button className="link-reset" onClick={() => onChange(null)} aria-label={`Odebrat ${label.toLowerCase()}`}>
-            ✕
+            Odebrat
           </button>
         </div>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div className="fc-tent-row-actions">
         {(
           [
-            [false, "Jednostranný potisk"],
-            [true, "Oboustranný potisk"],
+            [false, "Jednostranný"],
+            [true, "Oboustranný"],
           ] as const
         ).map(([double, text]) => (
           <button
@@ -116,12 +121,14 @@ export default function TentWallsConfigurator({
   galleryPhotos?: { id: string; image: string }[];
 }) {
   const { addLine } = useCart();
+  const { isMobile, pageRef } = useConfiguratorLayout();
 
   const cfg = product.config?.tentWalls;
   const [sides, setSides] = useState<Record<PositionKey, Side>>({ front: null, back: null, left: null, right: null });
   const [roofColor, setRoofColor] = useState<"black" | "white">("black");
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
+  const [askNext, setAskNext] = useState(false);
+  const [step, setStep] = useState(0);
   const image = product.images?.[0];
   const layers = layersForWidth(cfg?.backWidthM);
 
@@ -135,6 +142,14 @@ export default function TentWallsConfigurator({
     if (!cfg) return 0;
     return cfg.baseSell + POSITIONS.reduce((sum, p) => sum + priceByPosition[p.key], 0);
   }, [cfg, priceByPosition]);
+
+  const wallsNote = useMemo(() => {
+    const parts = POSITIONS.filter((p) => sides[p.key]).map((p) => {
+      const s = sides[p.key]!;
+      return `${p.label}: ${s.type === "full" ? "celá" : "poloviční"} (${s.double ? "oboustranný" : "jednostranný"})`;
+    });
+    return parts.length ? parts.join(" · ") : "jen střecha";
+  }, [sides]);
 
   function handleAdd() {
     if (!cfg || unitPrice <= 0) return;
@@ -157,8 +172,7 @@ export default function TentWallsConfigurator({
       thumb: image || null,
       note,
     });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
+    setAskNext(true);
   }
 
   if (!cfg) {
@@ -175,70 +189,176 @@ export default function TentWallsConfigurator({
     );
   }
 
+  const roofBlock = (
+    <>
+      <div className="option-label">Barva střechy (bez potisku)</div>
+      <div className="option-row">
+        {(["black", "white"] as const).map((c) => (
+          <button
+            key={c}
+            className={`option-chip${roofColor === c ? " active" : ""}`}
+            onClick={() => setRoofColor(c)}
+          >
+            {c === "black" ? "Černá" : "Bílá"}
+          </button>
+        ))}
+      </div>
+      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
+        Základní cena zahrnuje stan se střechou. Stěny přidáte v dalších krocích.
+      </p>
+    </>
+  );
+
+  const frontBackBlock = (
+    <>
+      <div className="option-label">Přední a zadní stěna</div>
+      {POSITIONS.filter((p) => p.key === "front" || p.key === "back").map((p) => (
+        <PositionRow
+          key={p.key}
+          label={isMobile ? p.short : p.label}
+          side={sides[p.key]}
+          price={priceByPosition[p.key]}
+          compact
+          onChange={(next) => setSides((cur) => ({ ...cur, [p.key]: next }))}
+        />
+      ))}
+    </>
+  );
+
+  const sidesBlock = (
+    <>
+      <div className="option-label">Boční stěny</div>
+      {POSITIONS.filter((p) => p.key === "left" || p.key === "right").map((p) => (
+        <PositionRow
+          key={p.key}
+          label={isMobile ? p.short : p.label}
+          side={sides[p.key]}
+          price={priceByPosition[p.key]}
+          compact
+          onChange={(next) => setSides((cur) => ({ ...cur, [p.key]: next }))}
+        />
+      ))}
+      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
+        Poloviční stěna už zahrnuje boční tyč, která ji drží.
+      </p>
+    </>
+  );
+
+  const summaryBlock = (
+    <>
+      <div className="option-label">Shrnutí</div>
+      <ul className="fc-tent-summary">
+        <li>
+          Střecha: {roofColor === "black" ? "černá" : "bílá"} (bez potisku)
+        </li>
+        {POSITIONS.map((p) => {
+          const s = sides[p.key];
+          return (
+            <li key={p.key}>
+              {p.label}:{" "}
+              {s
+                ? `${s.type === "full" ? "celá" : "poloviční"}, ${s.double ? "oboustranný" : "jednostranný"} potisk (+${fmtMoney(
+                    priceByPosition[p.key]
+                  )})`
+                : "bez stěny"}
+            </li>
+          );
+        })}
+      </ul>
+      {unitPrice <= 0 && (
+        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
+          Cena zatím není nastavená — napište nám na info@provlajky.cz.
+        </p>
+      )}
+    </>
+  );
+
+  const desktopWalls = (
+    <>
+      <div className="option-label">Stěny</div>
+      {POSITIONS.map((p) => (
+        <PositionRow
+          key={p.key}
+          label={p.label}
+          side={sides[p.key]}
+          price={priceByPosition[p.key]}
+          compact
+          onChange={(next) => setSides((cur) => ({ ...cur, [p.key]: next }))}
+        />
+      ))}
+      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 4, lineHeight: 1.45 }}>
+        Poloviční stěna už zahrnuje boční tyč, která ji drží. Kombinovat lze libovolně.
+      </p>
+    </>
+  );
+
   return (
-    <div className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}`}>
+    <div
+      ref={pageRef}
+      className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}${isMobile ? " fc-page-steps" : ""}`}
+    >
       <div className="fc-stage">
         <TentStage layers={layers} sides={sides} alt={product.name} />
+        <FcContactLink />
       </div>
 
-      <aside className="fc-panel reveal-stagger">
-      <div className="fc-panel-scroll">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 22 }} />
-
-        <h1 style={{ fontSize: 28 }}>{product.name}</h1>
-        {product.subtitle && <p style={{ color: "var(--gray)", marginTop: 8 }}>{product.subtitle}</p>}
-
-        <div className="option-label">Barva střechy (bez potisku)</div>
-        <div className="option-row">
-          {(["black", "white"] as const).map((c) => (
-            <button
-              key={c}
-              className={`option-chip${roofColor === c ? " active" : ""}`}
-              onClick={() => setRoofColor(c)}
-            >
-              {c === "black" ? "Černá" : "Bílá"}
-            </button>
-          ))}
+      <aside className={`fc-panel reveal-stagger${isMobile ? " fc-panel-steps" : ""}`}>
+        <div className="fc-panel-scroll">
+          {isMobile ? (
+            <>
+              <FcStepHeader steps={MOBILE_STEPS} step={step} />
+              <FcStepBody step={step}>
+                {step === 0 && roofBlock}
+                {step === 1 && frontBackBlock}
+                {step === 2 && sidesBlock}
+                {step === 3 && summaryBlock}
+              </FcStepBody>
+            </>
+          ) : (
+            <>
+              <FcDesktopHeader name={product.name} subtitle={product.subtitle} />
+              {roofBlock}
+              {desktopWalls}
+              {unitPrice <= 0 && (
+                <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
+                  Cena zatím není nastavená — napište nám na info@provlajky.cz.
+                </p>
+              )}
+              {product.description && (
+                <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                  {product.description}
+                </p>
+              )}
+            </>
+          )}
         </div>
 
-        <div className="option-label">Stěny</div>
-        {POSITIONS.map((p) => (
-          <PositionRow
-            key={p.key}
-            label={p.label}
-            side={sides[p.key]}
-            price={priceByPosition[p.key]}
-            onChange={(next) => setSides((cur) => ({ ...cur, [p.key]: next }))}
+        {isMobile && (
+          <FcStepNav
+            step={step}
+            stepsCount={MOBILE_STEPS.length}
+            onBack={() => setStep(step - 1)}
+            onNext={() => setStep(step + 1)}
           />
-        ))}
-        <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
-          Poloviční stěna už zahrnuje boční tyč, která ji drží. Kombinovat lze libovolně.
-        </p>
-        {unitPrice <= 0 && (
-          <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 10 }}>
-            Cena zatím není nastavená — napište nám na <a href="mailto:info@provlajky.cz">info@provlajky.cz</a>.
-          </p>
         )}
-
-        {product.description && (
-          <p style={{ color: "var(--gray)", marginTop: 24, lineHeight: 1.6, whiteSpace: "pre-line" }}>
-            {product.description}
-          </p>
-        )}
-      </div>
 
         <CtaBar
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
           disabled={unitPrice <= 0}
-          added={added}
+          addLabel="Do košíku"
           onAdd={handleAdd}
         />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
+
+      <AddedToCartDialog
+        open={askNext}
+        onClose={() => setAskNext(false)}
+        summary={`${product.name} · střecha ${roofColor === "black" ? "černá" : "bílá"} · ${wallsNote}`}
+      />
     </div>
   );
 }
