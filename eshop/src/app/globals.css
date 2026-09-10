@@ -443,6 +443,90 @@ label:has(input[type="checkbox"]), .cb-line {
     padding-bottom: 14px;
     box-shadow: 0 -10px 20px -14px rgba(8, 8, 10, 0.3);
   }
+
+  /* Krokový konfigurátor vlajek: obrazovka půl na půl. Nahoře vlající
+     vlajka, dole jeden krok, úplně na spodku cena a košík. Nic z toho
+     nescrolluje — posouvá se jen obsah kroku, když se nevejde. */
+  /* .fc-page-3col má vlastní grid v pozdějším media bloku, takže tohle
+     pravidlo musí mít vyšší specificitu, jinak by mobilní krokový layout
+     zůstal dvousloupcový a náhled by se scvrknul na pár pixelů. */
+  .fc-page.fc-page-steps {
+    grid-template-columns: minmax(0, 1fr);
+    /* Zhruba půl na půl; panel má o kousek víc, aby se do kroku vešly volby
+       i navigace bez scrollování v tak malém okně. */
+    grid-template-rows: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    /* Skutečnou výšku dopočítá komponenta podle toho, kde layout začíná;
+       tohle je jen rozumný odhad, než se to změří. */
+    height: calc(100svh - var(--nv-nav-h) - var(--nv-promo-h, 0px));
+    min-height: 480px;
+    gap: 10px; padding: 10px;
+  }
+  .fc-page.fc-page-steps .fc-stage { height: auto; min-height: 0; }
+  .fc-page.fc-page-steps .fc-panel { overflow: hidden; min-height: 0; }
+  /* basis 0, ne auto: obsah kroku se tak nikdy nepodepíše pod výšku panelu
+     a spodní lišta s cenou zůstane přesně na spodní hraně. */
+  .fc-page.fc-page-steps .fc-panel-scroll { flex: 1 1 0; min-height: 0; overflow: hidden auto; padding: 14px 18px 4px; }
+  .fc-page.fc-page-steps .fc-cta { position: static; border-radius: 0 0 22px 22px; padding: 10px 18px 14px; gap: 10px; }
+  .fc-page.fc-page-steps .fc-step-nav { padding: 8px 18px; }
+  .fc-page.fc-page-steps .fc-step-nav .btn-yellow { padding: 13px 24px; }
+  .fc-page.fc-page-steps .fc-cta .btn-yellow { flex: 1 1 auto; }
+}
+
+/* --- konfigurátor vlajek na mobilu: kroky --------------------------- */
+/* Hlavička kroku nese jeho název — samostatný nadpis by v půlce obrazovky
+   ujedl výšku, kterou potřebují samotné volby. */
+.fc-step-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  font-size: 15px; letter-spacing: -0.02em;
+  font-variation-settings: "wght" 660, "wdth" 108; color: var(--ink);
+}
+.fc-step-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-step-count {
+  flex: none; color: var(--gray);
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-variation-settings: "wght" 600, "wdth" 94;
+}
+/* Odpočet kroků: tři úseky, projeté zežloutnou. */
+.fc-step-bar { display: flex; gap: 4px; margin: 8px 0 2px; }
+.fc-step-bar i {
+  flex: 1; height: 3px; background: rgba(8, 8, 10, 0.12);
+  transition: background 0.4s var(--nv-ease);
+}
+.fc-step-bar i.is-done { background: var(--yellow); }
+.fc-step { animation: fc-step-in 0.42s var(--nv-ease-io) both; }
+@keyframes fc-step-in {
+  from { opacity: 0; transform: translateX(26px); }
+  to { opacity: 1; transform: none; }
+}
+.fc-step .option-row { padding: 8px 0; border-bottom: 0; }
+.fc-step .option-row:last-child { padding-bottom: 0; }
+.fc-step .option-label { margin-bottom: 6px; }
+/* Šest tvarů se na šířku telefonu nevejde, a zalomit je na druhý řádek by
+   sebralo výšku, kterou v půlce obrazovky nemáme — jedou tedy v jedné řadě
+   a přebytek se odscrolluje do strany. */
+.fc-step .shape-row {
+  flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.fc-step .shape-row::-webkit-scrollbar { display: none; }
+.fc-step .shape-btn { flex: none; width: 44px; height: 56px; scroll-snap-align: start; }
+.fc-step .option-chip { padding: 10px 15px; margin-bottom: 0; }
+
+.fc-step-nav {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 18px; border-top: 1px solid var(--border);
+}
+.fc-step-nav .btn-yellow { padding: 15px 26px; }
+.fc-step-back {
+  background: transparent; border: 0; cursor: pointer; padding: 12px 2px;
+  font: inherit; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-variation-settings: "wght" 600, "wdth" 96; color: var(--gray);
+  transition: color 0.3s var(--nv-ease);
+}
+.fc-step-back:hover, .fc-step-back:focus-visible { color: var(--ink); }
+@media (prefers-reduced-motion: reduce) {
+  .fc-step { animation: none; }
 }
 /* Nižší monitor/okno (šířka OK, výška ne) — konfigurátor musí pořád jít
    vidět celý bez posouvání stránky; sevřenější odstupy v panelu udělají
