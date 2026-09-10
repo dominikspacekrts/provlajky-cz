@@ -1,11 +1,13 @@
+import ContactForm from "@/components/ContactForm";
+
 export default function ContactPage() {
   return (
     <div className="container">
-      <div className="page-panel is-prose">
+      <div className="page-panel is-prose contact-page">
         <h1 style={{ fontSize: 30 }}>Kontaktujte nás</h1>
         <p style={{ color: "var(--gray)", marginTop: 16, lineHeight: 1.7 }}>
-          Máte dotaz k produktu, rozměru nebo termínu dodání? Ozvěte se nám telefonicky nebo e-mailem — odpovídáme
-          v pracovní dny.
+          Máte dotaz k produktu, rozměru nebo termínu dodání? Ozvěte se nám telefonicky, e-mailem, nebo napište
+          rovnou přes formulář — odpovídáme v pracovní dny.
         </p>
         <p style={{ marginTop: 24, lineHeight: 1.9 }}>
           <a href="tel:+420605981155">+420 605 981 155</a>
@@ -21,6 +23,9 @@ export default function ContactPage() {
           <br />
           IČO 25882201 · DIČ CZ25882201
         </p>
+
+        <h2 className="contact-form-title">Napište nám</h2>
+        <ContactForm />
       </div>
     </div>
   );
