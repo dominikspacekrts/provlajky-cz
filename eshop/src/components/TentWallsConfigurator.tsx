@@ -9,6 +9,7 @@
 import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
+import { TENT_PRODUCT_BLURB } from "@/lib/productCopy";
 import type { Product, TentWallOption } from "@/lib/types";
 import { useConfiguratorLayout } from "@/lib/useConfiguratorLayout";
 import {
@@ -308,7 +309,14 @@ export default function TentWallsConfigurator({
             <>
               <FcStepHeader steps={MOBILE_STEPS} step={step} />
               <FcStepBody step={step}>
-                {step === 0 && roofBlock}
+                {step === 0 && (
+                  <>
+                    {TENT_PRODUCT_BLURB["nuzkove-stany"] && (
+                      <p className="fc-product-blurb">{TENT_PRODUCT_BLURB["nuzkove-stany"]}</p>
+                    )}
+                    {roofBlock}
+                  </>
+                )}
                 {step === 1 && frontBackBlock}
                 {step === 2 && sidesBlock}
                 {step === 3 && summaryBlock}
@@ -317,6 +325,9 @@ export default function TentWallsConfigurator({
           ) : (
             <>
               <FcDesktopHeader name={product.name} subtitle={product.subtitle} />
+              {TENT_PRODUCT_BLURB["nuzkove-stany"] && (
+                <p className="fc-product-blurb">{TENT_PRODUCT_BLURB["nuzkove-stany"]}</p>
+              )}
               {roofBlock}
               {desktopWalls}
               {unitPrice <= 0 && (

@@ -7,12 +7,14 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import {
+  DELIVERY_HINT,
   DELIVERY_LABEL,
   fmtMoney,
   availableSpeeds,
   variantSellPrice,
   type DeliverySpeed,
 } from "@/lib/money";
+import { TENT_PRODUCT_BLURB } from "@/lib/productCopy";
 import {
   wallsFromVariant,
   tentRealImage,
@@ -136,14 +138,17 @@ export default function VariantConfigurator({
   const deliveryBlock = (
     <>
       <div className="option-label">Rychlost dodání</div>
-      <div className="option-row">
+      <div className="option-row fc-delivery-row">
         {speeds.map((s) => (
           <button
             key={s}
-            className={`option-chip${activeSpeed === s ? " active" : ""}`}
+            className={`option-chip fc-delivery-chip${activeSpeed === s ? " active" : ""}`}
             onClick={() => setSpeed(s)}
           >
-            {DELIVERY_LABEL[s]} · {fmtMoney(variantSellPrice(selected, s))}
+            <span className="fc-delivery-main">
+              {DELIVERY_LABEL[s]} · {fmtMoney(variantSellPrice(selected, s))}
+            </span>
+            <span className="fc-delivery-hint">{DELIVERY_HINT[s]}</span>
           </button>
         ))}
       </div>
@@ -157,6 +162,8 @@ export default function VariantConfigurator({
       )}
     </>
   );
+
+  const productBlurb = TENT_PRODUCT_BLURB[product.category];
 
   return (
     <div
@@ -194,13 +201,19 @@ export default function VariantConfigurator({
             <>
               <FcStepHeader steps={mobileSteps} step={step} />
               <FcStepBody step={step}>
-                {step === 0 && variantBlock}
+                {step === 0 && (
+                  <>
+                    {productBlurb && <p className="fc-product-blurb">{productBlurb}</p>}
+                    {variantBlock}
+                  </>
+                )}
                 {step === 1 && speeds.length > 0 && deliveryBlock}
               </FcStepBody>
             </>
           ) : (
             <>
               <FcDesktopHeader name={title} subtitle={product.subtitle} />
+              {productBlurb && <p className="fc-product-blurb">{productBlurb}</p>}
               {variantBlock}
               {speeds.length > 0 && deliveryBlock}
               {product.description && (

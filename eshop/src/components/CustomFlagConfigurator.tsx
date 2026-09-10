@@ -1,9 +1,10 @@
 "use client";
 
 // Konfigurátor „Vlajky na zakázku": typ (státní / vlastní grafika), materiál
-// za m², rozměr, typ + umístění oček, hustší oka +%, živý vlající náhled.
+// za m², rozměr, oka, a u vlastní grafiky obdélníkový editor jako u plážových.
 
-import { useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { customFlagPrice } from "@/lib/money";
 import type { Product, FlagMaterial } from "@/lib/types";
@@ -14,7 +15,9 @@ import {
   FLAG_PACKAGING_NOTE,
   type EyeletPlacement,
 } from "@/lib/flagOptions";
+import { makeRectThumb, type RectDesign } from "@/lib/rectDesign";
 import FlagWave from "./FlagWave";
+import { PenMark } from "@/components/Icons";
 import { useConfiguratorLayout } from "@/lib/useConfiguratorLayout";
 import {
   AddedToCartDialog,
@@ -27,9 +30,11 @@ import {
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
 
+const RectDesignEditor = dynamic(() => import("./RectDesignEditor"), { ssr: false });
+
 type FlagType = "state" | "custom";
 
-const MOBILE_STEPS = ["Typ, materiál, rozměr", "Oka", "Grafika / země"] as const;
+const MOBILE_STEPS = ["Typ, materiál, rozměr", "Oka", "Návrh / země"] as const;
 
 const norm = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -58,8 +63,9 @@ export default function CustomFlagConfigurator({
   const [countryQuery, setCountryQuery] = useState("");
   const [countryOpen, setCountryOpen] = useState(false);
 
-  const [upload, setUpload] = useState<{ dataUrl: string | null; name: string; isImage: boolean } | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [design, setDesign] = useState<RectDesign | null>(null);
+  const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const [w, setW] = useState(100);
   const [h, setH] = useState(100);
@@ -82,14 +88,24 @@ export default function CustomFlagConfigurator({
     return list.slice(0, 60);
   }, [countryQuery]);
 
+  useEffect(() => {
+    if (!design?.logoDataUrl || design.logoIsPdf) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLogoImg(null);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => setLogoImg(img);
+    img.src = design.logoDataUrl;
+  }, [design?.logoDataUrl, design?.logoIsPdf]);
+
+  const designThumb = useMemo(() => {
+    if (flagType !== "custom" || !design || design.logoIsPdf) return null;
+    return makeRectThumb(design, logoImg, w, h);
+  }, [flagType, design, logoImg, w, h]);
+
   const flagImageSrc =
-    flagType === "state"
-      ? country
-        ? flagSrc(country.code)
-        : null
-      : upload?.isImage
-      ? upload.dataUrl
-      : null;
+    flagType === "state" ? (country ? flagSrc(country.code) : null) : designThumb;
 
   const eyeletLabel = EYELET_TYPES.find((e) => e.id === eyeletType)?.label ?? "";
 
@@ -102,17 +118,6 @@ export default function CustomFlagConfigurator({
       else next.add(p);
       return next;
     });
-  }
-
-  function pickUpload(files: FileList | null) {
-    const file = files?.[0];
-    if (!file) return;
-    const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
-    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-    if (!isSvg && !isPdf) return;
-    const reader = new FileReader();
-    reader.onload = () => setUpload({ dataUrl: reader.result as string, name: file.name, isImage: isSvg });
-    reader.readAsDataURL(file);
   }
 
   function selectCountry(c: Country) {
@@ -129,18 +134,24 @@ export default function CustomFlagConfigurator({
 
   function handleAdd() {
     if (unitPrice <= 0 || !material) return;
+    if (flagType === "custom" && !design?.logoDataUrl) return;
     const subject =
       flagType === "state"
         ? country
           ? `Státní vlajka – ${country.name}`
           : "Státní vlajka"
-        : upload
-        ? `Vlastní grafika – ${upload.name}`
-        : "Vlastní grafika (dodáme ke schválení)";
+        : design
+        ? "Vlastní grafika z editoru"
+        : "Vlastní grafika";
     const note = `${subject} · ${material.label} · ${w}×${h} cm · oka: ${eyeletLabel} (${placementText()})${
       dense ? ` · hustší oka +${surcharge}%` : ""
     }`;
-    const thumb = flagType === "state" ? (country ? flagSrc(country.code) : null) : upload?.dataUrl ?? null;
+    const thumb =
+      flagType === "state"
+        ? country
+          ? flagSrc(country.code)
+          : null
+        : makeRectThumb(design!, logoImg, w, h);
     addLine({
       productId: product.id,
       productSlug: product.slug,
@@ -156,7 +167,31 @@ export default function CustomFlagConfigurator({
       widthCm: w,
       heightCm: h,
       material: material?.id ?? null,
-      design: upload?.isImage && upload.dataUrl ? { thumb: upload.dataUrl, source: "eshop" } : null,
+      design:
+        flagType === "custom" && design
+          ? {
+              bgColor: design.bgColor,
+              thumb,
+              source: "eshop",
+              logo: design.logoDataUrl
+                ? {
+                    src: design.logoDataUrl,
+                    x: design.logoX - design.logoScale / 2,
+                    y: design.logoY - design.logoScale / 2,
+                    w: design.logoScale,
+                    h: design.logoScale,
+                    rotation: design.logoRotation || 0,
+                  }
+                : null,
+              eshop: {
+                logoX: design.logoX,
+                logoY: design.logoY,
+                logoScale: design.logoScale,
+                shape: "D",
+                hs: false,
+              },
+            }
+          : null,
     });
     setAskNext(true);
   }
@@ -168,8 +203,11 @@ export default function CustomFlagConfigurator({
         <button className={`option-chip${flagType === "state" ? " active" : ""}`} onClick={() => setFlagType("state")}>
           Státní vlajka
         </button>
-        <button className={`option-chip${flagType === "custom" ? " active" : ""}`} onClick={() => setFlagType("custom")}>
-          Vlajka s vlastní grafikou
+        <button
+          className={`option-chip${flagType === "custom" ? " active" : ""}`}
+          onClick={() => setFlagType("custom")}
+        >
+          Vlastní grafika
         </button>
       </div>
 
@@ -296,23 +334,25 @@ export default function CustomFlagConfigurator({
         </>
       ) : (
         <>
-          <div className="option-label">Nahrát design vlajky nebo logo</div>
-          <div
-            className="flag-upload"
-            onClick={() => fileRef.current?.click()}
-            role="button"
-            tabIndex={0}
-          >
-            {upload ? <span>{upload.name}</span> : <span>Přetáhněte soubory sem nebo <u>procházejte</u></span>}
+          <div style={{ marginTop: isMobile ? 0 : 4 }}>
+            <button
+              className={`btn-outline btn-design${design ? "" : " btn-design-required"}`}
+              onClick={() => setEditorOpen(true)}
+            >
+              <PenMark className="btn-mark" />
+              {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
+            </button>
+            {design && (
+              <button className="link-reset" onClick={() => setDesign(null)}>
+                Odebrat návrh
+              </button>
+            )}
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/svg+xml,.svg,application/pdf,.pdf"
-            hidden
-            onChange={(e) => pickUpload(e.target.files)}
-          />
-          <p className="editor-note">Maximální velikost souboru 20 MB. Podporovaný formát: SVG nebo PDF.</p>
+          <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
+            {design
+              ? "Návrh je uložený a propíše se do objednávky."
+              : "Povinný krok — nahrajte logo nebo celoplošnou grafiku. Barvu pozadí řešte jen když ji potřebujete."}
+          </p>
         </>
       )}
       {unitPrice <= 0 && (
@@ -323,6 +363,9 @@ export default function CustomFlagConfigurator({
     </>
   );
 
+  const canAdd =
+    unitPrice > 0 && (flagType === "state" || Boolean(design?.logoDataUrl));
+
   return (
     <div
       ref={pageRef}
@@ -332,9 +375,9 @@ export default function CustomFlagConfigurator({
         <FlagWave
           shape="B"
           classic
-          color="#e5e7eb"
-          logoSrc={flagType === "custom" && !upload?.isImage ? "/logo/logo-tmave.png" : undefined}
-          logoPlate={flagType === "custom" && !upload?.isImage}
+          color={flagType === "custom" && design ? design.bgColor || "#e5e7eb" : "#e5e7eb"}
+          logoSrc={flagType === "custom" && !design ? "/logo/logo-tmave.png" : undefined}
+          logoPlate={flagType === "custom" && !design}
           flagImageSrc={flagImageSrc}
           wind={0.28}
         />
@@ -358,11 +401,6 @@ export default function CustomFlagConfigurator({
               {typeMaterialSizeBlock}
               {graphicsBlock}
               {eyeletsBlock}
-              {unitPrice <= 0 && (
-                <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
-                  Cena za m² pro tento materiál zatím není nastavená — napište nám na info@provlajky.cz.
-                </p>
-              )}
             </>
           )}
         </div>
@@ -380,13 +418,24 @@ export default function CustomFlagConfigurator({
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
-          disabled={unitPrice <= 0}
+          disabled={!canAdd}
           addLabel="Do košíku"
           onAdd={handleAdd}
         />
       </aside>
 
       <ConfiguratorGallery photos={galleryPhotos ?? []} />
+
+      {editorOpen && (
+        <RectDesignEditor
+          title="Navrhněte si vlastní vlajku"
+          widthCm={w}
+          heightCm={h}
+          initial={design}
+          onSave={setDesign}
+          onClose={() => setEditorOpen(false)}
+        />
+      )}
 
       <AddedToCartDialog
         open={askNext}

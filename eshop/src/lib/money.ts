@@ -16,8 +16,13 @@ export function minSizePrice(priceBySize: Product["price_by_size"]) {
 export type DeliverySpeed = "fast" | "slow"; // fast = do 14 dní (letecky), slow = do 2 měsíců (vlakem)
 
 export const DELIVERY_LABEL: Record<DeliverySpeed, string> = {
-  fast: "Expresní doručení (do 14 dní)",
-  slow: "Economy doručení (do 2 měsíců)",
+  fast: "Expresní doručení",
+  slow: "Economy doručení",
+};
+
+export const DELIVERY_HINT: Record<DeliverySpeed, string> = {
+  fast: "do 14 dní",
+  slow: "do 2 měsíců",
 };
 
 export function variantSellPrice(v: ProductVariant, speed: DeliverySpeed): number {
@@ -42,8 +47,8 @@ export function minVariantSell(variants: ProductVariant[] | undefined): number |
 export type BannerMaterial = "pvc" | "mesh";
 
 export const BANNER_MATERIAL_LABEL: Record<BannerMaterial, string> = {
-  pvc: "PVC plachtovina",
-  mesh: "Mesh (síťovina)",
+  pvc: "Frontlit 500 B1",
+  mesh: "Easy Mesh 270",
 };
 
 // Plocha v m² ze zadaných centimetrů (min. účtovaná 0,25 m²).
