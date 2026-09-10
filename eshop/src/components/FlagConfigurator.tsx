@@ -425,7 +425,9 @@ export default function FlagConfigurator({
           onQtyChange={setQty}
           unitPrice={unitPrice}
           disabled={unitPrice <= 0 || !design?.logoDataUrl}
-          addLabel="Přidat do košíku"
+          // Na mobilu stojí tlačítko v jednom řádku s cenou a kusy, kde se
+          // delší popisek nevejde.
+          addLabel={isMobile ? "Do košíku" : "Přidat do košíku"}
           onAdd={handleAdd}
         />
       </aside>
