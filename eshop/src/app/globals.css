@@ -671,19 +671,30 @@ label:has(input[type="checkbox"]), .cb-line {
      Takhle jede mimo grid tok a jen se vizuálně opře o levý horní roh. */
   .fc-page.fc-page-3col.fc-page-steps .fc-gallery {
     position: absolute; top: 8px; left: 8px; z-index: 6;
-    display: flex; flex-direction: column;
-    width: auto; max-height: 210px; margin: 0;
-    padding: 6px; gap: 0; border-radius: 18px 6px 18px 6px;
-    background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(14px) saturate(1.3);
+    display: flex; flex-direction: column; align-items: center;
+    /* --fc-stage-h dopočítá FlagConfigurator podle skutečné výšky náhledu
+       (viz komentář u "fit" v komponentě) — na malých telefonech je stage
+       nižší, a bez týhle vazby by lišta s velkými čipy přerostla přes
+       náhled až do panelu pod ním. 260px je jen záložní odhad před prvním
+       změřením. */
+    width: auto; max-height: calc(var(--fc-stage-h, 260px) - 16px); margin: 0;
+    padding: 8px; gap: 0; border-radius: 20px 6px 20px 6px;
+    background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(14px) saturate(1.3);
     box-shadow: 0 10px 26px -16px rgba(8, 8, 10, 0.35);
     overflow: hidden auto; scrollbar-width: none; animation: none;
   }
   .fc-page.fc-page-3col.fc-page-steps .fc-gallery::-webkit-scrollbar { display: none; }
-  .fc-page.fc-page-3col.fc-page-steps .fc-gallery-head { display: none; }
-  .fc-page.fc-page-3col.fc-page-steps .fc-gallery-grid { flex-direction: column; gap: 6px; }
+  /* Bez nadpisu byly čipy jen naházené kroužky bez vysvětlení, co jsou zač
+     — krátký, zalomený titulek nad nimi (stejný text jako na desktopu,
+     jen užší sloupec) to objasní i v téhle zmenšené liště. */
+  .fc-page.fc-page-3col.fc-page-steps .fc-gallery-head {
+    display: block; width: 56px; margin: 0 0 7px; text-align: center;
+    font-size: 8.5px; line-height: 1.3; letter-spacing: 0.08em;
+  }
+  .fc-page.fc-page-3col.fc-page-steps .fc-gallery-grid { flex-direction: column; gap: 7px; }
   .fc-page.fc-page-3col.fc-page-steps .fc-gallery-item {
-    width: 34px; height: 34px; aspect-ratio: 1; border-radius: 50%;
-    border: 1.5px solid rgba(255, 255, 255, 0.85); box-shadow: 0 3px 10px -5px rgba(8, 8, 10, 0.5);
+    width: 48px; height: 48px; aspect-ratio: 1; border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.9); box-shadow: 0 4px 12px -5px rgba(8, 8, 10, 0.55);
   }
 }
 

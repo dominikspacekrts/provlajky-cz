@@ -97,6 +97,12 @@ export default function FlagConfigurator({
       const top = el.getBoundingClientRect().top;
       const next = Math.max(480, Math.round(window.innerHeight - top - 8));
       if (Math.abs(parseFloat(el.style.height || "0") - next) > 1) el.style.height = `${next}px`;
+      // Lišta s galerií realizací (viz .fc-gallery v CSS) sedí přes roh
+      // náhledu vlajky a nesmí přerůst jeho skutečnou výšku — ta se ale
+      // odvíjí od zlomku téhle měřené výšky (grid-template-rows), takže ji
+      // dopočítáme až tady a dáme configurátoru k dispozici jako proměnnou.
+      const stage = el.querySelector<HTMLElement>(".fc-stage");
+      if (stage) el.style.setProperty("--fc-stage-h", `${Math.round(stage.getBoundingClientRect().height)}px`);
     };
     fit();
     // Lišta a promo pruh nad konfigurátorem se dorovnávají až po mountu
