@@ -651,6 +651,27 @@ label:has(input[type="checkbox"]), .cb-line {
   color: var(--gray); opacity: 0.9;
 }
 .fc-delivery-chip.active .fc-delivery-hint { color: rgba(255, 255, 255, 0.72); }
+
+/* skladové barvy stanů */
+.fc-color-swatches {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;
+}
+.fc-color-swatch {
+  position: relative; width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid rgba(8, 8, 10, 0.12); cursor: pointer; padding: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  transition: transform 0.2s var(--nv-ease), box-shadow 0.2s var(--nv-ease);
+}
+.fc-color-swatch:hover { transform: translateY(-1px); }
+.fc-color-swatch.active {
+  box-shadow: 0 0 0 2px var(--ink), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+.fc-color-swatch-label {
+  position: absolute; left: 50%; bottom: -16px; transform: translateX(-50%);
+  font-size: 9px; letter-spacing: 0.04em; color: var(--gray); white-space: nowrap;
+  pointer-events: none;
+}
+.fc-color-swatches { margin-bottom: 18px; }
 /* Nižší monitor/okno (šířka OK, výška ne) — konfigurátor musí pořád jít
    vidět celý bez posouvání stránky; sevřenější odstupy v panelu udělají
    místo, ať je "Přidat do košíku" vidět bez scrollu i tady. */
@@ -852,6 +873,8 @@ label:has(input[type="checkbox"]), .cb-line {
 .banner-preview {
   position: relative; background: #fff; border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center; overflow: hidden;
+  max-width: min(92%, 480px); max-height: min(88%, 520px);
+  width: auto; height: auto;
 }
 .banner-preview-dims {
   position: absolute; left: 12px; bottom: 10px; font-size: 11px; letter-spacing: 0.1em;
@@ -927,14 +950,23 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 .editor-preview {
   background: rgba(255, 255, 255, 0.55); padding: clamp(14px, 2.4vw, 28px);
-  display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; min-height: 0; min-width: 0;
 }
-/* Canvas se kreslí na fixní vnitřní rozlišení (viz FLAG_H/TEXTURE_H) — bez tohohle
-   by na malém displeji přetékal z panelu. Tažení/zvětšení počítá s poměrem
-   getBoundingClientRect() vs. canvas.width, takže zmenšené CSS rozměry nevadí.
-   max-height/-width 100 % vychází ze skutečně dostupného místa ve sloupci
-   (ten má díky flex/grid vždy pevnou výšku), ne z odhadu přes vh. */
-.editor-preview canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; display: block; }
+.editor-preview-stage {
+  flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Canvas má intrinsický poměr stran z pixelů — nesmí se roztáhnout na obě osy. */
+.editor-preview canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  flex: none;
+}
 .editor-controls {
   background: rgba(255, 255, 255, 0.4); padding: clamp(16px, 2.2vw, 24px);
   min-height: 0; overflow: hidden auto;
@@ -984,11 +1016,11 @@ label:has(input[type="checkbox"]), .cb-line {
     flex: 1 1 auto; min-height: 0;
     grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto;
   }
-  /* Popisek patří pod plachtu, ne vedle ní — .editor-preview je flex řádek,
-     takže na úzkém displeji text ležel přes vlajku. */
+  /* Popisek patří pod plachtu, ne vedle ní. */
   .editor-preview {
-    flex-direction: column; min-height: 0; padding: 10px 12px 8px; gap: 2px;
+    flex-direction: column; min-height: 0; padding: 10px 12px 8px; gap: 8px;
   }
+  .editor-preview-stage { flex: 1 1 auto; min-height: 0; width: 100%; }
   /* Náhled záměrně menší, než by se vešel — místo pod ním potřebují volby
      a tlačítka, a vlajka je i tak čitelná. */
   .editor-preview canvas { max-height: min(100%, 38svh); min-height: 0; }

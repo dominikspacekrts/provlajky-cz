@@ -61,6 +61,10 @@ const emptyTentWallOption = (): TentWallOption => ({ buySingle: 0, buyDouble: 0,
 const emptyTentWalls = (): TentWallsConfig => ({
   baseBuy: 0,
   baseSell: 0,
+  stockBaseBuy: 0,
+  stockBaseSell: 0,
+  frameColorBuy: 1000,
+  frameColorSell: 2000,
   backWidthM: 3,
   fullWallBack: emptyTentWallOption(),
   halfWallBack: emptyTentWallOption(),
@@ -728,7 +732,7 @@ export default function ProductFormButton({
                         />
                       </label>
                       <label style={{ flex: 1 }}>
-                        Základ — nákup (jen střecha)
+                        Základ s potiskem — nákup
                         <input
                           type="number"
                           step="0.01"
@@ -737,7 +741,7 @@ export default function ProductFormButton({
                         />
                       </label>
                       <label style={{ flex: 1 }}>
-                        Základ — prodej (jen střecha)
+                        Základ s potiskem — prodej
                         <input
                           type="number"
                           step="0.01"
@@ -747,6 +751,49 @@ export default function ProductFormButton({
                         <small style={{ color: tentWalls.baseSell >= tentWalls.baseBuy ? "#16a34a" : "#dc2626" }}>
                           marže {fmt(tentWalls.baseSell - tentWalls.baseBuy)}
                         </small>
+                      </label>
+                    </div>
+
+                    <div className="variant-row" style={{ alignItems: "flex-end", marginTop: 10 }}>
+                      <label style={{ flex: 1 }}>
+                        Základ bez potisku — nákup
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={tentWalls.stockBaseBuy ?? 0}
+                          onChange={(e) => setTentWalls({ ...tentWalls, stockBaseBuy: Number(e.target.value) || 0 })}
+                        />
+                        <small style={{ color: "var(--color-gray-600)" }}>
+                          Frame + canopy bez tisku (z ceníku). 0 = použije se základ s potiskem.
+                        </small>
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Základ bez potisku — prodej
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={tentWalls.stockBaseSell ?? 0}
+                          onChange={(e) => setTentWalls({ ...tentWalls, stockBaseSell: Number(e.target.value) || 0 })}
+                        />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Barvení rámu — nákup
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={tentWalls.frameColorBuy ?? 1000}
+                          onChange={(e) => setTentWalls({ ...tentWalls, frameColorBuy: Number(e.target.value) || 0 })}
+                        />
+                      </label>
+                      <label style={{ flex: 1 }}>
+                        Barvení rámu — prodej
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={tentWalls.frameColorSell ?? 2000}
+                          onChange={(e) => setTentWalls({ ...tentWalls, frameColorSell: Number(e.target.value) || 0 })}
+                        />
+                        <small style={{ color: "var(--color-gray-600)" }}>Výchozí 1000 / 2000 Kč.</small>
                       </label>
                     </div>
                   </div>

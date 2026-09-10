@@ -306,13 +306,19 @@ export default function RectDesignEditor({
 
         <div className="editor-body">
           <div className="editor-preview">
-            <canvas
-              ref={canvasRef}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={handlePointerUp}
-              style={{ cursor: logoImg ? "grab" : "default", touchAction: "none", maxWidth: "100%", height: "auto" }}
-            />
+            <div className="editor-preview-stage">
+              <canvas
+                ref={canvasRef}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                style={{
+                  cursor: logoImg ? "grab" : "default",
+                  touchAction: "none",
+                  aspectRatio: `${Math.max(widthCm, 1)} / ${Math.max(heightCm, 1)}`,
+                }}
+              />
+            </div>
             <p className="editor-hint">
               {logoImg
                 ? "Logo přetáhněte, rohem zvětšíte, bodem nahoře otočíte."

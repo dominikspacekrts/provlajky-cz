@@ -81,17 +81,6 @@ export default function BannerConfigurator({
     img.src = design.logoDataUrl;
   }, [design?.logoDataUrl, design?.logoIsPdf]);
 
-  const preview = useMemo(() => {
-    const ratio = w > 0 && h > 0 ? w / h : 2;
-    let pw = 360;
-    let ph = pw / ratio;
-    if (ph > 260) {
-      ph = 260;
-      pw = ph * ratio;
-    }
-    return { pw: Math.round(pw), ph: Math.round(ph) };
-  }, [w, h]);
-
   const previewSrc = useMemo(() => {
     if (!design) return null;
     if (design.logoIsPdf) return null;
@@ -201,7 +190,10 @@ export default function BannerConfigurator({
       className={`fc-page${galleryPhotos?.length ? " fc-page-3col" : ""}${isMobile ? " fc-page-steps" : ""}`}
     >
       <div className="fc-stage">
-        <div className="banner-preview" style={{ width: preview.pw, height: preview.ph }}>
+        <div
+          className="banner-preview"
+          style={{ aspectRatio: `${Math.max(w, 1)} / ${Math.max(h, 1)}` }}
+        >
           {previewSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={previewSrc} alt="Náhled grafiky" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
