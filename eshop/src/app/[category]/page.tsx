@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { fmtMoney, fromPrice } from "@/lib/money";
+import { fmtMoney, fromPrice, withVat } from "@/lib/money";
 import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
 import { FlagMark } from "@/components/Icons";
 import { SelectItemLink, ViewItemList } from "@/components/ListTracking";
@@ -72,9 +72,11 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
                 {fromPrice(p) != null ? (
                   <>
                     {p.kind === "simple" ? "" : "od "}
-                    {fmtMoney(fromPrice(p)!)}
+                    {fmtMoney(withVat(fromPrice(p)!, p.vat_rate))}
                     {p.kind === "banner_m2" ? "/m² " : " "}
-                    <span className="vat">bez DPH</span>
+                    <span className="vat">
+                      s DPH · {fmtMoney(fromPrice(p)!)} bez DPH
+                    </span>
                   </>
                 ) : (
                   "cena na dotaz"

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { CheckoutSettings, CustomerAddress } from "@/lib/types";
+import CustomMadeNotice from "@/components/CustomMadeNotice";
 import { itemFromCartLine, trackAddPaymentInfo, trackAddShippingInfo, trackBeginCheckout } from "@/lib/analytics";
 
 // Stejná sazba, se kterou eshop počítá DPH na produktové položky, dokud
@@ -341,6 +342,8 @@ export default function CheckoutPage() {
             <Link href="/ochrana-osobnich-udaju">Zásady ochrany osobních údajů</Link>.
           </p>
 
+          <CustomMadeNotice compact />
+
           <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 14, fontSize: 14 }}>
             <input
               type="checkbox"
@@ -349,7 +352,8 @@ export default function CheckoutPage() {
               style={{ marginTop: 3 }}
             />
             <span>
-              Přečetl/a jsem si <Link href="/obchodni-podminky">Obchodní podmínky</Link> a souhlasím s nimi *
+              Přečetl/a jsem si <Link href="/obchodni-podminky">Obchodní podmínky</Link> a beru na vědomí, že u zboží
+              vyrobeného na zakázku nelze odstoupit od smlouvy do 14 dnů *
             </span>
           </label>
 
@@ -402,11 +406,11 @@ export default function CheckoutPage() {
               </div>
             )}
             <div className="row">
-              <span>DPH</span>
+              <span>DPH 21 %</span>
               <span>{fmtMoney(vat)}</span>
             </div>
             <div className="row total">
-              <span>Celkem</span>
+              <span>Celkem s DPH</span>
               <span>{fmtMoney(totalEx + vat)}</span>
             </div>
           </div>

@@ -12,7 +12,7 @@
 //     (products.price, CartLine.unitPrice), takže se všude přepočítávají.
 
 import { PRODUCT_CATEGORIES, type CartLine, type Product, type ProductCategory } from "./types";
-import { fromPrice } from "./money";
+import { fromPrice, round2, withVat } from "./money";
 
 const BRAND = "provlajky.cz";
 const CURRENCY = "CZK";
@@ -26,15 +26,6 @@ export type AnalyticsItem = {
   price: number;
   quantity: number;
 };
-
-export function round2(value: number) {
-  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
-}
-
-/** Cena s DPH z ceny bez DPH — v celém e-shopu se počítá jen tady. */
-export function withVat(priceExVat: number, vatRate: number) {
-  return round2(priceExVat * (1 + (vatRate || 0)));
-}
 
 function categoryLabel(category: ProductCategory | string | null | undefined) {
   if (!category) return "";

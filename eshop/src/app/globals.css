@@ -1076,6 +1076,10 @@ label:has(input[type="checkbox"]), .cb-line {
   min-width: 108px; text-align: right; font-size: 16px; letter-spacing: -0.02em;
   font-variation-settings: "wght" 680, "wdth" 104;
 }
+/* Cena bez DPH jako druhý řádek pod koncovou cenou — spotřebitel vidí jako
+   hlavní údaj částku s DPH, firemní zákazník si dohledá základ. */
+.cart-line-total .vat { display: block; margin-top: 2px; font-variation-settings: "wght" 500; }
+.cart-summary-note { margin: 10px 0 0; font-size: 12px; color: var(--gray); text-align: right; }
 .cart-line-remove-mark { width: 15px; height: 15px; }
 .btn-mark { width: 14px; height: 14px; }
 .cart-line {
@@ -2231,3 +2235,22 @@ html:has(.nv) { scroll-behavior: smooth; }
   background: none; border: 0; padding: 0; font: inherit; color: inherit;
   cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
 }
+
+/* Upozornění na zakázkovou výrobu (bez práva na vrácení do 14 dnů). */
+.custom-made-notice {
+  margin-top: 20px; padding: 14px 16px;
+  border: 1px solid var(--border); border-left: 3px solid var(--yellow);
+  background: rgba(255, 231, 1, 0.08);
+  font-size: 13px; line-height: 1.6; color: var(--text);
+}
+.custom-made-notice p { margin: 0; }
+.custom-made-notice p + p { margin-top: 8px; color: var(--gray); }
+.custom-made-notice a { text-underline-offset: 3px; }
+.custom-made-notice.is-compact { margin-top: 14px; font-size: 12.5px; padding: 12px 14px; }
+
+/* Tabulky na informačních stránkách (doprava a platba). */
+.info-table { width: 100%; border-collapse: collapse; margin: 14px 0 18px; font-size: 14px; }
+.info-table th, .info-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.info-table th { font-variation-settings: "wght" 680; color: var(--text); }
+.info-table td:last-child, .info-table th:last-child { text-align: right; white-space: nowrap; }
+

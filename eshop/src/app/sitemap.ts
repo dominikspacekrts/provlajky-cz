@@ -21,7 +21,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.7,
     })),
+    { url: `${SITE_URL}/kontakt`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE_URL}/doprava-a-platba`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/obchodni-podminky`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE_URL}/reklamacni-rad`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${SITE_URL}/ochrana-osobnich-udaju`, changeFrequency: "yearly", priority: 0.2 },
   ];
 

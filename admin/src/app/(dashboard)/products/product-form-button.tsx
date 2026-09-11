@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createProduct, updateProduct, type ProductInput } from "@/lib/actions/products";
+import { createProduct, updateProduct, uploadProductImage, type ProductInput } from "@/lib/actions/products";
 import {
   PRODUCT_CATEGORIES,
   type Partner,
@@ -132,6 +132,7 @@ export default function ProductFormButton({
   const [value, setValue] = useState<ProductInput>(() => (product ? toInput(product) : emptyInput(defaultCategory)));
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
   // Varianty (stany, nafukovací…) jsou často 4+ na produkt — plně rozbalené
   // by z formuláře udělaly dlouhé rolovací menu. Rozbalené je jen to, na co
   // admin klikl (nebo co právě přidal).
@@ -162,17 +163,25 @@ export default function ProductFormButton({
     setOpen(true);
   }
 
-  function addImages(files: FileList | null) {
+  // Fotka jde do Supabase Storage a do produktu se uloží jen veřejná adresa.
+  // Dřív se ukládala jako base64 data URL, což rozbíjelo produktové feedy —
+  // Merchant Center potřebuje absolutní https:// odkaz na obrázek.
+  async function addImages(files: FileList | null) {
     if (!files || files.length === 0) return;
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === "string") {
-          setValue((cur) => ({ ...cur, images: [...cur.images, reader.result as string] }));
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    setUploadingImages(true);
+    setError(null);
+    try {
+      for (const file of Array.from(files)) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const url = await uploadProductImage(formData);
+        setValue((cur) => ({ ...cur, images: [...cur.images, url] }));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Fotku se nepodařilo nahrát.");
+    } finally {
+      setUploadingImages(false);
+    }
   }
 
   function removeImage(idx: number) {
@@ -873,7 +882,14 @@ export default function ProductFormButton({
 
               <label>
                 Obrázky
-                <input type="file" accept="image/*" multiple onChange={(e) => addImages(e.target.files)} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploadingImages}
+                  onChange={(e) => addImages(e.target.files)}
+                />
+                {uploadingImages && <span className="muted">Nahrávám fotky…</span>}
               </label>
               {value.images.length > 0 && (
                 <div className="product-image-preview-row">

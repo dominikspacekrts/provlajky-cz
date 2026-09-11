@@ -344,6 +344,7 @@ export default function FlagConfigurator({
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
+          vatRate={product.vat_rate}
           disabled={unitPrice <= 0 || !design?.logoDataUrl}
           addLabel="Do košíku"
           onAdd={handleAdd}

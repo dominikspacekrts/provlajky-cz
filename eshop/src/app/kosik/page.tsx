@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
-import { fmtMoney } from "@/lib/money";
+import { fmtMoney, withVat } from "@/lib/money";
 import { CheckMark, CloseMark, FlagMark } from "@/components/Icons";
+import CustomMadeNotice from "@/components/CustomMadeNotice";
 import { itemFromCartLine, trackViewCart } from "@/lib/analytics";
 
 export default function CartPage() {
@@ -44,7 +45,7 @@ export default function CartPage() {
           <p>
             {missingToFreeShipping > 0 ? (
               <>
-                Do dopravy zdarma chybí <strong>{fmtMoney(missingToFreeShipping)}</strong>.
+                Do dopravy zdarma chybí <strong>{fmtMoney(missingToFreeShipping)}</strong> bez DPH.
               </>
             ) : (
               <>
@@ -83,7 +84,7 @@ export default function CartPage() {
                 <div className="name">{l.name}</div>
                 <div className="sub">
                   {[l.shape ? `Tvar ${l.shape}` : null, l.size, l.note].filter(Boolean).join(" · ") || "—"} ·{" "}
-                  {fmtMoney(l.unitPrice)} / ks
+                  {fmtMoney(withVat(l.unitPrice, l.vatRate))} / ks s DPH
                 </div>
               </div>
               <div className="qty-row">
@@ -95,7 +96,10 @@ export default function CartPage() {
                   aria-label={`Počet kusů — ${l.name}`}
                 />
               </div>
-              <div className="cart-line-total">{fmtMoney(l.unitPrice * l.qty)}</div>
+              <div className="cart-line-total">
+                {fmtMoney(withVat(l.unitPrice * l.qty, l.vatRate))}
+                <span className="vat">{fmtMoney(l.unitPrice * l.qty)} bez DPH</span>
+              </div>
               <button className="cart-line-remove" onClick={() => removeLine(l.id)} aria-label={`Odebrat ${l.name}`}>
                 <CloseMark className="cart-line-remove-mark" />
               </button>
@@ -108,14 +112,17 @@ export default function CartPage() {
               <span>{fmtMoney(subtotalEx)}</span>
             </div>
             <div className="row">
-              <span>DPH</span>
+              <span>DPH 21 %</span>
               <span>{fmtMoney(vat)}</span>
             </div>
             <div className="row total">
-              <span>Celkem</span>
+              <span>Celkem s DPH</span>
               <span>{fmtMoney(subtotalEx + vat)}</span>
             </div>
+            <p className="cart-summary-note">Doprava a platba se dopočítají v dalším kroku.</p>
           </div>
+
+          <CustomMadeNotice />
 
           <div className="cart-actions">
             {/* begin_checkout se posílá až ze stránky objednávky (vstup do
