@@ -1,7 +1,13 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, isProduction } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
+  // Dev prostředí se neindexuje vůbec — jinak by se testovací verze prala
+  // ve vyhledávání s ostrou doménou.
+  if (!isProduction()) {
+    return { rules: { userAgent: "*", disallow: "/" } };
+  }
+
   return {
     rules: {
       userAgent: "*",

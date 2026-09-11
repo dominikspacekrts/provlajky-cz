@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { PRODUCT_CATEGORIES } from "@/lib/types";
+import CookieSettingsLink from "@/components/CookieSettingsLink";
 
 export default function Footer() {
   return (
@@ -49,6 +50,9 @@ export default function Footer() {
             </li>
             <li>
               <Link href="/ochrana-osobnich-udaju">Zásady ochrany osobních údajů</Link>
+            </li>
+            <li>
+              <CookieSettingsLink />
             </li>
             <li>
               <Link href="/kosik">Košík</Link>
