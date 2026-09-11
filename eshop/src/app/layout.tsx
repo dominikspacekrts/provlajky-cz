@@ -3,8 +3,10 @@ import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 import SiteChrome from "@/components/SiteChrome";
-import { SITE_URL } from "@/lib/site";
+import CookieBanner from "@/components/CookieBanner";
+import { SITE_URL, isProduction } from "@/lib/site";
 import { getMarketingHeadSnippet } from "@/lib/marketing";
+import { buildHeadHtml, gtmNoscriptHtml } from "@/lib/head-scripts";
 
 // Space Grotesk — technický, mírně atypický grotesk s proměnnou vahou (wght),
 // nahrazuje původní příliš generický Archivo. Jeden font na celý web.
@@ -36,6 +38,9 @@ export const metadata: Metadata = {
     description: DEFAULT_DESCRIPTION,
     images: ["/hero/plazove-vlajky.jpg"],
   },
+  // Testovací prostředí se nesmí indexovat (druhá pojistka k robots.txt
+  // a hlavičce X-Robots-Tag z proxy.ts).
+  ...(isProduction() ? {} : { robots: { index: false, follow: false } }),
 };
 
 export default async function RootLayout({
@@ -44,17 +49,24 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Konverzní/sledovací kódy z admin Nastavení → Marketing (Google Ads, Meta
-  // Pixel, GA4…) — dokud nikdo nic nevloží, snippet je null a hlavička je
-  // beze změny.
+  // Pixel, GA4…) — dokud nikdo nic nevloží, snippet je null a do hlavičky jde
+  // jen consent + GTM.
   const marketingSnippet = await getMarketingHeadSnippet();
+  const gtmNoscript = gtmNoscriptHtml();
 
   return (
     <html lang="cs" className={spaceGrotesk.variable}>
-      {marketingSnippet && <head dangerouslySetInnerHTML={{ __html: marketingSnippet }} />}
+      {/* Marketingové kódy z adminu si běžně dosazují vlastní <script> do
+          hlavičky — DOM se tím po načtení rozejde s tím, co vyrenderoval
+          server. React obsah hlavičky nikdy nepřekresluje, jen by na ten
+          rozdíl marně nadával. */}
+      <head suppressHydrationWarning dangerouslySetInnerHTML={{ __html: buildHeadHtml(marketingSnippet) }} />
       <body className="nv">
+        {gtmNoscript && <noscript dangerouslySetInnerHTML={{ __html: gtmNoscript }} />}
         <CartProvider>
           <SiteChrome>{children}</SiteChrome>
         </CartProvider>
+        <CookieBanner />
       </body>
     </html>
   );

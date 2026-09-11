@@ -1,10 +1,11 @@
-import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { fmtMoney, fromPrice } from "@/lib/money";
 import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
 import { FlagMark } from "@/components/Icons";
+import { SelectItemLink, ViewItemList } from "@/components/ListTracking";
+import { itemFromProduct } from "@/lib/analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -47,9 +48,17 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
         </p>
       )}
 
+      <ViewItemList items={products.map((p, i) => itemFromProduct(p, i))} listName={PRODUCT_CATEGORIES[cat]} />
+
       <div className="category-grid reveal-stagger">
-        {products.map((p) => (
-          <Link key={p.id} href={`/produkt/${p.slug}`} className="category-card">
+        {products.map((p, i) => (
+          <SelectItemLink
+            key={p.id}
+            href={`/produkt/${p.slug}`}
+            className="category-card"
+            item={itemFromProduct(p, i)}
+            listName={PRODUCT_CATEGORIES[cat]}
+          >
             <div className="thumb">
               {p.images?.[0] ? (
                 <Image src={p.images[0]} alt={p.name} width={320} height={320} style={{ width: "100%", height: "100%", objectFit: "cover" }} unoptimized />
@@ -72,7 +81,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
                 )}
               </div>
             </div>
-          </Link>
+          </SelectItemLink>
         ))}
       </div>
       </div>

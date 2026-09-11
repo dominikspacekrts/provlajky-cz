@@ -241,6 +241,7 @@ export default function TentWallsConfigurator({
     addLine({
       productId: product.id,
       productSlug: product.slug,
+      productCategory: product.category,
       name: product.name,
       type: "product",
       shape: null,

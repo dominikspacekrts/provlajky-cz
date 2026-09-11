@@ -216,6 +216,9 @@ export type CartLine = {
   id: string; // client-side line id
   productId: string;
   productSlug: string;
+  // Kategorie se veze s položkou kvůli item_category v dataLayer — v košíku už
+  // není po ruce celý Product, ze kterého by se dala dohledat.
+  productCategory?: ProductCategory | null;
   name: string;
   type: "flag" | "banner" | "product";
   shape: FlagShape | null;

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { CartLine } from "./types";
+import { itemFromCartLine, trackAddToCart, trackRemoveFromCart } from "./analytics";
 
 // Košík se persistuje do IndexedDB, ne localStorage — jedna položka s vlastním
 // nahraným logem snadno zabere přes 1 MB (base64 návrh + náhled), a
@@ -78,8 +79,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     idbSet(KEY, lines).catch(() => {});
   }, [lines]);
 
+  // Měření visí tady, ne u jednotlivých konfigurátorů: addLine/removeLine jsou
+  // jediné hrdlo, kterým položky do košíku vstupují a vystupují, takže se na
+  // žádné z těch sedmi volajících míst nedá zapomenout.
   function addLine(line: Omit<CartLine, "id">) {
     setLines((cur) => [...cur, { ...line, id: crypto.randomUUID() }]);
+    trackAddToCart(itemFromCartLine({ ...line, id: "" }));
   }
 
   function updateQty(id: string, qty: number) {
@@ -87,7 +92,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   function removeLine(id: string) {
+    const removed = lines.find((l) => l.id === id);
     setLines((cur) => cur.filter((l) => l.id !== id));
+    if (removed) trackRemoveFromCart(itemFromCartLine(removed));
   }
 
   function clear() {

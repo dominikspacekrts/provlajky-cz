@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import { type Product } from "@/lib/types";
+import { itemFromProduct, trackViewItem } from "@/lib/analytics";
 import FlagConfigurator from "./FlagConfigurator";
 import BannerConfigurator from "./BannerConfigurator";
 import VariantConfigurator from "./VariantConfigurator";
@@ -25,6 +26,15 @@ export default function ProductDetail({
   size?: string;
   galleryPhotos?: { id: string; image: string }[];
 }) {
+  // Jediné místo, kudy projdou všechny druhy produktů — view_item tak sedí
+  // i na otevření konfigurátoru, ne jen na „obyčejný" detail.
+  const trackedSlug = useRef<string | null>(null);
+  useEffect(() => {
+    if (trackedSlug.current === product.slug) return;
+    trackedSlug.current = product.slug;
+    trackViewItem(itemFromProduct(product));
+  }, [product]);
+
   if (product.kind === "configurable") return <FlagConfigurator product={product} galleryPhotos={galleryPhotos} />;
   if (product.kind === "custom_flag") return <CustomFlagConfigurator product={product} galleryPhotos={galleryPhotos} />;
   if (product.kind === "banner_m2") return <BannerConfigurator product={product} galleryPhotos={galleryPhotos} />;
@@ -53,6 +63,7 @@ function SimpleProductDetail({
     addLine({
       productId: product.id,
       productSlug: product.slug,
+      productCategory: product.category,
       name: product.name,
       type: "product",
       shape: null,
