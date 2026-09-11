@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { Product, ProductCategory, ProductConfig, ProductKind } from "@/lib/types";
 
 function slugify(name: string) {
@@ -97,4 +97,31 @@ export async function toggleProductActive(id: string, active: boolean) {
   if (error) throw new Error(error.message);
   revalidatePath("/products");
   revalidatePath("/");
+}
+
+// Produktové fotky patří do Storage, ne do databáze jako base64 data URL.
+// Feed pro Merchant Center i Heureku potřebuje absolutní https:// adresu —
+// z data URL by vznikla nesmyslná adresa typu
+// `https://provlajky.cz/data:image/jpeg;base64,...` a položka by se do feedu
+// vůbec nedostala. Base64 se navíc tahal do každého výpisu produktů.
+const PRODUCT_IMAGE_BUCKET = "produktove_fotky";
+
+export async function uploadProductImage(formData: FormData): Promise<string> {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) throw new Error("Nepřišel žádný soubor.");
+  if (!file.type.startsWith("image/")) throw new Error("Nahrát lze jen obrázek.");
+
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${crypto.randomUUID()}.${ext}`;
+
+  // Service-role klient: zápis do Storage se jinak řídí RLS politikami, které
+  // pro tenhle bucket nemáme nastavené.
+  const supabase = createServiceClient();
+  const { error } = await supabase.storage
+    .from(PRODUCT_IMAGE_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw new Error(`Nahrání fotky selhalo: ${error.message}`);
+
+  const { data } = supabase.storage.from(PRODUCT_IMAGE_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
