@@ -155,6 +155,7 @@ export default function CustomFlagConfigurator({
     addLine({
       productId: product.id,
       productSlug: product.slug,
+      productCategory: product.category,
       name: product.name,
       type: "flag",
       shape: null,

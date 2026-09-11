@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { CheckoutSettings, CustomerAddress } from "@/lib/types";
+import { itemFromCartLine, trackAddPaymentInfo, trackAddShippingInfo, trackBeginCheckout } from "@/lib/analytics";
 
 // Stejná sazba, se kterou eshop počítá DPH na produktové položky, dokud
 // admin nezavede vlastní sazby pro dopravu/platbu (viz orders.ship_vat_rate).
@@ -66,6 +67,33 @@ export default function CheckoutPage() {
   const vat = productVat + shippingVat + paymentVat;
   const totalEx = subtotalEx + shippingPriceEx + paymentPriceEx;
 
+  // begin_checkout patří ke vstupu do objednávky. Košík se načítá z IndexedDB
+  // až po prvním renderu, takže se čeká na položky.
+  const beginCheckoutSent = useRef(false);
+  useEffect(() => {
+    if (beginCheckoutSent.current || lines.length === 0) return;
+    beginCheckoutSent.current = true;
+    trackBeginCheckout(lines.map(itemFromCartLine));
+  }, [lines]);
+
+  // Doprava i platba mají předvybranou první možnost. Event se posílá při
+  // skutečné volbě zákazníka, a pokud nechá výchozí, dožene se při odeslání —
+  // ať v trychtýři nechybí krok jen proto, že mu výchozí nabídka vyhovovala.
+  const shippingInfoSent = useRef(false);
+  const paymentInfoSent = useRef(false);
+
+  function selectShipping(id: string, label: string) {
+    setShippingMethodId(id);
+    shippingInfoSent.current = true;
+    trackAddShippingInfo(lines.map(itemFromCartLine), label);
+  }
+
+  function selectPayment(id: string, label: string) {
+    setPaymentMethodId(id);
+    paymentInfoSent.current = true;
+    trackAddPaymentInfo(lines.map(itemFromCartLine), label);
+  }
+
   function set<K extends keyof CustomerAddress>(key: K, v: CustomerAddress[K]) {
     setBilling((cur) => ({ ...cur, [key]: v }));
   }
@@ -98,6 +126,15 @@ export default function CheckoutPage() {
     }
     setError(null);
     setIsSubmitting(true);
+    const trackedItems = lines.map(itemFromCartLine);
+    if (!shippingInfoSent.current && selectedShipping) {
+      shippingInfoSent.current = true;
+      trackAddShippingInfo(trackedItems, selectedShipping.label);
+    }
+    if (!paymentInfoSent.current && selectedPayment) {
+      paymentInfoSent.current = true;
+      trackAddPaymentInfo(trackedItems, selectedPayment.label);
+    }
     try {
       const res = await fetch("/api/objednavka", {
         method: "POST",
@@ -115,7 +152,9 @@ export default function CheckoutPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Nepodařilo se odeslat objednávku.");
       clear();
-      router.push("/objednavka/dekujeme");
+      // ID objednávky jde s sebou — děkovací stránka si podle něj načte
+      // potvrzená data ze serveru a odešle purchase.
+      router.push(`/objednavka/dekujeme?id=${encodeURIComponent(json.orderId)}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Nepodařilo se odeslat objednávku.");
       setIsSubmitting(false);
@@ -246,7 +285,7 @@ export default function CheckoutPage() {
                         type="radio"
                         name="shippingMethod"
                         checked={shippingMethodId === m.id}
-                        onChange={() => setShippingMethodId(m.id)}
+                        onChange={() => selectShipping(m.id, m.label)}
                       />
                       {m.label}
                     </span>
@@ -275,7 +314,7 @@ export default function CheckoutPage() {
                       type="radio"
                       name="paymentMethod"
                       checked={paymentMethodId === m.id}
-                      onChange={() => setPaymentMethodId(m.id)}
+                      onChange={() => selectPayment(m.id, m.label)}
                     />
                     {m.label}
                   </span>

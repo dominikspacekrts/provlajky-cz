@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import { CheckMark, CloseMark, FlagMark } from "@/components/Icons";
+import { itemFromCartLine, trackViewCart } from "@/lib/analytics";
 
 export default function CartPage() {
   const { lines, updateQty, removeLine, count } = useCart();
   const router = useRouter();
   const [freeShippingOver, setFreeShippingOver] = useState(0);
+  const viewCartSent = useRef(false);
 
   useEffect(() => {
     fetch("/api/checkout-settings")
@@ -19,6 +21,14 @@ export default function CartPage() {
       .then((s) => setFreeShippingOver(s.shippingFreeOverAmount || 0))
       .catch(() => {});
   }, []);
+
+  // Košík se načítá z IndexedDB až po prvním renderu, takže se čeká na položky
+  // — jinak by view_cart odešel s prázdným seznamem.
+  useEffect(() => {
+    if (viewCartSent.current || lines.length === 0) return;
+    viewCartSent.current = true;
+    trackViewCart(lines.map(itemFromCartLine));
+  }, [lines]);
 
   const subtotalEx = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
   const vat = lines.reduce((s, l) => s + l.unitPrice * l.qty * l.vatRate, 0);
@@ -108,6 +118,8 @@ export default function CartPage() {
           </div>
 
           <div className="cart-actions">
+            {/* begin_checkout se posílá až ze stránky objednávky (vstup do
+                checkoutu) — tady by odešel podruhé. */}
             <button className="btn-yellow" disabled={count === 0} onClick={() => router.push("/objednavka")}>
               Pokračovat k objednávce
             </button>

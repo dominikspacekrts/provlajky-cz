@@ -85,6 +85,7 @@ export default function VariantConfigurator({
     addLine({
       productId: product.id,
       productSlug: product.slug,
+      productCategory: product.category,
       name: title,
       type: "product",
       shape: null,

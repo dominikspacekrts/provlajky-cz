@@ -93,6 +93,7 @@ export default function BannerConfigurator({
     addLine({
       productId: product.id,
       productSlug: product.slug,
+      productCategory: product.category,
       name: product.name,
       type: "banner",
       shape: null,

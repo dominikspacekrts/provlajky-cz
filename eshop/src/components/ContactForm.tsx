@@ -4,6 +4,7 @@
 // reply-to na odesílatele). Vzor převzatý z RegisterForm.tsx.
 
 import { useState } from "react";
+import { trackGenerateLead } from "@/lib/analytics";
 
 type Status = "idle" | "loading" | "done" | "error";
 
@@ -32,6 +33,7 @@ export default function ContactForm() {
         return;
       }
       setStatus("done");
+      trackGenerateLead("kontaktni-formular");
     } catch {
       setStatus("error");
       setError("Nepodařilo se odeslat zprávu, zkuste to prosím znovu.");
