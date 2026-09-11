@@ -226,7 +226,34 @@ nastavování výjimek u tagů.
 
 ---
 
-## 6. Kde to v kódu žije
+## 6. Produktové feedy
+
+| Feed | URL | Pro koho |
+|---|---|---|
+| Google Merchant Center | `/feeds/google.xml` | Google Nákupy, Performance Max |
+| Heureka (`SHOP` / `SHOPITEM`) | `/feeds/heureka.xml` | Heureka, Zboží.cz, Mergado |
+
+Obojí se generuje ze stejných dat jako web, cache 1 hodina. Původní
+`/feed/products.xml` trvale přesměrovává na `/feeds/google.xml`.
+
+- **`g:id` odpovídá `item_id` v `dataLayer`** — díky tomu jde spárovat
+  objednávku s položkou v Nákupech.
+- Ceny jsou **s DPH**, stejně jako v `dataLayer`.
+- Varianty (velikosti plážových vlajek, provedení stanů) jsou samostatné
+  položky se společným `g:item_group_id`. Odkaz u variant stanů míří rovnou
+  na předvybrané provedení (`?size=`).
+- **Bannery a vlajky na zakázku ve feedu nejsou.** Účtují se za m², takže by
+  cena v Nákupech neodpovídala tomu, co zákazník zaplatí — Merchant Center to
+  bere jako zavádějící údaj. Pokud by je agentura chtěla inzerovat, je potřeba
+  nejdřív určit sadu pevných rozměrů a doplnit předvyplnění konfigurátoru
+  z odkazu.
+- Zboží „na dotaz" (varianty s nulovou cenou, např. náhradní díly) se do feedu
+  nedostane.
+
+Kontrola: `npm run feeds:validate` (proti běžícímu webu; pro produkci
+`FEED_BASE=https://provlajky.cz npm run feeds:validate`).
+
+## 7. Kde to v kódu žije
 
 | Co | Soubor |
 |---|---|
@@ -238,3 +265,4 @@ nastavování výjimek u tagů.
 | Data pro `purchase` | `src/app/api/objednavka/[id]/route.ts` |
 | Odeslání `purchase` + ochrana proti duplicitě | `src/components/PurchaseTracking.tsx` |
 | Oddělení dev/produkce | `src/proxy.ts`, `src/lib/site.ts` |
+| Podklad pro oba feedy | `src/lib/feed.ts` |

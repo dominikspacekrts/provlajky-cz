@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "feeds:validate": "node scripts/validate-feeds.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.1",
