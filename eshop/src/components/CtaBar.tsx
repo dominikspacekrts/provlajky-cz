@@ -10,13 +10,14 @@
 // Sdílí ji všech sedm konfigurátorů — dřív byla lišta v každém zvlášť
 // zkopírovaná a rozcházela se.
 
-import { fmtMoney } from "@/lib/money";
+import { STANDARD_VAT_RATE, fmtMoney, withVat } from "@/lib/money";
 import { CheckMark } from "@/components/Icons";
 
 export default function CtaBar({
   qty,
   onQtyChange,
   unitPrice,
+  vatRate = STANDARD_VAT_RATE,
   disabled = false,
   added = false,
   addLabel = "Vložit do košíku",
@@ -25,12 +26,14 @@ export default function CtaBar({
   qty: number;
   onQtyChange: (next: number) => void;
   unitPrice: number;
+  vatRate?: number;
   disabled?: boolean;
   added?: boolean;
   addLabel?: string;
   onAdd: () => void;
 }) {
   const hasPrice = unitPrice > 0;
+  const totalExVat = unitPrice * qty;
 
   return (
     <div className="fc-cta">
@@ -38,9 +41,10 @@ export default function CtaBar({
         <div className="fc-cta-price">
           {hasPrice ? (
             <>
-              {fmtMoney(unitPrice * qty)}{" "}
+              {fmtMoney(withVat(totalExVat, vatRate))}{" "}
               <span className="vat">
-                bez DPH {qty > 1 ? `· ${qty} × ${fmtMoney(unitPrice)}` : "/ ks"}
+                s DPH · {fmtMoney(totalExVat)} bez DPH
+                {qty > 1 ? ` · ${qty} × ${fmtMoney(withVat(unitPrice, vatRate))}` : " / ks"}
               </span>
             </>
           ) : (

@@ -250,6 +250,7 @@ export default function BannerConfigurator({
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
+          vatRate={product.vat_rate}
           disabled={unitPrice <= 0}
           addLabel="Do košíku"
           onAdd={handleAdd}

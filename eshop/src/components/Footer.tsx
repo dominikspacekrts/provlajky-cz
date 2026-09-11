@@ -46,7 +46,13 @@ export default function Footer() {
               <Link href="/kontakt">Kontaktujte nás</Link>
             </li>
             <li>
+              <Link href="/doprava-a-platba">Doprava a platba</Link>
+            </li>
+            <li>
               <Link href="/obchodni-podminky">Obchodní podmínky</Link>
+            </li>
+            <li>
+              <Link href="/reklamacni-rad">Reklamační řád</Link>
             </li>
             <li>
               <Link href="/ochrana-osobnich-udaju">Zásady ochrany osobních údajů</Link>

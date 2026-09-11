@@ -6,6 +6,22 @@ export function fmtMoney(value: number) {
   );
 }
 
+// Sazba použitá tam, kde produkt vlastní sazbu nenese (doprava, platba).
+export const STANDARD_VAT_RATE = 0.21;
+
+export function round2(value: number) {
+  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
+}
+
+/**
+ * Cena s DPH z ceny bez DPH. V databázi i v košíku jsou ceny bez DPH, ale
+ * spotřebitel musí jako hlavní údaj vidět koncovou částku — přepočet má proto
+ * jediné místo, ať se čísla na kartě, v konfigurátoru a v košíku nerozejdou.
+ */
+export function withVat(priceExVat: number, vatRate: number) {
+  return round2(priceExVat * (1 + (vatRate || 0)));
+}
+
 export function minSizePrice(priceBySize: Product["price_by_size"]) {
   const values = Object.values(priceBySize || {}).filter((v): v is number => typeof v === "number");
   if (values.length === 0) return null;

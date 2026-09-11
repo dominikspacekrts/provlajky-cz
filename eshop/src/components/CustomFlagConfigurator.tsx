@@ -436,6 +436,7 @@ export default function CustomFlagConfigurator({
           qty={qty}
           onQtyChange={setQty}
           unitPrice={unitPrice}
+          vatRate={product.vat_rate}
           disabled={!canAdd}
           addLabel="Do košíku"
           onAdd={handleAdd}
