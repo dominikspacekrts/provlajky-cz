@@ -268,7 +268,7 @@ export default function CheckoutPage() {
               <input type="email" value={billing.email} onChange={(e) => set("email", e.target.value)} />
               {fieldErrors.billingEmail && <span className="field-error">{fieldErrors.billingEmail}</span>}
             </label>
-            <label>
+            <label className="full-width">
               Telefon
               <PhoneInput value={billing.phone ?? ""} onChange={(v) => set("phone", v)} />
               {fieldErrors.billingPhone && <span className="field-error">{fieldErrors.billingPhone}</span>}

@@ -29,13 +29,13 @@ export default function PhoneInput({
       <div className="phone-input-dial">
         <span className="phone-input-flag" style={{ backgroundImage: `url(${flagSrc(parsed.iso)})` }} aria-hidden />
         <select
-          aria-label="Předvolba"
+          aria-label={`Předvolba: ${DIAL_CODES.find((d) => d.iso === parsed.iso)?.name ?? ""} +${DIAL_CODE_BY_ISO[parsed.iso] ?? ""}`}
           value={parsed.iso}
           onChange={(e) => onChange(compose(e.target.value, parsed.digits))}
         >
           {DIAL_CODES.map((d) => (
-            <option key={d.iso} value={d.iso}>
-              +{d.dial} {d.name}
+            <option key={d.iso} value={d.iso} title={d.name}>
+              +{d.dial}
             </option>
           ))}
         </select>
