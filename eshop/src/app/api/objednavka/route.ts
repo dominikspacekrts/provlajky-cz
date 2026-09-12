@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      status: "pending",
+      status: "new",
       currency: "CZK",
       customer: { billing, shipping: shipping || billing },
       title: titleSuffix ? `Objednávka z eshopu — ${titleSuffix}`.slice(0, 200) : "Objednávka z eshopu",

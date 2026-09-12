@@ -176,7 +176,7 @@ export async function createOrder(customer: Customer) {
   const { data, error } = await supabase
     .from("orders")
     .insert({
-      status: "pending",
+      status: "new",
       currency: "CZK",
       customer,
     })
