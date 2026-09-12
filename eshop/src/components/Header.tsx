@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
+import { useCustomerAuth } from "@/lib/customer-auth-client";
 import { SALE } from "@/lib/sale";
 import { NovaArrow } from "@/components/NovaReveal";
 import { NAV_GROUPS } from "@/lib/types";
@@ -21,6 +22,7 @@ const PROMO_DISMISSED_KEY = "provlajky-promo-dismissed";
 
 export default function Header() {
   const { count } = useCart();
+  const { customer, loading: authLoading } = useCustomerAuth();
   const pathname = usePathname();
   const [stuck, setStuck] = useState(false);
   // Výchozí true (skrytý), dokud efekt neověří sessionStorage — na serveru
@@ -152,9 +154,20 @@ export default function Header() {
           </nav>
         </div>
         <div className="nv-nav-right">
-          <a href={isHome ? "#registrace" : "/#registrace"} className="nv-btn nv-btn-yellow">
-            <span className="nv-btn-l">Registrace</span>
-          </a>
+          {!authLoading && customer ? (
+            <Link href="/muj-ucet" className="nv-btn nv-btn-ghost">
+              <span className="nv-btn-l">Můj účet</span>
+            </Link>
+          ) : (
+            <>
+              <Link href="/prihlaseni" className="nv-btn nv-btn-ghost nv-nav-login">
+                <span className="nv-btn-l">Přihlásit se</span>
+              </Link>
+              <Link href={isHome ? "/#registrace" : "/registrace"} className="nv-btn nv-btn-yellow">
+                <span className="nv-btn-l">Registrace</span>
+              </Link>
+            </>
+          )}
           <Link href="/kosik" className="nv-nav-cart">
             <span className="nv-btn-l">
               Košík
@@ -208,12 +221,24 @@ export default function Header() {
           </nav>
 
           <div className="nv-menu-foot">
-            <a href={isHome ? "#registrace" : "/#registrace"} className="nv-btn nv-btn-yellow" onClick={closeMenu}>
-              <span className="nv-btn-l">Registrace a sleva 10 %</span>
-            </a>
+            {!authLoading && customer ? (
+              <Link href="/muj-ucet" className="nv-btn nv-btn-yellow" onClick={closeMenu}>
+                <span className="nv-btn-l">Můj účet</span>
+              </Link>
+            ) : (
+              <>
+                <Link href="/registrace" className="nv-btn nv-btn-yellow" onClick={closeMenu}>
+                  <span className="nv-btn-l">Registrace a sleva 10 %</span>
+                </Link>
+                <Link href="/prihlaseni" className="nv-btn nv-btn-ghost" onClick={closeMenu} style={{ marginTop: 8, width: "100%" }}>
+                  <span className="nv-btn-l">Přihlásit se</span>
+                </Link>
+              </>
+            )}
             <div className="nv-menu-links">
               <Link href="/kontakt">Kontakt</Link>
               <Link href="/kosik">Košík{count > 0 ? ` (${count})` : ""}</Link>
+              {!authLoading && customer && <Link href="/muj-ucet">Můj účet</Link>}
             </div>
             <a href="tel:+420605981155" className="nv-menu-phone">
               +420 605 981 155

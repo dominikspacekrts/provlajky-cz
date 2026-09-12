@@ -159,7 +159,7 @@ export default function Nova2Client({
             Zaregistrujte se a získejte 10 % slevu.
           </h2>
           <p className="nv-register-body" data-reveal style={{ "--rd": "110ms" } as React.CSSProperties}>
-            Kód na první objednávku vám pošleme e-mailem.
+            Založte účet s heslem — slevový kód na první objednávku vám pošleme e-mailem.
           </p>
         </div>
         <RegisterForm />

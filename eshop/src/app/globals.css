@@ -2132,6 +2132,8 @@ html:has(.nv) { scroll-behavior: smooth; }
 }
 .nv-register-form .nv-btn { align-self: flex-start; }
 .nv-register-error { font-size: 13px; color: #7a1210; }
+.nv-register-switch { font-size: 13px; color: var(--nv-ink); opacity: 0.75; margin: 0; }
+.nv-register-switch a { text-decoration: underline; text-underline-offset: 2px; }
 .nv-register-done {
   display: flex; align-items: center;
   background: rgba(255, 255, 255, 0.55); border: 1.5px solid rgba(8, 8, 10, 0.28);
@@ -2209,7 +2211,8 @@ html:has(.nv) { scroll-behavior: smooth; }
 @media (max-width: 640px) {
   .nv { --nv-nav-h: 64px; }
   .nv-nav-phone { display: none; }
-  .nv-nav .nv-btn-yellow { display: none; }
+  .nv-nav .nv-btn-yellow,
+  .nv-nav .nv-nav-login { display: none; }
   .nv-entry { grid-template-columns: repeat(2, 1fr); }
   .nv-entry a:nth-child(3n + 1) { border-left: 1px solid rgba(255, 255, 255, 0.12); }
   .nv-entry a:nth-child(2n + 1) { border-left: 0; }
@@ -2311,3 +2314,31 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-register-consent input { margin-top: 2px; flex: none; accent-color: var(--ink); }
 .nv-register-consent a { color: inherit; text-underline-offset: 3px; }
 .form-privacy-note { margin: 14px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--gray); }
+
+/* Auth pages + checkout account */
+.auth-page .auth-form {
+  display: flex; flex-direction: column; gap: 14px;
+  margin-top: 24px; max-width: 420px;
+}
+.auth-form label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.auth-form input {
+  border: 1px solid var(--border); padding: 10px 12px; font: inherit; background: #fff;
+}
+.auth-error { color: #dc2626; font-size: 13px; margin: 0; }
+.auth-success { color: #166534; font-size: 13px; margin: 0; }
+.auth-hint, .auth-switch { font-size: 13px; color: var(--gray); margin: 0; }
+.checkout-account {
+  border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  margin-bottom: 22px; font-size: 14px; background: rgba(8, 8, 10, 0.02);
+}
+.checkout-account-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.discount-apply-row { display: flex; gap: 8px; align-items: stretch; }
+.discount-apply-row input { flex: 1; }
+.discount-apply-row button { flex: none; white-space: nowrap; }
+.discount-apply-msg { font-size: 13px; margin: 8px 0 0; }
+.discount-apply-msg.is-ok { color: #166534; }
+.discount-apply-msg.is-err { color: #dc2626; }
+@media (max-width: 720px) {
+  .nv-nav-login { display: none; }
+}
+

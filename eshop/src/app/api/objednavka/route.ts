@@ -5,6 +5,16 @@ import { fmtMoney } from "@/lib/money";
 import { getCheckoutSettings } from "@/lib/checkoutSettings";
 import type { CartLine, CustomerAddress, ProductCategory } from "@/lib/types";
 import { billingFieldErrors, firstFieldError, shippingFieldErrors } from "@/lib/validation";
+import {
+  createSessionCookie,
+  DEFAULT_DISCOUNT_PCT,
+  generateDiscountCode,
+  getSessionCustomerId,
+  hashPassword,
+  isStrongEnoughPassword,
+  MAX_SHIPPING_ADDRESSES,
+} from "@/lib/customer-auth";
+import { discountCodeEmailHtml, sendCustomerMail } from "@/lib/customer-mail";
 
 // Stejná sazba jako v checkoutu (src/app/objednavka/page.tsx), dokud admin
 // nezavede vlastní sazby pro dopravu/platbu.
@@ -98,6 +108,13 @@ type Body = {
   discountCode?: string;
   shippingMethodId?: string;
   paymentMethodId?: string;
+  /** Volitelně vytvořit účet při odeslání (host checkout). */
+  createAccount?: boolean;
+  accountPassword?: string;
+  /** Uložit dodací adresu k účtu (když se liší od fakturační). */
+  saveShippingAddress?: boolean;
+  shippingAddressId?: string | null;
+  shippingAddressLabel?: string | null;
 };
 
 // Bucket pro nahranou grafiku podle kategorie produktu (buckety založené
@@ -131,7 +148,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Neplatná data." }, { status: 400 });
   }
 
-  const { billing, shipping, lines, note, discountCode, shippingMethodId, paymentMethodId } = body;
+  const {
+    billing,
+    shipping,
+    lines,
+    note,
+    discountCode,
+    shippingMethodId,
+    paymentMethodId,
+    createAccount,
+    accountPassword,
+    saveShippingAddress,
+    shippingAddressId,
+    shippingAddressLabel,
+  } = body;
 
   if (!billing) {
     return NextResponse.json({ error: "Vyplňte prosím jméno/firmu a e-mail." }, { status: 400 });
@@ -213,6 +243,132 @@ export async function POST(req: NextRequest) {
       .from("customers")
       .update({ used_at: new Date().toISOString(), used_order_id: order.id })
       .eq("id", discountCustomer.id);
+  }
+
+  // Účet: uložit billing / dodací adresu; případně založit účet z checkoutu.
+  try {
+    let customerId = await getSessionCustomerId();
+    const email = (billing.email || "").trim().toLowerCase();
+
+    if (!customerId && createAccount && email) {
+      if (!accountPassword || !isStrongEnoughPassword(accountPassword)) {
+        // Objednávka už je založená — účet jen přeskočíme, nevracíme 400.
+        console.warn("objednavka: createAccount skipped — weak/missing password");
+      } else {
+        const passwordHash = await hashPassword(accountPassword);
+        const { data: existing } = await supabase
+          .from("customers")
+          .select("id, password_hash, discount_code")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (existing?.password_hash) {
+          // Účet už existuje — nepřepisujeme heslo; zákazník se může přihlásit.
+        } else if (existing) {
+          await supabase
+            .from("customers")
+            .update({
+              password_hash: passwordHash,
+              password_updated_at: new Date().toISOString(),
+              name: billing.name || null,
+              phone: billing.phone || null,
+              billing,
+            })
+            .eq("id", existing.id);
+          customerId = existing.id;
+          await createSessionCookie(existing.id);
+        } else {
+          let code = generateDiscountCode();
+          let insertedId: string | null = null;
+          for (let attempt = 0; attempt < 5 && !insertedId; attempt++) {
+            const { data, error } = await supabase
+              .from("customers")
+              .insert({
+                email,
+                name: billing.name || null,
+                phone: billing.phone || null,
+                discount_code: code,
+                discount_pct: DEFAULT_DISCOUNT_PCT,
+                password_hash: passwordHash,
+                password_updated_at: new Date().toISOString(),
+                billing,
+              })
+              .select("id")
+              .single();
+            if (!error && data) {
+              insertedId = data.id;
+            } else if (error?.code === "23505") {
+              code = generateDiscountCode();
+            } else {
+              console.error("objednavka: createAccount insert failed", error);
+              break;
+            }
+          }
+          if (insertedId) {
+            customerId = insertedId;
+            await createSessionCookie(customerId);
+            await sendCustomerMail({
+              to: email,
+              subject: "Váš slevový kód — provlajky.cz",
+              html: discountCodeEmailHtml(billing.name, code, DEFAULT_DISCOUNT_PCT),
+            });
+          }
+        }
+      }
+    }
+
+    if (customerId) {
+      await supabase
+        .from("customers")
+        .update({
+          billing,
+          name: billing.name || null,
+          phone: billing.phone || null,
+        })
+        .eq("id", customerId);
+
+      const ship = shipping || billing;
+      const billingSameAsShip =
+        (billing.street || "") === (ship.street || "") &&
+        (billing.psc || "") === (ship.psc || "") &&
+        (billing.city || "") === (ship.city || "") &&
+        (billing.name || "") === (ship.name || "");
+
+      if (saveShippingAddress && !billingSameAsShip && ship.street && ship.psc && ship.city) {
+        if (shippingAddressId) {
+          await supabase
+            .from("customer_shipping_addresses")
+            .update({
+              label: shippingAddressLabel || null,
+              company: ship.company || null,
+              name: ship.name || null,
+              street: ship.street,
+              psc: ship.psc,
+              city: ship.city,
+            })
+            .eq("id", shippingAddressId)
+            .eq("customer_id", customerId);
+        } else {
+          const { count } = await supabase
+            .from("customer_shipping_addresses")
+            .select("id", { count: "exact", head: true })
+            .eq("customer_id", customerId);
+          if ((count ?? 0) < MAX_SHIPPING_ADDRESSES) {
+            await supabase.from("customer_shipping_addresses").insert({
+              customer_id: customerId,
+              label: shippingAddressLabel || null,
+              company: ship.company || null,
+              name: ship.name || null,
+              street: ship.street,
+              psc: ship.psc,
+              city: ship.city,
+            });
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("objednavka: customer profile sync failed", e);
   }
 
   // Nahraná grafika (logo u vlajek, artwork u banneru/vlajky na zakázku) se
