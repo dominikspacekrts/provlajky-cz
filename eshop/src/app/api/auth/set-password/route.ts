@@ -6,11 +6,16 @@ import {
   hashToken,
   isStrongEnoughPassword,
 } from "@/lib/customer-auth";
-import { loadCustomerProfile } from "@/lib/customer-profile";
+import { bumpSessionVersion, loadCustomerProfile } from "@/lib/customer-profile";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/security";
 
 type Body = { token?: string; password?: string };
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const limited = rateLimit(`set-password:${ip}`, { limit: 10, windowMs: 60_000 });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
+
   let body: Body;
   try {
     body = await req.json();
@@ -22,7 +27,10 @@ export async function POST(req: NextRequest) {
   const password = body.password || "";
   if (!raw) return NextResponse.json({ error: "Chybí token." }, { status: 400 });
   if (!isStrongEnoughPassword(password)) {
-    return NextResponse.json({ error: "Heslo musí mít alespoň 8 znaků." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Heslo musí mít alespoň 8 znaků, jedno písmeno a jednu číslici." },
+      { status: 400 },
+    );
   }
 
   const supabase = createServiceClient();
@@ -55,7 +63,9 @@ export async function POST(req: NextRequest) {
     .update({ used_at: new Date().toISOString() })
     .eq("id", row.id);
 
-  await createSessionCookie(row.customer_id);
+  // Invaliduje všechny staré session cookies.
+  const sv = await bumpSessionVersion(row.customer_id);
+  await createSessionCookie(row.customer_id, sv);
   const profile = await loadCustomerProfile(row.customer_id);
   return NextResponse.json({ ok: true, customer: profile });
 }

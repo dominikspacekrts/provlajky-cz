@@ -14,14 +14,12 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [needsPassword, setNeedsPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setNeedsPassword(false);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -31,7 +29,6 @@ export default function LoginForm() {
       const json = await res.json();
       if (!res.ok) {
         setError(json.error || "Přihlášení se nezdařilo.");
-        setNeedsPassword(!!json.needsPassword);
         setLoading(false);
         return;
       }
@@ -66,18 +63,13 @@ export default function LoginForm() {
         />
       </label>
       {error && <p className="auth-error">{error}</p>}
-      {needsPassword && (
-        <p className="auth-hint">
-          <Link href={`/nastavit-heslo-zadost?email=${encodeURIComponent(email)}`}>Poslat odkaz na nastavení hesla</Link>
-        </p>
-      )}
       <button type="submit" className="btn-yellow" disabled={loading}>
         {loading ? "Přihlašuji…" : "Přihlásit se"}
       </button>
       <p className="auth-switch">
         Nemáte účet? <Link href="/registrace">Registrace</Link>
         {" · "}
-        <Link href="/nastavit-heslo-zadost">Zapomenuté heslo</Link>
+        <Link href="/nastavit-heslo-zadost">Zapomenuté heslo / dokončení účtu</Link>
       </p>
     </form>
   );

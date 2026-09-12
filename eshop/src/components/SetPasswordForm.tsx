@@ -22,8 +22,8 @@ export default function SetPasswordForm() {
       setError("Hesla se neshodují.");
       return;
     }
-    if (password.length < 8) {
-      setError("Heslo musí mít alespoň 8 znaků.");
+    if (password.length < 8 || !/[A-Za-zÀ-ž]/.test(password) || !/[0-9]/.test(password)) {
+      setError("Heslo musí mít alespoň 8 znaků, jedno písmeno a jednu číslici.");
       return;
     }
     if (!token) {

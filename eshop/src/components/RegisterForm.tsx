@@ -27,9 +27,9 @@ export default function RegisterForm({ redirectTo }: { redirectTo?: string }) {
       setMessage("Zadejte prosím e-mail.");
       return;
     }
-    if (password.length < 8) {
+    if (password.length < 8 || !/[A-Za-zÀ-ž]/.test(password) || !/[0-9]/.test(password)) {
       setStatus("error");
-      setMessage("Heslo musí mít alespoň 8 znaků.");
+      setMessage("Heslo musí mít alespoň 8 znaků, jedno písmeno a jednu číslici.");
       return;
     }
     if (!consent) {
@@ -111,7 +111,7 @@ export default function RegisterForm({ redirectTo }: { redirectTo?: string }) {
           />
         </label>
         <label className="nv-register-field">
-          <span>Heslo (min. 8 znaků)</span>
+          <span>Heslo (min. 8 znaků, písmeno + číslice)</span>
           <input
             type="password"
             required

@@ -4,10 +4,15 @@ import { isValidEmail } from "@/lib/validation";
 import { SITE_URL } from "@/lib/site";
 import { generateRawToken, hashToken } from "@/lib/customer-auth";
 import { passwordLinkEmailHtml, sendCustomerMail } from "@/lib/customer-mail";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/security";
 
 type Body = { email?: string };
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const limited = rateLimit(`request-password:${ip}`, { limit: 5, windowMs: 60_000 });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
+
   let body: Body;
   try {
     body = await req.json();
@@ -20,6 +25,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Zadejte platný e-mail." }, { status: 400 });
   }
 
+  // Per-email cooldown — ochrana inboxu.
+  const emailLimited = rateLimit(`request-password-email:${email}`, { limit: 3, windowMs: 15 * 60_000 });
+  if (!emailLimited.ok) {
+    return NextResponse.json({
+      ok: true,
+      message: "Pokud účet existuje, poslali jsme odkaz na e-mail.",
+    });
+  }
+
   const supabase = createServiceClient();
   const { data: customer } = await supabase
     .from("customers")
@@ -27,7 +41,6 @@ export async function POST(req: NextRequest) {
     .eq("email", email)
     .maybeSingle();
 
-  // Stejná odpověď i když e-mail neexistuje — ať se nedá zjišťovat registrace.
   if (!customer) {
     return NextResponse.json({
       ok: true,

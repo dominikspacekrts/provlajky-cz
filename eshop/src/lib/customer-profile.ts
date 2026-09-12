@@ -1,6 +1,6 @@
 import { createServiceClient } from "@/lib/supabase";
 import {
-  getSessionCustomerId,
+  getSessionPayload,
   type CustomerProfile,
   type ShippingAddressRow,
 } from "@/lib/customer-auth";
@@ -36,7 +36,41 @@ export async function loadCustomerProfile(customerId: string): Promise<CustomerP
 }
 
 export async function getLoggedInProfile(): Promise<CustomerProfile | null> {
-  const id = await getSessionCustomerId();
-  if (!id) return null;
-  return loadCustomerProfile(id);
+  const session = await getSessionPayload();
+  if (!session) return null;
+
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from("customers")
+    .select("session_version")
+    .eq("id", session.customerId)
+    .maybeSingle();
+
+  // Chybějící sloupec (před migrací) = bereme jako verzi 1.
+  const dbVersion = data && "session_version" in data ? Number(data.session_version) || 1 : 1;
+  if (session.sv !== dbVersion) return null;
+
+  return loadCustomerProfile(session.customerId);
+}
+
+export async function bumpSessionVersion(customerId: string): Promise<number> {
+  const supabase = createServiceClient();
+  const { data: cur } = await supabase
+    .from("customers")
+    .select("session_version")
+    .eq("id", customerId)
+    .maybeSingle();
+  const next = (Number(cur?.session_version) || 1) + 1;
+  await supabase.from("customers").update({ session_version: next }).eq("id", customerId);
+  return next;
+}
+
+export async function getCustomerSessionVersion(customerId: string): Promise<number> {
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from("customers")
+    .select("session_version")
+    .eq("id", customerId)
+    .maybeSingle();
+  return Number(data?.session_version) || 1;
 }

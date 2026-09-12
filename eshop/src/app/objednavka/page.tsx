@@ -269,8 +269,8 @@ export default function CheckoutPage() {
       ...(!sameAsShipping ? prefixFieldErrors("shipping", shippingFieldErrors(shipping)) : {}),
     };
 
-    if (createAccount && !customer && accountPassword.length < 8) {
-      setError("Pro vytvoření účtu zadejte heslo alespoň 8 znaků.");
+    if (createAccount && !customer && (accountPassword.length < 8 || !/[A-Za-zÀ-ž]/.test(accountPassword) || !/[0-9]/.test(accountPassword))) {
+      setError("Pro vytvoření účtu zadejte heslo (min. 8 znaků, písmeno a číslice).");
       return;
     }
 
@@ -549,7 +549,7 @@ export default function CheckoutPage() {
                     checked={createAccount}
                     onChange={(e) => setCreateAccount(e.target.checked)}
                   />
-                  Vytvořit účet a uložit adresy (heslo min. 8 znaků)
+                  Vytvořit účet a uložit adresy (heslo: min. 8 znaků, písmeno + číslice)
                 </label>
                 {createAccount && (
                   <label style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10, maxWidth: 320 }}>

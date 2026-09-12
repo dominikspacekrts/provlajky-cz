@@ -10,6 +10,7 @@ import {
 } from "@/lib/customer-auth";
 import { discountCodeEmailHtml, sendCustomerMail } from "@/lib/customer-mail";
 import { loadCustomerProfile } from "@/lib/customer-profile";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/security";
 
 type Body = {
   email?: string;
@@ -19,6 +20,10 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const limited = rateLimit(`register:${ip}`, { limit: 8, windowMs: 60_000 });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
+
   let body: Body;
   try {
     body = await req.json();
@@ -35,7 +40,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Zadejte platný e-mail." }, { status: 400 });
   }
   if (!isStrongEnoughPassword(password)) {
-    return NextResponse.json({ error: "Heslo musí mít alespoň 8 znaků." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Heslo musí mít alespoň 8 znaků, jedno písmeno a jednu číslici." },
+      { status: 400 },
+    );
   }
 
   const supabase = createServiceClient();
@@ -56,12 +64,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (existing) {
-    // Starý lead bez hesla — dokončí účet, kód zůstane.
     const { error } = await supabase
       .from("customers")
       .update({
         password_hash: passwordHash,
         password_updated_at: new Date().toISOString(),
+        session_version: 1,
         name: name || existing.name,
         phone: phone || null,
       })
@@ -87,6 +95,7 @@ export async function POST(req: NextRequest) {
           discount_pct: DEFAULT_DISCOUNT_PCT,
           password_hash: passwordHash,
           password_updated_at: new Date().toISOString(),
+          session_version: 1,
         })
         .select("id")
         .single();
@@ -113,7 +122,7 @@ export async function POST(req: NextRequest) {
     emailedCode = mail.emailed;
   }
 
-  await createSessionCookie(customerId);
+  await createSessionCookie(customerId, 1);
   const profile = await loadCustomerProfile(customerId);
   return NextResponse.json({
     ok: true,
