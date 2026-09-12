@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { createServiceClient } from "@/lib/supabase";
+import { isValidEmail } from "@/lib/validation";
 
 type Body = {
   name?: string;
@@ -28,10 +29,6 @@ function generateCode(): string {
     code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
   }
   return code;
-}
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function escapeHtml(s: string): string {
