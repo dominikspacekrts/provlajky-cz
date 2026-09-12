@@ -2342,3 +2342,33 @@ html:has(.nv) { scroll-behavior: smooth; }
   .nv-nav-login { display: none; }
 }
 
+.account-order-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.account-order-row {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px;
+  text-decoration: none !important; color: inherit; font-size: 14px;
+}
+.account-order-row:hover { border-color: var(--ink); }
+.account-order-main { display: flex; flex-direction: column; gap: 2px; }
+.account-order-date { font-size: 12px; color: var(--gray); }
+.account-order-total { font-weight: 600; white-space: nowrap; }
+.account-status {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.account-status.tone-neutral { background: #fef3c7; color: #92400e; }
+.account-status.tone-progress { background: #dbeafe; color: #1e40af; }
+.account-status.tone-wait { background: #e0e7ff; color: #3730a3; }
+.account-status.tone-done { background: #dcfce7; color: #166534; }
+.account-status.tone-warn { background: #fef3c7; color: #92400e; }
+.account-status.tone-bad { background: #fee2e2; color: #991b1b; }
+.account-order-items { list-style: none; padding: 0; margin: 0; }
+.account-order-items li {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+}
+@media (max-width: 560px) {
+  .account-order-row { grid-template-columns: 1fr; gap: 6px; }
+}
+
+
