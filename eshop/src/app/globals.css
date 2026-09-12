@@ -2254,3 +2254,13 @@ html:has(.nv) { scroll-behavior: smooth; }
 .info-table th { font-variation-settings: "wght" 680; color: var(--text); }
 .info-table td:last-child, .info-table th:last-child { text-align: right; white-space: nowrap; }
 
+
+/* Souhlas u registrace a poznámka o zpracování údajů u kontaktního formuláře. */
+.nv-register-consent {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin-top: 12px; font-size: 12.5px; line-height: 1.5; color: var(--gray);
+  text-align: left; cursor: pointer;
+}
+.nv-register-consent input { margin-top: 2px; flex: none; accent-color: var(--ink); }
+.nv-register-consent a { color: inherit; text-underline-offset: 3px; }
+.form-privacy-note { margin: 14px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--gray); }

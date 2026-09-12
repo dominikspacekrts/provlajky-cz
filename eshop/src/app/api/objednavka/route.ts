@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
   // Nahraná grafika (logo u vlajek, artwork u banneru/vlajky na zakázku) se
   // navíc uloží do Supabase Storage pod číslem objednávky — base64 v design
   // JSONu se nemaže (pořád ho čte vizualizace/editor v adminu), tohle je jen
-  // veřejná URL originálu k výrobě (viz Design.artworkUrl).
+  // umístění originálu k výrobě (viz Design.artworkPath).
   const productIds = [...new Set(lines.map((l) => l.productId).filter(Boolean))];
   const categoryById = new Map<string, ProductCategory>();
   const partnerIdsByProduct = new Map<string, string[]>();
@@ -254,8 +254,10 @@ export async function POST(req: NextRequest) {
           if (uploadError) {
             console.error("objednavka: storage upload failed", uploadError);
           } else {
-            const { data: pub } = supabase.storage.from(bucket).getPublicUrl(storagePath);
-            design = { ...design, artworkUrl: pub.publicUrl };
+            // Ukládá se jen umístění, ne odkaz. Buckety s grafikou zákazníků
+            // jsou privátní — veřejná URL by šla uhodnout z čísla objednávky,
+            // které jde po sobě, takže by si kdokoliv stáhl cizí loga.
+            design = { ...design, artworkPath: `${bucket}/${storagePath}` };
           }
         }
       }

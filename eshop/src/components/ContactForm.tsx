@@ -4,6 +4,7 @@
 // reply-to na odesílatele). Vzor převzatý z RegisterForm.tsx.
 
 import { useState } from "react";
+import Link from "next/link";
 import { trackGenerateLead } from "@/lib/analytics";
 
 type Status = "idle" | "loading" | "done" | "error";
@@ -69,6 +70,12 @@ export default function ContactForm() {
         </label>
       </div>
       {error && <p className="contact-form-error">{error}</p>}
+      {/* Zpracování stojí na oprávněném zájmu (odpovědět na poptávku), takže
+          se souhlas neodklikává — zákazník ale musí být informovaný. */}
+      <p className="form-privacy-note">
+        Odesláním berete na vědomí, že vaše údaje použijeme jen k vyřízení poptávky. Podrobnosti v{" "}
+        <Link href="/ochrana-osobnich-udaju">zásadách ochrany osobních údajů</Link>.
+      </p>
       <button type="submit" className="btn-yellow" disabled={status === "loading"}>
         {status === "loading" ? "Odesílám…" : "Odeslat zprávu"}
       </button>

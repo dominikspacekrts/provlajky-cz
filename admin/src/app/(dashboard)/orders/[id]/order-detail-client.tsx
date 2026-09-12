@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   deleteOrderItem,
+  getArtworkDownloadUrl,
   updateItemHsSleeve,
   updateOrderItem,
   updateOrderItemPartners,
@@ -292,6 +293,15 @@ function ItemRow({
     setPartnerIds(next);
     startTransition(() => updateOrderItemPartners(item.id, orderId, next));
   }
+
+  // Bucket s grafikou je privátní, odkaz se vydá až na kliknutí a platí hodinu.
+  async function downloadArtwork(artworkPath: string) {
+    try {
+      window.location.href = await getArtworkDownloadUrl(artworkPath);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Grafiku se nepodařilo stáhnout.");
+    }
+  }
   // eshop.hs je starší úložiště z konfigurátoru na eshopu, hs je totéž pole
   // zapisované adminem — čte se, co je nastavené.
   const [hs, setHs] = useState(item.design?.hs ?? item.design?.eshop?.hs ?? false);
@@ -402,15 +412,10 @@ function ItemRow({
             {item.design ? "Upravit design" : "Přidat design"}
           </Link>
         )}
-        {item.design?.artworkUrl && (
-          <a
-            className="btn"
-            href={`${item.design.artworkUrl}?download`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+        {item.design?.artworkPath && (
+          <button className="btn" type="button" onClick={() => downloadArtwork(item.design!.artworkPath!)}>
             Stáhnout grafiku
-          </a>
+          </button>
         )}
         <button className="btn danger" onClick={() => startTransition(() => deleteOrderItem(item.id, orderId))}>
           Smazat
