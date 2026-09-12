@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { generateVisualPdf } from "@/lib/pdf/visual";
 import type { Customer, Design, Order, OrderItem } from "@/lib/types";
 
@@ -218,4 +218,24 @@ export async function updateOrderCustomer(
     .eq("id", orderId);
   if (error) throw new Error(error.message);
   revalidatePath(`/orders/${orderId}`);
+}
+
+// Grafiky zákazníků leží v privátních bucketech — veřejná adresa by se dala
+// uhodnout z čísla objednávky, které jde po sobě, takže by si kdokoliv stáhl
+// cizí loga. Admin proto dostane podepsaný odkaz s hodinovou platností.
+// Přístup hlídá RLS přes session klienta: kdo není v allowed_users, nedostane
+// ani odkaz.
+export async function getArtworkDownloadUrl(artworkPath: string): Promise<string> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Nepřihlášený uživatel.");
+
+  const [bucket, ...rest] = artworkPath.split("/");
+  const path = rest.join("/");
+  if (!bucket || !path) throw new Error("Neplatné umístění grafiky.");
+
+  const service = createServiceClient();
+  const { data, error } = await service.storage.from(bucket).createSignedUrl(path, 60 * 60, { download: true });
+  if (error || !data) throw new Error(`Odkaz se nepodařilo vytvořit: ${error?.message ?? "neznámá chyba"}`);
+  return data.signedUrl;
 }

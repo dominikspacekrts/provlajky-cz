@@ -5,11 +5,13 @@
 // zakládá zákazníka a spouští odeslání mailu.
 
 import { useState } from "react";
+import Link from "next/link";
 
 type Status = "idle" | "loading" | "done" | "error";
 
 export default function RegisterForm() {
   const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -18,6 +20,11 @@ export default function RegisterForm() {
     if (!email.trim()) {
       setStatus("error");
       setMessage("Zadejte prosím e-mail.");
+      return;
+    }
+    if (!consent) {
+      setStatus("error");
+      setMessage("Bez souhlasu se zpracováním e-mailu nemůžeme kód poslat.");
       return;
     }
     setStatus("loading");
@@ -69,8 +76,21 @@ export default function RegisterForm() {
           />
         </label>
       </div>
+      {/* Zpracování e-mailu stojí na souhlasu, takže si ho musí zákazník
+          vědomě odkliknout — předzaškrtnuté políčko souhlas podle GDPR není. */}
+      <label className="nv-register-consent">
+        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+        <span>
+          Souhlasím se zpracováním e-mailu za účelem zaslání slevového kódu a obchodních sdělení. Souhlas můžu
+          kdykoliv odvolat. Víc v{" "}
+          <Link href="/ochrana-osobnich-udaju" target="_blank">
+            zásadách ochrany osobních údajů
+          </Link>
+          .
+        </span>
+      </label>
       {message && status === "error" && <p className="nv-register-error">{message}</p>}
-      <button type="submit" className="nv-btn nv-btn-yellow" disabled={status === "loading"}>
+      <button type="submit" className="nv-btn nv-btn-yellow" disabled={status === "loading" || !consent}>
         <span className="nv-btn-l">{status === "loading" ? "Odesílám…" : "Získat 10% slevu"}</span>
       </button>
     </form>

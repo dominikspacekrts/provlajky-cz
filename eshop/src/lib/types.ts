@@ -206,10 +206,12 @@ export type OrderItemDesign = {
   // metadata navíc (admin je ignoruje): odkud návrh přišel a přesné hodnoty z eshop editoru
   source?: "eshop";
   eshop?: { logoX: number; logoY: number; logoScale: number; shape: string; hs: boolean };
-  // Veřejná URL nahrané grafiky ve Supabase Storage (viz /api/objednavka) —
-  // uložená vedle base64 polí výše, nenahrazuje je (ta pořád čte vizualizace
-  // a editor v adminu), slouží jen ke stažení originálu k výrobě.
-  artworkUrl?: string;
+  // Umístění nahrané grafiky ve Storage ve tvaru "bucket/cesta" (viz
+  // /api/objednavka) — uložené vedle base64 polí výše, nenahrazuje je (ta pořád
+  // čte vizualizace a editor v adminu), slouží jen ke stažení originálu
+  // k výrobě. Buckety s grafikou jsou privátní, takže admin si k odkazu musí
+  // vyžádat podepsanou URL s omezenou platností.
+  artworkPath?: string;
 };
 
 export type CartLine = {

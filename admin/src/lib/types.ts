@@ -40,10 +40,12 @@ export type Design = {
   } | null;
   thumb?: string | null;
   flagBounds?: { x: number; y: number; w: number; h: number; pr: number } | null;
-  // Veřejná URL nahrané grafiky ve Supabase Storage (nahrává eshop /api/objednavka
-  // do bucketu grafika_plazove_vlajky / grafika_bannery / grafika_vlajky, ve
-  // složce pojmenované číslem objednávky) — originál k výrobě ke stažení.
-  artworkUrl?: string;
+  // Umístění nahrané grafiky ve Storage ve tvaru "bucket/cesta" (nahrává eshop
+  // /api/objednavka do bucketu grafika_plazove_vlajky / grafika_bannery /
+  // grafika_vlajky, ve složce pojmenované číslem objednávky) — originál
+  // k výrobě. Buckety jsou privátní, odkaz ke stažení vydá až
+  // getArtworkDownloadUrl() a platí hodinu.
+  artworkPath?: string;
 };
 
 export type Order = {
