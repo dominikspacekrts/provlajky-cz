@@ -485,9 +485,10 @@ export default function CheckoutPage() {
               <span>{fmtMoney(vat)}</span>
             </div>
             <div className="row total">
-              <span>Celkem s DPH</span>
-              <span>{fmtMoney(totalEx + vat)}</span>
+              <span>Celkem bez DPH</span>
+              <span>{fmtMoney(totalEx)}</span>
             </div>
+            <p className="cart-summary-note">Celkem s DPH {fmtMoney(totalEx + vat)}</p>
           </div>
         </div>
       </form>

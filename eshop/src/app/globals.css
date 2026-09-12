@@ -1076,8 +1076,7 @@ label:has(input[type="checkbox"]), .cb-line {
   min-width: 108px; text-align: right; font-size: 16px; letter-spacing: -0.02em;
   font-variation-settings: "wght" 680, "wdth" 104;
 }
-/* Cena bez DPH jako druhý řádek pod koncovou cenou — spotřebitel vidí jako
-   hlavní údaj částku s DPH, firemní zákazník si dohledá základ. */
+/* Cena s DPH jako druhý řádek pod hlavní cenou bez DPH. */
 .cart-line-total .vat { display: block; margin-top: 2px; font-variation-settings: "wght" 500; }
 .cart-summary-note { margin: 10px 0 0; font-size: 12px; color: var(--gray); text-align: right; }
 .cart-line-remove-mark { width: 15px; height: 15px; }
