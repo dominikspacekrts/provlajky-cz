@@ -6,7 +6,11 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { fmtMoney } from "@/lib/money";
 import type { CheckoutSettings, CustomerAddress } from "@/lib/types";
+import type { AddressSuggestion } from "@/lib/address-suggest";
 import CustomMadeNotice from "@/components/CustomMadeNotice";
+import PhoneInput from "@/components/PhoneInput";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
+import { billingFieldErrors, shippingFieldErrors, formatPsc } from "@/lib/validation";
 import { itemFromCartLine, trackAddPaymentInfo, trackAddShippingInfo, trackBeginCheckout } from "@/lib/analytics";
 
 // Stejná sazba, se kterou eshop počítá DPH na produktové položky, dokud
@@ -37,6 +41,7 @@ export default function CheckoutPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [checkoutSettings, setCheckoutSettings] = useState<CheckoutSettings | null>(null);
   const [shippingMethodId, setShippingMethodId] = useState<string | null>(null);
@@ -95,8 +100,47 @@ export default function CheckoutPage() {
     trackAddPaymentInfo(lines.map(itemFromCartLine), label);
   }
 
+  // fieldErrors klíče jsou "billing"/"shipping" + Capitalized field name (viz submit()),
+  // takže se dají čistit generickým setterem beze změny na každém jednotlivém onChange.
+  function clearFieldError(key: string) {
+    setFieldErrors((cur) => {
+      if (!(key in cur)) return cur;
+      const next = { ...cur };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function prefixFieldErrors(prefix: string, errors: Record<string, string>) {
+    return Object.fromEntries(
+      Object.entries(errors).map(([key, message]) => [`${prefix}${key[0].toUpperCase()}${key.slice(1)}`, message]),
+    );
+  }
+
   function set<K extends keyof CustomerAddress>(key: K, v: CustomerAddress[K]) {
     setBilling((cur) => ({ ...cur, [key]: v }));
+    clearFieldError(`billing${key[0].toUpperCase()}${key.slice(1)}`);
+  }
+
+  function setShipField<K extends keyof CustomerAddress>(key: K, v: CustomerAddress[K]) {
+    setShipping((cur) => ({ ...cur, [key]: v }));
+    clearFieldError(`shipping${key[0].toUpperCase()}${key.slice(1)}`);
+  }
+
+  // Adresní našeptávač doplní PSČ jen když ho vrátí (dostupné jen v části ČR)
+  // a nikdy nepřepíše rozumnou existující hodnotu prázdnem.
+  function onBillingAddressSelect(s: AddressSuggestion) {
+    setBilling((cur) => ({ ...cur, street: s.street, city: s.city || cur.city, psc: s.zip ? formatPsc(s.zip) : cur.psc }));
+    clearFieldError("billingStreet");
+    clearFieldError("billingCity");
+    clearFieldError("billingPsc");
+  }
+
+  function onShippingAddressSelect(s: AddressSuggestion) {
+    setShipping((cur) => ({ ...cur, street: s.street, city: s.city || cur.city, psc: s.zip ? formatPsc(s.zip) : cur.psc }));
+    clearFieldError("shippingStreet");
+    clearFieldError("shippingCity");
+    clearFieldError("shippingPsc");
   }
 
   async function submit(e: React.FormEvent) {
@@ -105,14 +149,21 @@ export default function CheckoutPage() {
       setError("Košík je prázdný.");
       return;
     }
-    if (!billing.email?.trim() || !(billing.name?.trim() || billing.company?.trim())) {
-      setError('Vyplň prosím jméno nebo firmu a e-mail.');
+    // Formátové kontroly — pojistka proti neúplné/nesmyslné objednávce.
+    // Server v /api/objednavka dělá stejné kontroly znovu, tohle je jen
+    // rychlá zpětná vazba přímo u pole.
+    const errors: Record<string, string> = {
+      ...prefixFieldErrors("billing", billingFieldErrors(billing)),
+      ...(!sameAsShipping ? prefixFieldErrors("shipping", shippingFieldErrors(shipping)) : {}),
+    };
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError("Zkontrolujte prosím zvýrazněná pole.");
       return;
     }
-    if (billing.isCompany && !billing.ico?.trim()) {
-      setError('Nákup je označen „na firmu“ – vyplň IČO.');
-      return;
-    }
+    setFieldErrors({});
+
     if (!termsAccepted) {
       setError("Pro odeslání objednávky je potřeba souhlasit s obchodními podmínkami.");
       return;
@@ -171,7 +222,7 @@ export default function CheckoutPage() {
         objednávky vás kontaktujeme s potvrzením, vizualizací a fakturou — platba probíhá bankovním převodem.
       </p>
 
-      <form onSubmit={submit} style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 40, marginTop: 28 }}>
+      <form noValidate onSubmit={submit} style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 40, marginTop: 28 }}>
         <div>
           <h3 style={{ fontSize: 18, marginBottom: 12 }}>Fakturační údaje</h3>
           <div className="form-grid">
@@ -182,26 +233,45 @@ export default function CheckoutPage() {
             <label>
               Jméno a příjmení
               <input value={billing.name} onChange={(e) => set("name", e.target.value)} />
+              {fieldErrors.billingName && <span className="field-error">{fieldErrors.billingName}</span>}
             </label>
             <label className="full-width">
               Ulice a č.p.
-              <input value={billing.street} onChange={(e) => set("street", e.target.value)} />
+              <AddressAutocomplete
+                value={billing.street ?? ""}
+                onChange={(v) => set("street", v)}
+                onSelect={onBillingAddressSelect}
+                placeholder="Např. Nábřeží Míru 105"
+              />
+              {fieldErrors.billingStreet && <span className="field-error">{fieldErrors.billingStreet}</span>}
             </label>
-            <label>
-              PSČ
-              <input value={billing.psc} onChange={(e) => set("psc", e.target.value)} />
-            </label>
-            <label>
-              Město
-              <input value={billing.city} onChange={(e) => set("city", e.target.value)} />
-            </label>
+            <div className="psc-row">
+              <label>
+                PSČ
+                <input
+                  value={billing.psc}
+                  onChange={(e) => set("psc", formatPsc(e.target.value))}
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="737 01"
+                />
+                {fieldErrors.billingPsc && <span className="field-error">{fieldErrors.billingPsc}</span>}
+              </label>
+              <label>
+                Město
+                <input value={billing.city} onChange={(e) => set("city", e.target.value)} />
+                {fieldErrors.billingCity && <span className="field-error">{fieldErrors.billingCity}</span>}
+              </label>
+            </div>
             <label>
               E-mail
               <input type="email" value={billing.email} onChange={(e) => set("email", e.target.value)} />
+              {fieldErrors.billingEmail && <span className="field-error">{fieldErrors.billingEmail}</span>}
             </label>
             <label>
               Telefon
-              <input type="tel" value={billing.phone} onChange={(e) => set("phone", e.target.value)} />
+              <PhoneInput value={billing.phone ?? ""} onChange={(v) => set("phone", v)} />
+              {fieldErrors.billingPhone && <span className="field-error">{fieldErrors.billingPhone}</span>}
             </label>
             <label className="full-width" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <input
@@ -217,6 +287,7 @@ export default function CheckoutPage() {
                 <label>
                   IČO
                   <input value={billing.ico} onChange={(e) => set("ico", e.target.value)} />
+                  {fieldErrors.billingIco && <span className="field-error">{fieldErrors.billingIco}</span>}
                 </label>
                 <label>
                   DIČ
@@ -241,32 +312,36 @@ export default function CheckoutPage() {
               <div className="form-grid">
                 <label>
                   Jméno a příjmení / firma
-                  <input
-                    value={shipping.name}
-                    onChange={(e) => setShipping((cur) => ({ ...cur, name: e.target.value }))}
-                  />
+                  <input value={shipping.name} onChange={(e) => setShipField("name", e.target.value)} />
                 </label>
-                <label>
+                <label className="full-width">
                   Ulice a č.p.
-                  <input
-                    value={shipping.street}
-                    onChange={(e) => setShipping((cur) => ({ ...cur, street: e.target.value }))}
+                  <AddressAutocomplete
+                    value={shipping.street ?? ""}
+                    onChange={(v) => setShipField("street", v)}
+                    onSelect={onShippingAddressSelect}
+                    placeholder="Např. Nábřeží Míru 105"
                   />
+                  {fieldErrors.shippingStreet && <span className="field-error">{fieldErrors.shippingStreet}</span>}
                 </label>
-                <label>
-                  PSČ
-                  <input
-                    value={shipping.psc}
-                    onChange={(e) => setShipping((cur) => ({ ...cur, psc: e.target.value }))}
-                  />
-                </label>
-                <label>
-                  Město
-                  <input
-                    value={shipping.city}
-                    onChange={(e) => setShipping((cur) => ({ ...cur, city: e.target.value }))}
-                  />
-                </label>
+                <div className="psc-row">
+                  <label>
+                    PSČ
+                    <input
+                      value={shipping.psc}
+                      onChange={(e) => setShipField("psc", formatPsc(e.target.value))}
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="737 01"
+                    />
+                    {fieldErrors.shippingPsc && <span className="field-error">{fieldErrors.shippingPsc}</span>}
+                  </label>
+                  <label>
+                    Město
+                    <input value={shipping.city} onChange={(e) => setShipField("city", e.target.value)} />
+                    {fieldErrors.shippingCity && <span className="field-error">{fieldErrors.shippingCity}</span>}
+                  </label>
+                </div>
               </div>
             </>
           )}

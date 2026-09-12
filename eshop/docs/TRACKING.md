@@ -266,3 +266,9 @@ Kontrola: `npm run feeds:validate` (proti běžícímu webu; pro produkci
 | Odeslání `purchase` + ochrana proti duplicitě | `src/components/PurchaseTracking.tsx` |
 | Oddělení dev/produkce | `src/proxy.ts`, `src/lib/site.ts` |
 | Podklad pro oba feedy | `src/lib/feed.ts` |
+
+## 8. Adresní našeptávač (Mapy.com)
+
+Checkout (`/objednavka`) napovídá ulici, město a PSČ přes Mapy Suggest.
+Klíč `MAPY_API_KEY` patří jen na server (`.env.local` lokálně, ve Vercelu
+Production i Preview). Bez něj objednávka funguje dál — jen bez dropdownu.

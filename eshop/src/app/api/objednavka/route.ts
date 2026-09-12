@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase";
 import { fmtMoney } from "@/lib/money";
 import { getCheckoutSettings } from "@/lib/checkoutSettings";
 import type { CartLine, CustomerAddress, ProductCategory } from "@/lib/types";
+import { billingFieldErrors, firstFieldError, shippingFieldErrors } from "@/lib/validation";
 
 // Stejná sazba jako v checkoutu (src/app/objednavka/page.tsx), dokud admin
 // nezavede vlastní sazby pro dopravu/platbu.
@@ -99,10 +100,6 @@ type Body = {
   paymentMethodId?: string;
 };
 
-function isNonEmpty(s: string | undefined) {
-  return typeof s === "string" && s.trim().length > 0;
-}
-
 // Bucket pro nahranou grafiku podle kategorie produktu (buckety založené
 // ručně v Supabase Storage — public, bez size limitu).
 const CATEGORY_BUCKET: Partial<Record<ProductCategory, string>> = {
@@ -136,14 +133,19 @@ export async function POST(req: NextRequest) {
 
   const { billing, shipping, lines, note, discountCode, shippingMethodId, paymentMethodId } = body;
 
-  if (!billing || !isNonEmpty(billing.email) || (!isNonEmpty(billing.name) && !isNonEmpty(billing.company))) {
+  if (!billing) {
     return NextResponse.json({ error: "Vyplňte prosím jméno/firmu a e-mail." }, { status: 400 });
+  }
+  const billingError = firstFieldError(billingFieldErrors(billing));
+  if (billingError) {
+    return NextResponse.json({ error: billingError }, { status: 400 });
+  }
+  const shippingError = firstFieldError(shippingFieldErrors(shipping ?? {}));
+  if (shippingError) {
+    return NextResponse.json({ error: shippingError }, { status: 400 });
   }
   if (!Array.isArray(lines) || lines.length === 0) {
     return NextResponse.json({ error: "Košík je prázdný." }, { status: 400 });
-  }
-  if (billing.isCompany && !isNonEmpty(billing.ico)) {
-    return NextResponse.json({ error: "Nákup na firmu vyžaduje IČO." }, { status: 400 });
   }
 
   const supabase = createServiceClient();

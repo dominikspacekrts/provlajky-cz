@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { createServiceClient } from "@/lib/supabase";
+import { isValidEmail } from "@/lib/validation";
 
 // Kontaktní formulář (/kontakt) → e-mail na provozovatele (SMTP nastavení
 // sdílené s registrací, viz api/registrace). Zprávu neukládáme do Supabase —
@@ -18,10 +19,6 @@ type MailSettings = {
   fromName?: string;
   from?: string;
 };
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));

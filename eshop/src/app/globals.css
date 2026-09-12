@@ -1128,6 +1128,53 @@ label:has(input[type="checkbox"]), .cb-line {
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; max-width: 760px; }
 .form-grid .full-width { grid-column: 1 / -1; }
 .form-grid label { display: flex; flex-direction: column; gap: 8px; }
+.form-grid .psc-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 18px;
+}
+.field-error {
+  color: #dc2626;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variation-settings: "wght" 580, "wdth" 100;
+}
+.form-grid label:has(.field-error) input,
+.form-grid label:has(.field-error) .phone-input-dial,
+.form-grid label:has(.field-error) .phone-input > input,
+.form-grid label:has(.field-error) .address-autocomplete input {
+  border-color: #dc2626;
+}
+
+.phone-input { display: flex; align-items: stretch; gap: 8px; }
+.phone-input-dial {
+  display: flex; align-items: center; gap: 8px; flex: none;
+  border: 1px solid var(--border); background: #fff; padding: 0 10px 0 12px;
+}
+.phone-input-flag {
+  width: 22px; height: 16px; flex: none;
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+}
+.phone-input-dial select {
+  width: auto; min-width: 88px; border: 0; padding: 13px 0; background: transparent;
+}
+.phone-input > input { flex: 1; min-width: 0; }
+
+.address-autocomplete { position: relative; }
+.address-suggest-list {
+  position: absolute; left: 0; right: 0; top: 100%; z-index: 20;
+  margin: 0; padding: 0; list-style: none;
+  background: #fff; border: 1px solid var(--ink); border-top: 0;
+  max-height: 240px; overflow: auto;
+}
+.address-suggest-list li {
+  padding: 10px 14px; font-size: 14px; cursor: pointer;
+  text-transform: none; letter-spacing: 0; color: var(--ink);
+}
+.address-suggest-list li.is-active,
+.address-suggest-list li:hover { background: rgba(255, 231, 1, 0.28); }
 
 /* --- /kontakt: kontaktní formulář ------------------------------------ */
 .contact-form { margin-top: 28px; }
@@ -1246,6 +1293,9 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 @media (max-width: 700px) {
   .form-grid { grid-template-columns: 1fr; }
+  .form-grid .psc-row { grid-template-columns: 1fr; }
+  .phone-input { flex-wrap: wrap; }
+  .phone-input-dial { flex: 1 1 100%; }
   .cart-line { gap: 12px; }
   .cart-line .meta { flex-basis: 100%; order: 3; }
 }
