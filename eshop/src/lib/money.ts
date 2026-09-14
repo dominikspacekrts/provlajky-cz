@@ -14,9 +14,8 @@ export function round2(value: number) {
 }
 
 /**
- * Cena s DPH z ceny bez DPH. V databázi i v košíku jsou ceny bez DPH, ale
- * spotřebitel musí jako hlavní údaj vidět koncovou částku — přepočet má proto
- * jediné místo, ať se čísla na kartě, v konfigurátoru a v košíku nerozejdou.
+ * Cena s DPH z ceny bez DPH. V databázi i v košíku jsou ceny bez DPH.
+ * Na webu je hlavní údaj bez DPH, částka s DPH je pod ním jako doplněk.
  */
 export function withVat(priceExVat: number, vatRate: number) {
   return round2(priceExVat * (1 + (vatRate || 0)));

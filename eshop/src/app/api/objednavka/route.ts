@@ -3,8 +3,22 @@ import nodemailer from "nodemailer";
 import { createServiceClient } from "@/lib/supabase";
 import { fmtMoney } from "@/lib/money";
 import { getCheckoutSettings } from "@/lib/checkoutSettings";
-import type { CartLine, CustomerAddress, ProductCategory } from "@/lib/types";
+import type { CartLine, CustomerAddress, Product, ProductCategory } from "@/lib/types";
 import { billingFieldErrors, firstFieldError, shippingFieldErrors } from "@/lib/validation";
+import {
+  createSessionCookie,
+  DEFAULT_DISCOUNT_PCT,
+  generateDiscountCode,
+  getSessionCustomerId,
+  hashPassword,
+  isStrongEnoughPassword,
+  MAX_SHIPPING_ADDRESSES,
+  setPurchaseAccessCookie,
+} from "@/lib/customer-auth";
+import { discountCodeEmailHtml, sendCustomerMail } from "@/lib/customer-mail";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/security";
+import { MAX_ARTWORK_BYTES, verifyCartLines } from "@/lib/verify-cart-prices";
+import { decodeSafeImageDataUrl } from "@/lib/safe-image";
 
 // Stejná sazba jako v checkoutu (src/app/objednavka/page.tsx), dokud admin
 // nezavede vlastní sazby pro dopravu/platbu.
@@ -98,6 +112,13 @@ type Body = {
   discountCode?: string;
   shippingMethodId?: string;
   paymentMethodId?: string;
+  /** Volitelně vytvořit účet při odeslání (host checkout). */
+  createAccount?: boolean;
+  accountPassword?: string;
+  /** Uložit dodací adresu k účtu (když se liší od fakturační). */
+  saveShippingAddress?: boolean;
+  shippingAddressId?: string | null;
+  shippingAddressLabel?: string | null;
 };
 
 // Bucket pro nahranou grafiku podle kategorie produktu (buckety založené
@@ -108,22 +129,12 @@ const CATEGORY_BUCKET: Partial<Record<ProductCategory, string>> = {
   "pvc-bannery": "grafika_bannery",
 };
 
-const EXT_BY_MIME: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/svg+xml": "svg",
-  "image/webp": "webp",
-};
-
-function decodeDataUrl(dataUrl: string): { buffer: Buffer; contentType: string; ext: string } | null {
-  const m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
-  if (!m) return null;
-  const contentType = m[1];
-  const ext = EXT_BY_MIME[contentType] || "bin";
-  return { buffer: Buffer.from(m[2], "base64"), contentType, ext };
-}
-
 export async function POST(req: NextRequest) {
+  // Rate limit: max 8 objednávek za 60s z jedné IP.
+  const ip = clientIp(req);
+  const rl = rateLimit(`objednavka:${ip}`, { limit: 8, windowMs: 60_000 });
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
+
   let body: Body;
   try {
     body = await req.json();
@@ -131,7 +142,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Neplatná data." }, { status: 400 });
   }
 
-  const { billing, shipping, lines, note, discountCode, shippingMethodId, paymentMethodId } = body;
+  const {
+    billing,
+    shipping,
+    lines: rawLines,
+    note,
+    discountCode,
+    shippingMethodId,
+    paymentMethodId,
+    createAccount,
+    accountPassword,
+    saveShippingAddress,
+    shippingAddressId,
+    shippingAddressLabel,
+  } = body;
 
   if (!billing) {
     return NextResponse.json({ error: "Vyplňte prosím jméno/firmu a e-mail." }, { status: 400 });
@@ -144,11 +168,28 @@ export async function POST(req: NextRequest) {
   if (shippingError) {
     return NextResponse.json({ error: shippingError }, { status: 400 });
   }
-  if (!Array.isArray(lines) || lines.length === 0) {
+  if (!Array.isArray(rawLines) || rawLines.length === 0) {
     return NextResponse.json({ error: "Košík je prázdný." }, { status: 400 });
   }
 
   const supabase = createServiceClient();
+
+  // Ověření cen: načteme produkty a zkontrolujeme, že zákazník nepodstrčil
+  // jiné ceny než jsou v katalogu.
+  const rawProductIds = [...new Set(rawLines.map((l) => l.productId).filter(Boolean))];
+  const productsById = new Map<string, Product>();
+  if (rawProductIds.length) {
+    const { data: products } = await supabase
+      .from("products")
+      .select("id, slug, category, name, kind, price, price_by_size, vat_rate, active, config")
+      .in("id", rawProductIds);
+    for (const p of products || []) productsById.set(p.id, p as Product);
+  }
+  const verified = verifyCartLines(rawLines, productsById);
+  if (!verified.ok) {
+    return NextResponse.json({ error: verified.error }, { status: 400 });
+  }
+  const lines = verified.lines;
 
   // Slevový kód se ověřuje a spotřebovává výhradně tady, server-side — nikdy
   // z prohlížeče. Neplatný/použitý kód objednávku odmítne, ať zákazník ví,
@@ -192,7 +233,7 @@ export async function POST(req: NextRequest) {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      status: "pending",
+      status: "new",
       currency: "CZK",
       customer: { billing, shipping: shipping || billing },
       title: titleSuffix ? `Objednávka z eshopu — ${titleSuffix}`.slice(0, 200) : "Objednávka z eshopu",
@@ -208,11 +249,150 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nepodařilo se založit objednávku, zkuste to prosím znovu." }, { status: 500 });
   }
 
+  // Atomické nárokování slevového kódu — podmínka used_at IS NULL zabrání
+  // dvojímu čerpání i v souběžných požadavcích.
   if (discountCustomer) {
-    await supabase
+    const { data: claimed } = await supabase
       .from("customers")
       .update({ used_at: new Date().toISOString(), used_order_id: order.id })
-      .eq("id", discountCustomer.id);
+      .eq("id", discountCustomer.id)
+      .is("used_at", null)
+      .select("id")
+      .maybeSingle();
+    if (!claimed) {
+      // Kód byl mezitím použit jiným požadavkem — sleva se nastaví na 0.
+      await supabase.from("orders").update({ discount_pct: 0 }).eq("id", order.id);
+    }
+  }
+
+  // Nastavit přístupový cookie pro zákazníka k této objednávce.
+  await setPurchaseAccessCookie(order.id);
+
+  // Účet: uložit billing / dodací adresu; případně založit účet z checkoutu.
+  try {
+    let customerId = await getSessionCustomerId();
+    const email = (billing.email || "").trim().toLowerCase();
+
+    if (!customerId && createAccount && email) {
+      if (!accountPassword || !isStrongEnoughPassword(accountPassword)) {
+        // Objednávka už je založená — účet jen přeskočíme, nevracíme 400.
+        console.warn("objednavka: createAccount skipped — weak/missing password");
+      } else {
+        const passwordHash = await hashPassword(accountPassword);
+        const { data: existing } = await supabase
+          .from("customers")
+          .select("id, password_hash, discount_code")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (existing?.password_hash) {
+          // Účet už existuje — nepřepisujeme heslo; zákazník se může přihlásit.
+        } else if (existing) {
+          await supabase
+            .from("customers")
+            .update({
+              password_hash: passwordHash,
+              password_updated_at: new Date().toISOString(),
+              name: billing.name || null,
+              phone: billing.phone || null,
+              billing,
+            })
+            .eq("id", existing.id);
+          customerId = existing.id;
+          await createSessionCookie(existing.id);
+        } else {
+          let code = generateDiscountCode();
+          let insertedId: string | null = null;
+          for (let attempt = 0; attempt < 5 && !insertedId; attempt++) {
+            const { data, error } = await supabase
+              .from("customers")
+              .insert({
+                email,
+                name: billing.name || null,
+                phone: billing.phone || null,
+                discount_code: code,
+                discount_pct: DEFAULT_DISCOUNT_PCT,
+                password_hash: passwordHash,
+                password_updated_at: new Date().toISOString(),
+                billing,
+                session_version: 1,
+              })
+              .select("id")
+              .single();
+            if (!error && data) {
+              insertedId = data.id;
+            } else if (error?.code === "23505") {
+              code = generateDiscountCode();
+            } else {
+              console.error("objednavka: createAccount insert failed", error);
+              break;
+            }
+          }
+          if (insertedId) {
+            customerId = insertedId;
+            await createSessionCookie(customerId);
+            await sendCustomerMail({
+              to: email,
+              subject: "Váš slevový kód — provlajky.cz",
+              html: discountCodeEmailHtml(billing.name, code, DEFAULT_DISCOUNT_PCT),
+            });
+          }
+        }
+      }
+    }
+
+    if (customerId) {
+      await supabase
+        .from("customers")
+        .update({
+          billing,
+          name: billing.name || null,
+          phone: billing.phone || null,
+        })
+        .eq("id", customerId);
+
+      const ship = shipping || billing;
+      const billingSameAsShip =
+        (billing.street || "") === (ship.street || "") &&
+        (billing.psc || "") === (ship.psc || "") &&
+        (billing.city || "") === (ship.city || "") &&
+        (billing.name || "") === (ship.name || "");
+
+      if (saveShippingAddress && !billingSameAsShip && ship.street && ship.psc && ship.city) {
+        if (shippingAddressId) {
+          await supabase
+            .from("customer_shipping_addresses")
+            .update({
+              label: shippingAddressLabel || null,
+              company: ship.company || null,
+              name: ship.name || null,
+              street: ship.street,
+              psc: ship.psc,
+              city: ship.city,
+            })
+            .eq("id", shippingAddressId)
+            .eq("customer_id", customerId);
+        } else {
+          const { count } = await supabase
+            .from("customer_shipping_addresses")
+            .select("id", { count: "exact", head: true })
+            .eq("customer_id", customerId);
+          if ((count ?? 0) < MAX_SHIPPING_ADDRESSES) {
+            await supabase.from("customer_shipping_addresses").insert({
+              customer_id: customerId,
+              label: shippingAddressLabel || null,
+              company: ship.company || null,
+              name: ship.name || null,
+              street: ship.street,
+              psc: ship.psc,
+              city: ship.city,
+            });
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("objednavka: customer profile sync failed", e);
   }
 
   // Nahraná grafika (logo u vlajek, artwork u banneru/vlajky na zakázku) se
@@ -223,8 +403,8 @@ export async function POST(req: NextRequest) {
   const categoryById = new Map<string, ProductCategory>();
   const partnerIdsByProduct = new Map<string, string[]>();
   if (productIds.length) {
-    const { data: products } = await supabase.from("products").select("id, category").in("id", productIds);
-    for (const p of products || []) categoryById.set(p.id, p.category as ProductCategory);
+    // categoryById naplníme z již načtených productů (productsById).
+    for (const [id, p] of productsById) categoryById.set(id, p.category as ProductCategory);
     // products.partner_ids je z novější migrace (2026-08-order-item-product-link.sql)
     // — samostatný dotaz, ať nezhroutí i tu předchozí, dokud migrace neproběhla.
     try {
@@ -242,7 +422,7 @@ export async function POST(req: NextRequest) {
       const bucket = CATEGORY_BUCKET[categoryById.get(l.productId) as ProductCategory];
       const graphicSrc = design?.logo?.src || design?.thumb || null;
       if (bucket && graphicSrc) {
-        const decoded = decodeDataUrl(graphicSrc);
+        const decoded = decodeSafeImageDataUrl(graphicSrc, MAX_ARTWORK_BYTES);
         if (decoded) {
           // order_number přiděluje DB trigger (2026-08-order-numbering.sql) —
           // dokud migrace neběžela, order.order_number je null; radši dočasně

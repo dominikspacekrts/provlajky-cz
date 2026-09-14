@@ -2,43 +2,93 @@
 // (rounding, discount math, status labels) stays identical after the rebuild.
 import type { Order, OrderItem, OrderTotals, Product, Settings, SupplierInvoice } from "./types";
 
-export const WC_STATUSES: Record<string, string> = {
-  pending: "Čeká na platbu",
+/**
+ * Hlavní pipeline stavu objednávky (admin select).
+ * Dodavatel zaplacen = samostatný flag `orders.supplier_paid`, ne stav.
+ */
+export const ORDER_STATUSES: Record<string, string> = {
+  new: "Nová",
   processing: "Zpracovává se",
+  invoiced: "Vystavená faktura",
+  paid: "Zaplacená faktura",
+  awaiting_delivery: "Čekám na dodání",
+  shipped: "Odesláno zákazníkovi",
+  completed: "Hotovo",
   "on-hold": "Pozdržena",
-  completed: "Dokončena",
+  cancelled: "Zrušena",
+};
+
+/** @deprecated alias — select i filtry používají ORDER_STATUSES */
+export const ALL_STATUSES = ORDER_STATUSES;
+
+/** Staré WooCommerce / lokální kódy — jen pro zobrazení do migrace dat. */
+const LEGACY_STATUS_LABELS: Record<string, string> = {
+  pending: "Nová",
+  "paid-awaiting": "Čekám na dodání",
+  "paid-delivering": "Odesláno zákazníkovi",
+  refunded: "Vrácena",
+  failed: "Neúspěšná",
+};
+
+/** Labely pro zákaznický účet (srozumitelnější copy). */
+export const CUSTOMER_STATUS_LABELS: Record<string, string> = {
+  new: "Přijato",
+  pending: "Přijato",
+  processing: "Připravujeme",
+  invoiced: "Čekáme na platbu",
+  paid: "Ve výrobě",
+  awaiting_delivery: "Ve výrobě",
+  "paid-awaiting": "Ve výrobě",
+  shipped: "Odesláno",
+  "paid-delivering": "Odesláno",
+  completed: "Dokončeno",
+  "on-hold": "Pozdržena",
   cancelled: "Zrušena",
   refunded: "Vrácena",
   failed: "Neúspěšná",
 };
 
-export const LOCAL_STATUSES: Record<string, string> = {
-  "paid-awaiting": "Zaplaceno – čeká na dodání",
-  "paid-delivering": "Zaplaceno – odesláno",
-};
+const REALIZED_STATUSES = new Set([
+  "paid",
+  "awaiting_delivery",
+  "shipped",
+  "completed",
+  // legacy
+  "paid-awaiting",
+  "paid-delivering",
+]);
 
-export const ALL_STATUSES: Record<string, string> = { ...WC_STATUSES, ...LOCAL_STATUSES };
-
-export function isLocalStatus(s: string) {
-  return Object.prototype.hasOwnProperty.call(LOCAL_STATUSES, s);
-}
-
-// An order counts toward finance/earnings once it's paid: either completed in
-// WooCommerce terms, or one of our own local "zaplaceno" statuses.
 export function isRealizedOrder(o: Pick<Order, "status">) {
-  return o.status === "completed" || isLocalStatus(o.status);
+  return REALIZED_STATUSES.has(o.status);
 }
 
 export function statusLabel(s: string) {
-  return ALL_STATUSES[s] || s || "—";
+  return ORDER_STATUSES[s] || LEGACY_STATUS_LABELS[s] || s || "—";
+}
+
+export function customerStatusLabel(s: string) {
+  return CUSTOMER_STATUS_LABELS[s] || statusLabel(s);
+}
+
+/** Optiony do selectu — když je aktuální stav legacy (refunded…), nechá ho v seznamu. */
+export function statusSelectEntries(currentStatus: string): [string, string][] {
+  const entries = Object.entries(ORDER_STATUSES) as [string, string][];
+  if (currentStatus && !(currentStatus in ORDER_STATUSES)) {
+    return [[currentStatus, statusLabel(currentStatus)], ...entries];
+  }
+  return entries;
 }
 
 export function statusClass(s: string) {
+  if (s === "new" || s === "pending") return "status-new";
   if (s === "processing") return "status-processing";
+  if (s === "invoiced") return "status-invoiced";
+  if (s === "paid") return "status-paid";
+  if (s === "awaiting_delivery" || s === "paid-awaiting") return "status-awaiting";
+  if (s === "shipped" || s === "paid-delivering") return "status-shipped";
   if (s === "completed") return "status-completed";
-  if (s === "pending" || s === "on-hold") return "status-pending";
+  if (s === "on-hold") return "status-on-hold";
   if (s === "cancelled" || s === "failed" || s === "refunded") return "status-cancelled";
-  if (isLocalStatus(s)) return "status-paid-awaiting";
   return "status-local";
 }
 

@@ -47,14 +47,25 @@ export default async function ShippingPaymentPage() {
               <thead>
                 <tr>
                   <th>Způsob dopravy</th>
-                  <th>Cena s DPH</th>
+                  <th>Cena bez DPH</th>
                 </tr>
               </thead>
               <tbody>
                 {shippingMethods.map((method) => (
                   <tr key={method.id}>
                     <td>{method.label}</td>
-                    <td>{method.price > 0 ? fmtMoney(withVat(method.price, STANDARD_VAT_RATE)) : "Zdarma"}</td>
+                    <td>
+                      {method.price > 0 ? (
+                        <>
+                          {fmtMoney(method.price)}
+                          <span className="vat" style={{ display: "block", marginTop: 2 }}>
+                            {fmtMoney(withVat(method.price, STANDARD_VAT_RATE))} s DPH
+                          </span>
+                        </>
+                      ) : (
+                        "Zdarma"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -81,14 +92,25 @@ export default async function ShippingPaymentPage() {
               <thead>
                 <tr>
                   <th>Způsob platby</th>
-                  <th>Poplatek s DPH</th>
+                  <th>Poplatek bez DPH</th>
                 </tr>
               </thead>
               <tbody>
                 {paymentMethods.map((method) => (
                   <tr key={method.id}>
                     <td>{method.label}</td>
-                    <td>{method.price > 0 ? fmtMoney(withVat(method.price, STANDARD_VAT_RATE)) : "Bez poplatku"}</td>
+                    <td>
+                      {method.price > 0 ? (
+                        <>
+                          {fmtMoney(method.price)}
+                          <span className="vat" style={{ display: "block", marginTop: 2 }}>
+                            {fmtMoney(withVat(method.price, STANDARD_VAT_RATE))} s DPH
+                          </span>
+                        </>
+                      ) : (
+                        "Bez poplatku"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -12,7 +12,6 @@ import {
   updateOrderStatus,
 } from "@/lib/actions/orders";
 import {
-  ALL_STATUSES,
   computeOrderCost,
   computeOrderTotals,
   customerLabel,
@@ -24,6 +23,7 @@ import {
   orderSource,
   statusClass,
   statusLabel,
+  statusSelectEntries,
   type ProductLookup,
 } from "@/lib/domain";
 import type { Invoice, Order, OrderItem, Partner, Product, Settings, SupplierInvoice } from "@/lib/types";
@@ -103,7 +103,7 @@ export default function OrderDetailClient({
                 value={order.status}
                 onChange={(e) => startTransition(() => updateOrderStatus(order.id, e.target.value))}
               >
-                {Object.entries(ALL_STATUSES).map(([k, label]) => (
+                {statusSelectEntries(order.status).map(([k, label]) => (
                   <option key={k} value={k}>
                     {label}
                   </option>

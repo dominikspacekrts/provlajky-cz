@@ -12,11 +12,19 @@ import type { AddressSuggestion } from "@/lib/address-suggest";
 type RegionalEntity = { name: string; type: string; isoCode?: string };
 type SuggestItem = {
   name: string;
+  // Mapy vrací v "label" jen kategorii ("Adresa"), ne čitelný popis —
+  // pro dropdown bereme name + location (např. "Květná 174/24, Brno - Pisárky, Česko").
   label: string;
+  location?: string;
   type: string;
   regionalStructure?: RegionalEntity[];
   zip?: string;
 };
+
+function suggestLabel(item: SuggestItem, city: string): string {
+  if (item.location) return `${item.name}, ${item.location}`;
+  return city ? `${item.name}, ${city}` : item.name;
+}
 
 function extractCity(regionalStructure: RegionalEntity[]): string | null {
   const part = regionalStructure.find((r) => r.type === "regional.municipality_part");
@@ -54,12 +62,15 @@ export async function GET(req: NextRequest) {
     const data = (await res.json()) as { items?: SuggestItem[] };
     const items: AddressSuggestion[] = (data.items ?? [])
       .filter((item) => item.regionalStructure && isCzech(item.regionalStructure))
-      .map((item) => ({
-        street: item.name,
-        city: extractCity(item.regionalStructure!) ?? "",
-        zip: item.zip ?? null,
-        label: item.label,
-      }))
+      .map((item) => {
+        const city = extractCity(item.regionalStructure!) ?? "";
+        return {
+          street: item.name,
+          city,
+          zip: item.zip ?? null,
+          label: suggestLabel(item, city),
+        };
+      })
       .filter((item) => item.city);
 
     return NextResponse.json({ items });

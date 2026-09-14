@@ -84,7 +84,7 @@ export default function CartPage() {
                 <div className="name">{l.name}</div>
                 <div className="sub">
                   {[l.shape ? `Tvar ${l.shape}` : null, l.size, l.note].filter(Boolean).join(" · ") || "—"} ·{" "}
-                  {fmtMoney(withVat(l.unitPrice, l.vatRate))} / ks s DPH
+                  {fmtMoney(l.unitPrice)} / ks bez DPH
                 </div>
               </div>
               <div className="qty-row">
@@ -97,8 +97,8 @@ export default function CartPage() {
                 />
               </div>
               <div className="cart-line-total">
-                {fmtMoney(withVat(l.unitPrice * l.qty, l.vatRate))}
-                <span className="vat">{fmtMoney(l.unitPrice * l.qty)} bez DPH</span>
+                {fmtMoney(l.unitPrice * l.qty)}
+                <span className="vat">{fmtMoney(withVat(l.unitPrice * l.qty, l.vatRate))} s DPH</span>
               </div>
               <button className="cart-line-remove" onClick={() => removeLine(l.id)} aria-label={`Odebrat ${l.name}`}>
                 <CloseMark className="cart-line-remove-mark" />
@@ -108,18 +108,16 @@ export default function CartPage() {
 
           <div className="cart-summary">
             <div className="row">
-              <span>Mezisoučet bez DPH</span>
-              <span>{fmtMoney(subtotalEx)}</span>
-            </div>
-            <div className="row">
               <span>DPH 21 %</span>
               <span>{fmtMoney(vat)}</span>
             </div>
             <div className="row total">
-              <span>Celkem s DPH</span>
-              <span>{fmtMoney(subtotalEx + vat)}</span>
+              <span>Celkem bez DPH</span>
+              <span>{fmtMoney(subtotalEx)}</span>
             </div>
-            <p className="cart-summary-note">Doprava a platba se dopočítají v dalším kroku.</p>
+            <p className="cart-summary-note">
+              Celkem s DPH {fmtMoney(subtotalEx + vat)}. Doprava a platba se dopočítají v dalším kroku.
+            </p>
           </div>
 
           <CustomMadeNotice />

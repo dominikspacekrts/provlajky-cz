@@ -72,10 +72,10 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
                 {fromPrice(p) != null ? (
                   <>
                     {p.kind === "simple" ? "" : "od "}
-                    {fmtMoney(withVat(fromPrice(p)!, p.vat_rate))}
+                    {fmtMoney(fromPrice(p)!)}
                     {p.kind === "banner_m2" ? "/m² " : " "}
                     <span className="vat">
-                      s DPH · {fmtMoney(fromPrice(p)!)} bez DPH
+                      bez DPH · {fmtMoney(withVat(fromPrice(p)!, p.vat_rate))} s DPH
                     </span>
                   </>
                 ) : (

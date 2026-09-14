@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { createServiceClient } from "@/lib/supabase";
 import { isValidEmail } from "@/lib/validation";
+import { clientIp, rateLimit, rateLimitResponse } from "@/lib/security";
 
 // Kontaktní formulář (/kontakt) → e-mail na provozovatele (SMTP nastavení
 // sdílené s registrací, viz api/registrace). Zprávu neukládáme do Supabase —
@@ -39,6 +40,10 @@ function contactEmailHtml(name: string, email: string, phone: string | undefined
 }
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const limited = rateLimit(`kontakt:${ip}`, { limit: 5, windowMs: 60_000 });
+  if (!limited.ok) return rateLimitResponse(limited.retryAfterSec);
+
   let body: Body;
   try {
     body = await req.json();

@@ -41,10 +41,10 @@ export default function CtaBar({
         <div className="fc-cta-price">
           {hasPrice ? (
             <>
-              {fmtMoney(withVat(totalExVat, vatRate))}{" "}
+              {fmtMoney(totalExVat)}{" "}
               <span className="vat">
-                s DPH · {fmtMoney(totalExVat)} bez DPH
-                {qty > 1 ? ` · ${qty} × ${fmtMoney(withVat(unitPrice, vatRate))}` : " / ks"}
+                bez DPH · {fmtMoney(withVat(totalExVat, vatRate))} s DPH
+                {qty > 1 ? ` · ${qty} × ${fmtMoney(unitPrice)}` : " / ks"}
               </span>
             </>
           ) : (

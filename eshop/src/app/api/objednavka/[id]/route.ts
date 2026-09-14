@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase";
 import { PRODUCT_CATEGORIES, type CustomerAddress, type ProductCategory } from "@/lib/types";
+import {
+  getPurchaseAccessCookie,
+  verifyPurchaseAccessToken,
+} from "@/lib/customer-auth";
+import { getLoggedInProfile } from "@/lib/customer-profile";
 
-// Podklad pro event `purchase` na děkovací stránce. Čte se výhradně z uložené
-// objednávky, ne z košíku v prohlížeči — po odeslání je košík prázdný a hlavně
-// ceny dopravy, slevu i DPH dopočítává server.
-//
-// Odpověď obsahuje osobní údaje (Enhanced Conversions), takže se vydá jen
-// **do dvou hodin od založení objednávky**. Na děkovací stránku se zákazník
-// dostane hned, útočník s odhadnutým UUID později už nic nezíská.
+// Podklad pro event `purchase` na děkovací stránce.
 const MAX_AGE_MS = 2 * 60 * 60 * 1000;
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function round2(value: number) {
@@ -21,6 +19,11 @@ function splitName(full: string | undefined | null) {
   const parts = (full || "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return { first_name: "", last_name: "" };
   return { first_name: parts[0], last_name: parts.slice(1).join(" ") };
+}
+
+function orderEmail(customerJson: unknown): string {
+  const c = customerJson as { billing?: { email?: string } } | null;
+  return (c?.billing?.email || "").trim().toLowerCase();
 }
 
 export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -41,14 +44,23 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
     return NextResponse.json({ error: "Objednávka nenalezena." }, { status: 404 });
   }
 
+  // Přístup: cookie z dokončení checkoutu, nebo přihlášený vlastník e-mailu.
+  const purchaseToken = await getPurchaseAccessCookie();
+  const tokenOk = purchaseToken ? verifyPurchaseAccessToken(purchaseToken, id) : false;
+  if (!tokenOk) {
+    const profile = await getLoggedInProfile();
+    const email = orderEmail(order.customer);
+    if (!profile || profile.email.trim().toLowerCase() !== email) {
+      return NextResponse.json({ error: "Objednávka nenalezena." }, { status: 404 });
+    }
+  }
+
   const { data: itemRows } = await supabase
     .from("order_items")
     .select("product_id, wc_line_name, qty, unit_price, vat_rate, size, shape, material, width_cm, height_cm")
     .eq("order_id", id);
   const items = itemRows || [];
 
-  // Slug a kategorie se dohledávají v products — item_id musí sedět s g:id
-  // v produktovém feedu, a to je slug, ne UUID.
   const productIds = [...new Set(items.map((i) => i.product_id).filter(Boolean))] as string[];
   const productById = new Map<string, { slug: string; category: string; name: string }>();
   if (productIds.length) {
@@ -56,15 +68,12 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
     for (const p of products || []) productById.set(p.id, p);
   }
 
-  // Slevový kód se spotřebovává v customers.used_order_id (viz POST výše).
   const { data: couponRow } = await supabase
     .from("customers")
     .select("discount_code")
     .eq("used_order_id", id)
     .maybeSingle();
 
-  // Stejná matematika jako admin/src/lib/domain.ts computeOrderTotals:
-  // sleva se vztahuje jen na zboží, ne na dopravu.
   const discountPct = order.discount_pct || 0;
   const afterDiscount = (value: number) => (discountPct ? value * (1 - discountPct / 100) : value);
 
@@ -99,7 +108,6 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
   return NextResponse.json(
     {
       transaction_id: order.order_number ? String(order.order_number) : order.id,
-      // Hodnota je zboží s DPH po slevě, bez dopravy — dopravu nese vlastní pole.
       value: round2(afterDiscount(productEx + productVat)),
       tax: round2(afterDiscount(productVat)),
       shipping: round2(shippingEx * (1 + shippingVatRate)),
@@ -117,6 +125,6 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
         },
       },
     },
-    { headers: { "Cache-Control": "no-store" } }
+    { headers: { "Cache-Control": "no-store" } },
   );
 }

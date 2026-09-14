@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
+import { CustomerAuthProvider } from "@/lib/customer-auth-client";
 import SiteChrome from "@/components/SiteChrome";
 import CookieBanner from "@/components/CookieBanner";
 import { SITE_URL, isProduction } from "@/lib/site";
@@ -64,7 +65,9 @@ export default async function RootLayout({
       <body className="nv">
         {gtmNoscript && <noscript dangerouslySetInnerHTML={{ __html: gtmNoscript }} />}
         <CartProvider>
-          <SiteChrome>{children}</SiteChrome>
+          <CustomerAuthProvider>
+            <SiteChrome>{children}</SiteChrome>
+          </CustomerAuthProvider>
         </CartProvider>
         <CookieBanner />
       </body>
