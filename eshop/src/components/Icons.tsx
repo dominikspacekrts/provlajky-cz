@@ -31,6 +31,31 @@ export function CheckMark({ className = "" }: { className?: string }) {
   );
 }
 
+/** Velká značka „hotovo“ na děkovací stránce — ne emoji. */
+export function OrderThanksMark({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 96 96"
+      width="88"
+      height="88"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect width="96" height="96" fill="#08080a" />
+      <rect x="6" y="6" width="84" height="84" fill="none" stroke="#ffe701" strokeWidth="3" />
+      <path
+        d="M28 50.5 42 64.5 70 34"
+        fill="none"
+        stroke="#ffe701"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function CloseMark({ className = "" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
