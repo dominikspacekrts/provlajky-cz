@@ -7,6 +7,7 @@ import {
   generateDiscountCode,
   hashPassword,
   isStrongEnoughPassword,
+  verifyPassword,
 } from "@/lib/customer-auth";
 import { discountCodeEmailHtml, sendCustomerMail } from "@/lib/customer-mail";
 import { loadCustomerProfile } from "@/lib/customer-profile";
@@ -18,6 +19,47 @@ type Body = {
   name?: string;
   phone?: string;
 };
+
+async function trySendDiscountMail(
+  email: string,
+  name: string | undefined,
+  discountCode: string,
+  discountPct: number,
+): Promise<boolean> {
+  try {
+    const mail = await sendCustomerMail({
+      to: email,
+      subject: "Váš slevový kód — provlajky.cz",
+      html: discountCodeEmailHtml(name, discountCode, discountPct),
+    });
+    return mail.emailed;
+  } catch (e) {
+    console.error("auth/register: mail failed", e);
+    return false;
+  }
+}
+
+async function finishRegister(opts: {
+  customerId: string;
+  sessionVersion: number;
+  discountCode: string;
+  emailed: boolean;
+}) {
+  // Session cookie nesmí shodit už vytvořený účet — při chybě účet stejně vrátíme.
+  try {
+    await createSessionCookie(opts.customerId, opts.sessionVersion);
+  } catch (e) {
+    console.error("auth/register: session cookie failed", e);
+  }
+
+  const profile = await loadCustomerProfile(opts.customerId);
+  return NextResponse.json({
+    ok: true,
+    emailed: opts.emailed,
+    discountCode: opts.discountCode,
+    customer: profile,
+  });
+}
 
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
@@ -51,19 +93,46 @@ export async function POST(req: NextRequest) {
 
   const { data: existing } = await supabase
     .from("customers")
-    .select("id, discount_code, password_hash, name")
+    .select("id, discount_code, discount_pct, password_hash, name, used_at, session_version")
     .eq("email", email)
     .maybeSingle();
 
-  let customerId: string;
-  let discountCode: string;
-  let emailedCode = false;
-
+  // Idempotentní retry: účet už vznikl při předchozím „neúspěchu“, stejné heslo → přihlásit.
   if (existing?.password_hash) {
-    return NextResponse.json({ error: "Účet s tímto e-mailem už existuje. Přihlaste se." }, { status: 409 });
+    const match = await verifyPassword(password, existing.password_hash);
+    if (!match) {
+      return NextResponse.json(
+        { error: "Účet s tímto e-mailem už existuje. Přihlaste se, nebo použijte obnovení hesla." },
+        { status: 409 },
+      );
+    }
+
+    let emailed = false;
+    if (!existing.used_at && existing.discount_code) {
+      emailed = await trySendDiscountMail(
+        email,
+        name || existing.name || undefined,
+        existing.discount_code,
+        Number(existing.discount_pct) || DEFAULT_DISCOUNT_PCT,
+      );
+    }
+
+    return finishRegister({
+      customerId: existing.id,
+      sessionVersion: Number(existing.session_version) || 1,
+      discountCode: existing.discount_code,
+      emailed,
+    });
   }
 
+  let customerId: string;
+  let discountCode: string;
+  let discountPct = DEFAULT_DISCOUNT_PCT;
+  let emailedCode = false;
+  let isNewCustomer = false;
+
   if (existing) {
+    // Lead bez hesla (sleva e-mailem) → dokončení účtu.
     const { error } = await supabase
       .from("customers")
       .update({
@@ -80,6 +149,7 @@ export async function POST(req: NextRequest) {
     }
     customerId = existing.id;
     discountCode = existing.discount_code;
+    discountPct = Number(existing.discount_pct) || DEFAULT_DISCOUNT_PCT;
   } else {
     discountCode = generateDiscountCode();
     let attempts = 0;
@@ -102,6 +172,27 @@ export async function POST(req: NextRequest) {
       if (!error && data) {
         insertedId = data.id;
       } else if (error?.code === "23505") {
+        // Paralelní registrace / kolize kódu — zkus znovu načíst existující.
+        const { data: raced } = await supabase
+          .from("customers")
+          .select("id, discount_code, discount_pct, password_hash, session_version, used_at, name")
+          .eq("email", email)
+          .maybeSingle();
+        if (raced?.password_hash) {
+          const match = await verifyPassword(password, raced.password_hash);
+          if (match) {
+            return finishRegister({
+              customerId: raced.id,
+              sessionVersion: Number(raced.session_version) || 1,
+              discountCode: raced.discount_code,
+              emailed: false,
+            });
+          }
+          return NextResponse.json(
+            { error: "Účet s tímto e-mailem už existuje. Přihlaste se, nebo použijte obnovení hesla." },
+            { status: 409 },
+          );
+        }
         discountCode = generateDiscountCode();
         attempts++;
       } else {
@@ -113,21 +204,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Registraci se nepodařilo dokončit." }, { status: 500 });
     }
     customerId = insertedId;
-
-    const mail = await sendCustomerMail({
-      to: email,
-      subject: "Váš slevový kód — provlajky.cz",
-      html: discountCodeEmailHtml(name, discountCode, DEFAULT_DISCOUNT_PCT),
-    });
-    emailedCode = mail.emailed;
+    isNewCustomer = true;
   }
 
-  await createSessionCookie(customerId, 1);
-  const profile = await loadCustomerProfile(customerId);
-  return NextResponse.json({
-    ok: true,
-    emailed: emailedCode,
+  // Mail až po úspěšném zápisu; jeho selhání nesmí zrušit registraci.
+  if (isNewCustomer || (existing && !existing.used_at)) {
+    emailedCode = await trySendDiscountMail(email, name || existing?.name || undefined, discountCode, discountPct);
+  }
+
+  return finishRegister({
+    customerId,
+    sessionVersion: 1,
     discountCode,
-    customer: profile,
+    emailed: emailedCode,
   });
 }

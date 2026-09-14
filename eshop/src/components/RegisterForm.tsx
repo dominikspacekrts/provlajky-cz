@@ -1,17 +1,19 @@
 "use client";
 
-// Registrace zákazníka s heslem → účet + 10% slevový kód (POST /api/auth/register).
-// Starý lead bez hesla stejný e-mail dokončí nastavením hesla a kód mu zůstane.
+// Registrace zákazníka s heslem → účet (+ volitelně 10% kód přes /api/auth/register).
+// Sleva samotná bez hesla je popup → POST /api/registrace.
 
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCustomerAuth } from "@/lib/customer-auth-client";
+import { useDiscountPopup } from "@/components/DiscountPopup";
 
 type Status = "idle" | "loading" | "done" | "error";
 
 export default function RegisterForm({ redirectTo }: { redirectTo?: string }) {
   const { setCustomer } = useCustomerAuth();
+  const { openDiscountPopup } = useDiscountPopup();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -57,13 +59,17 @@ export default function RegisterForm({ redirectTo }: { redirectTo?: string }) {
       }
       if (json.customer) setCustomer(json.customer);
       setStatus("done");
-      setMessage(
-        json.emailed
-          ? "Účet je hotový. Slevový kód jsme poslali na e-mail — můžete ho hned uplatnit v objednávce."
-          : json.discountCode
-            ? `Účet je hotový. Váš slevový kód: ${json.discountCode}. E-mail se teď nepodařilo odeslat — ozvěte se na info@provlajky.cz.`
-            : "Účet je hotový. Jste přihlášeni.",
-      );
+      if (json.emailed) {
+        setMessage(
+          "Účet je hotový. Slevový kód jsme poslali na e-mail — můžete ho hned uplatnit v objednávce.",
+        );
+      } else if (json.discountCode) {
+        setMessage(
+          `Účet je hotový. Váš slevový kód: ${json.discountCode}. E-mail se teď nepodařilo odeslat — kód si zkopírujte, nebo se ozvěte na info@provlajky.cz.`,
+        );
+      } else {
+        setMessage("Účet je hotový. Jste přihlášeni.");
+      }
       if (redirectTo) {
         router.push(redirectTo);
       }
@@ -125,8 +131,8 @@ export default function RegisterForm({ redirectTo }: { redirectTo?: string }) {
       <label className="nv-register-consent">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
         <span>
-          Souhlasím se zpracováním e-mailu za účelem založení účtu, zaslání slevového kódu a obchodních sdělení.
-          Souhlas můžu kdykoliv odvolat. Víc v{" "}
+          Souhlasím se zpracováním e-mailu za účelem založení účtu a obchodních sdělení. Souhlas můžu kdykoliv
+          odvolat. Víc v{" "}
           <Link href="/ochrana-osobnich-udaju" target="_blank">
             zásadách ochrany osobních údajů
           </Link>
@@ -134,14 +140,18 @@ export default function RegisterForm({ redirectTo }: { redirectTo?: string }) {
         </span>
       </label>
       {message && status === "error" && <p className="nv-register-error">{message}</p>}
-      <button type="submit" className="nv-btn nv-btn-yellow" disabled={status === "loading" || !consent}>
-        <span className="nv-btn-l">{status === "loading" ? "Odesílám…" : "Vytvořit účet a získat 10 %"}</span>
+      <button type="submit" className="nv-btn nv-btn-yellow" disabled={status === "loading"}>
+        <span className="nv-btn-l">{status === "loading" ? "Odesílám…" : "Vytvořit účet"}</span>
       </button>
       <p className="nv-register-switch">
         Už máte účet? <Link href="/prihlaseni">Přihlásit se</Link>
         {" · "}
-        Dřívější registrace bez hesla?{" "}
-        <Link href="/nastavit-heslo-zadost">Nastavit heslo</Link>
+        Jen slevu bez účtu?{" "}
+        <button type="button" className="nv-link-btn" onClick={openDiscountPopup}>
+          Získat 10 %
+        </button>
+        {" · "}
+        Dřívější registrace bez hesla? <Link href="/nastavit-heslo-zadost">Nastavit heslo</Link>
       </p>
     </form>
   );

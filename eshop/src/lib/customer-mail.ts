@@ -35,7 +35,9 @@ export async function sendCustomerMail(opts: {
 
   const supabase = createServiceClient();
   const logResult = async (status: "sent" | "failed", errorMessage?: string) => {
-    await supabase.from("email_history").insert({
+    // email_history.sent_by → allowed_users(email). Když SMTP user v tabulce není,
+    // insert spadne — nesmí shodit odeslání zákazníkovi ani celou registraci.
+    const { error } = await supabase.from("email_history").insert({
       sent_by: mail.user,
       kind: "other",
       to_addr: opts.to,
@@ -47,6 +49,7 @@ export async function sendCustomerMail(opts: {
       status,
       error_message: errorMessage || null,
     });
+    if (error) console.error("sendCustomerMail: email_history log failed", error);
   };
 
   try {

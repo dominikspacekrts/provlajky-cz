@@ -14,6 +14,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { useCustomerAuth } from "@/lib/customer-auth-client";
+import { useDiscountPopup } from "@/components/DiscountPopup";
 import { SALE } from "@/lib/sale";
 import { NovaArrow } from "@/components/NovaReveal";
 import { NAV_GROUPS } from "@/lib/types";
@@ -23,6 +24,7 @@ const PROMO_DISMISSED_KEY = "provlajky-promo-dismissed";
 export default function Header() {
   const { count } = useCart();
   const { customer, loading: authLoading } = useCustomerAuth();
+  const { openDiscountPopup } = useDiscountPopup();
   const pathname = usePathname();
   const [stuck, setStuck] = useState(false);
   // Výchozí true (skrytý), dokud efekt neověří sessionStorage — na serveru
@@ -115,8 +117,6 @@ export default function Header() {
     }
   }
 
-  const isHome = pathname === "/";
-
   return (
     <>
       {SALE.active && !promoDismissed && (
@@ -159,15 +159,13 @@ export default function Header() {
               <span className="nv-btn-l">Můj účet</span>
             </Link>
           ) : (
-            <>
-              <Link href="/prihlaseni" className="nv-btn nv-btn-ghost nv-nav-login">
-                <span className="nv-btn-l">Přihlásit se</span>
-              </Link>
-              <Link href={isHome ? "/#registrace" : "/registrace"} className="nv-btn nv-btn-yellow">
-                <span className="nv-btn-l">Registrace</span>
-              </Link>
-            </>
+            <Link href="/prihlaseni" className="nv-btn nv-btn-ghost nv-nav-login">
+              <span className="nv-btn-l">Přihlásit se</span>
+            </Link>
           )}
+          <button type="button" className="nv-btn nv-btn-yellow" onClick={openDiscountPopup}>
+            <span className="nv-btn-l">Sleva 10 %</span>
+          </button>
           <Link href="/kosik" className="nv-nav-cart">
             <span className="nv-btn-l">
               Košík
@@ -221,17 +219,27 @@ export default function Header() {
           </nav>
 
           <div className="nv-menu-foot">
+            <button
+              type="button"
+              className="nv-btn nv-btn-yellow"
+              onClick={() => {
+                closeMenu();
+                openDiscountPopup();
+              }}
+            >
+              <span className="nv-btn-l">Sleva 10 %</span>
+            </button>
             {!authLoading && customer ? (
-              <Link href="/muj-ucet" className="nv-btn nv-btn-yellow" onClick={closeMenu}>
+              <Link href="/muj-ucet" className="nv-btn nv-btn-ghost" onClick={closeMenu} style={{ marginTop: 8, width: "100%" }}>
                 <span className="nv-btn-l">Můj účet</span>
               </Link>
             ) : (
               <>
-                <Link href="/registrace" className="nv-btn nv-btn-yellow" onClick={closeMenu}>
-                  <span className="nv-btn-l">Registrace a sleva 10 %</span>
-                </Link>
                 <Link href="/prihlaseni" className="nv-btn nv-btn-ghost" onClick={closeMenu} style={{ marginTop: 8, width: "100%" }}>
                   <span className="nv-btn-l">Přihlásit se</span>
+                </Link>
+                <Link href="/registrace" className="nv-btn nv-btn-ghost" onClick={closeMenu} style={{ marginTop: 8, width: "100%" }}>
+                  <span className="nv-btn-l">Vytvořit účet</span>
                 </Link>
               </>
             )}

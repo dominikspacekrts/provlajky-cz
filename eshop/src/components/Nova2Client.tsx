@@ -13,7 +13,7 @@ import Link from "next/link";
 import HomeReferences from "@/components/HomeReferences";
 import NovaFields from "@/components/NovaFields";
 import { NovaArrow, useInView } from "@/components/NovaReveal";
-import RegisterForm from "@/components/RegisterForm";
+import { useDiscountPopup } from "@/components/DiscountPopup";
 import type { ProductCategory } from "@/lib/types";
 
 // Tři hlavní produktové rodiny — ostré vstupní dlaždice hned pod herem.
@@ -75,6 +75,7 @@ export default function Nova2Client({
 }: {
   salePctByCategory: Partial<Record<ProductCategory, number>>;
 }) {
+  const { openDiscountPopup } = useDiscountPopup();
   const lead = useInView<HTMLElement>();
   const how = useInView<HTMLElement>();
   const register = useInView<HTMLElement>();
@@ -153,16 +154,26 @@ export default function Nova2Client({
         </div>
       </section>
 
-      <section id="registrace" ref={register.ref} className={`nv-register${register.inView ? " nv-in" : ""}`}>
+      <section id="sleva" ref={register.ref} className={`nv-register${register.inView ? " nv-in" : ""}`}>
         <div className="nv-register-copy">
           <h2 className="nv-register-title" data-reveal>
-            Zaregistrujte se a získejte 10 % slevu.
+            Získejte 10 % na první objednávku.
           </h2>
           <p className="nv-register-body" data-reveal style={{ "--rd": "110ms" } as React.CSSProperties}>
-            Založte účet s heslem — slevový kód na první objednávku vám pošleme e-mailem.
+            Stačí e-mail — pošleme jednorázový slevový kód. Účet s heslem nepotřebujete.
           </p>
         </div>
-        <RegisterForm />
+        <div className="nv-register-cta" data-reveal style={{ "--rd": "180ms" } as React.CSSProperties}>
+          <button type="button" className="nv-btn nv-btn-ink nv-btn-lg" onClick={openDiscountPopup}>
+            <span className="nv-btn-l">
+              Chci slevu 10 %
+              <NovaArrow />
+            </span>
+          </button>
+          <p className="nv-register-switch">
+            Chcete i historii objednávek? <Link href="/registrace">Vytvořit účet</Link>
+          </p>
+        </div>
       </section>
 
       {/* Tmavý závěr homepage — plynule navazuje na patičku v layoutu. */}
