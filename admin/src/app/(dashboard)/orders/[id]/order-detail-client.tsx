@@ -425,10 +425,17 @@ function ItemRow({
             {item.design ? "Upravit design" : "Přidat design"}
           </Link>
         )}
-        {item.design?.artworkPath && (
+        {item.design?.artworkPath ? (
           <button className="btn" type="button" onClick={() => downloadArtwork(item.design!.artworkPath!)}>
-            Stáhnout grafiku
+            {item.design.freeDesign ? "Stáhnout logo" : "Stáhnout grafiku"}
           </button>
+        ) : (
+          item.design?.freeDesign &&
+          item.design.logo?.src && (
+            <a className="btn" href={item.design.logo.src} download={item.design.logoFileName || "logo"}>
+              Stáhnout logo
+            </a>
+          )
         )}
         <button className="btn danger" onClick={() => startTransition(() => deleteOrderItem(item.id, orderId))}>
           Smazat

@@ -34,6 +34,16 @@ import {
 } from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+import ArtworkChoice from "@/components/ArtworkChoice";
+import {
+  designTemplatesFor,
+  freeDesignNote,
+  isCustomMadeCategory,
+  OWN_ARTWORK_PENDING_NOTE,
+  freeDesignOrderDesign,
+  type ArtworkMode,
+  type FreeDesignLogo,
+} from "@/lib/designTemplates";
 
 export default function VariantConfigurator({
   product,
@@ -56,6 +66,8 @@ export default function VariantConfigurator({
 
   const isNuzkovy = product.category === "nuzkove-stany";
   const isNafukovaci = product.category === "nafukovaci-stany";
+  const needsArtwork = isCustomMadeCategory(product.category);
+  const templates = designTemplatesFor(product);
   const title = size ? `${product.name} ${size}` : product.name;
 
   const stripSizePrefix = (label: string) =>
@@ -69,6 +81,8 @@ export default function VariantConfigurator({
   const activeSpeed: DeliverySpeed = speeds.includes(speed) ? speed : speeds[0] ?? "fast";
 
   const [qty, setQty] = useState(1);
+  const [artworkMode, setArtworkMode] = useState<ArtworkMode>("own");
+  const [freeLogo, setFreeLogo] = useState<FreeDesignLogo | null>(null);
   const [askNext, setAskNext] = useState(false);
   const [step, setStep] = useState(0);
 
@@ -76,9 +90,11 @@ export default function VariantConfigurator({
   const image = product.images?.[0];
 
   const mobileSteps = useMemo(() => {
-    if (speeds.length > 0) return ["Varianta", "Dodání"] as const;
-    return ["Varianta"] as const;
-  }, [speeds.length]);
+    const steps: string[] = ["Varianta"];
+    if (speeds.length > 0) steps.push("Dodání");
+    if (needsArtwork) steps.push("Grafika");
+    return steps;
+  }, [speeds.length, needsArtwork]);
 
   function handleAdd() {
     if (!selected || unitPrice <= 0) return;
@@ -94,8 +110,15 @@ export default function VariantConfigurator({
       unitPrice,
       vatRate: product.vat_rate,
       thumb: image || null,
-      note: `${selected.label} · ${DELIVERY_LABEL[activeSpeed]}`,
+      note: [
+        selected.label,
+        DELIVERY_LABEL[activeSpeed],
+        needsArtwork ? (artworkMode === "free" ? freeDesignNote(freeLogo) : OWN_ARTWORK_PENDING_NOTE) : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
       variantId: selected.id,
+      design: needsArtwork && artworkMode === "free" ? freeDesignOrderDesign(freeLogo) : null,
     });
     setAskNext(true);
   }
@@ -164,6 +187,23 @@ export default function VariantConfigurator({
     </>
   );
 
+  const artworkBlock = needsArtwork ? (
+    <ArtworkChoice
+      mode={artworkMode}
+      onModeChange={setArtworkMode}
+      logo={freeLogo}
+      onLogoChange={setFreeLogo}
+      templates={templates}
+      own={
+        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 10, lineHeight: 1.45 }}>
+          {templates.length > 0
+            ? "Grafiku připravte do našich podkladů a po objednávce ji pošlete na info@provlajky.cz."
+            : "Hotovou tiskovou grafiku nám po objednávce pošlete na info@provlajky.cz."}
+        </p>
+      }
+    />
+  ) : null;
+
   const productBlurb = TENT_PRODUCT_BLURB[product.category];
 
   return (
@@ -208,7 +248,8 @@ export default function VariantConfigurator({
                     {variantBlock}
                   </>
                 )}
-                {step === 1 && speeds.length > 0 && deliveryBlock}
+                {mobileSteps[step] === "Dodání" && deliveryBlock}
+                {mobileSteps[step] === "Grafika" && artworkBlock}
               </FcStepBody>
             </>
           ) : (
@@ -217,6 +258,7 @@ export default function VariantConfigurator({
               {productBlurb && <p className="fc-product-blurb">{productBlurb}</p>}
               {variantBlock}
               {speeds.length > 0 && deliveryBlock}
+              {artworkBlock}
               {product.description && (
                 <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
                   {product.description}

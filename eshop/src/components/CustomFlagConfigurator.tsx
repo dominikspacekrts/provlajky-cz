@@ -29,12 +29,20 @@ import {
 } from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+import ArtworkChoice from "@/components/ArtworkChoice";
+import {
+  freeDesignNote,
+  OWN_ARTWORK_PENDING_NOTE,
+  freeDesignOrderDesign,
+  type ArtworkMode,
+  type FreeDesignLogo,
+} from "@/lib/designTemplates";
 
 const RectDesignEditor = dynamic(() => import("./RectDesignEditor"), { ssr: false });
 
 type FlagType = "state" | "custom";
 
-const MOBILE_STEPS = ["Typ, materiál, rozměr", "Oka", "Návrh / země"] as const;
+const MOBILE_STEPS = ["Typ, materiál, rozměr", "Oka", "Grafika / země"] as const;
 
 const norm = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -66,6 +74,8 @@ export default function CustomFlagConfigurator({
   const [design, setDesign] = useState<RectDesign | null>(null);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [artworkMode, setArtworkMode] = useState<ArtworkMode>("own");
+  const [freeLogo, setFreeLogo] = useState<FreeDesignLogo | null>(null);
 
   const [w, setW] = useState(100);
   const [h, setH] = useState(100);
@@ -105,7 +115,7 @@ export default function CustomFlagConfigurator({
   }, [flagType, design, logoImg, w, h]);
 
   const flagImageSrc =
-    flagType === "state" ? (country ? flagSrc(country.code) : null) : designThumb;
+    flagType === "state" ? (country ? flagSrc(country.code) : null) : artworkMode === "own" ? designThumb : null;
 
   const eyeletLabel = EYELET_TYPES.find((e) => e.id === eyeletType)?.label ?? "";
 
@@ -134,15 +144,17 @@ export default function CustomFlagConfigurator({
 
   function handleAdd() {
     if (unitPrice <= 0 || !material) return;
-    if (flagType === "custom" && !design?.logoDataUrl) return;
+    const free = flagType === "custom" && artworkMode === "free";
     const subject =
       flagType === "state"
         ? country
           ? `Státní vlajka – ${country.name}`
           : "Státní vlajka"
+        : free
+        ? freeDesignNote(freeLogo)
         : design
         ? "Vlastní grafika z editoru"
-        : "Vlastní grafika";
+        : OWN_ARTWORK_PENDING_NOTE;
     const note = `${subject} · ${material.label} · ${w}×${h} cm · oka: ${eyeletLabel} (${placementText()})${
       dense ? ` · hustší oka +${surcharge}%` : ""
     }`;
@@ -151,7 +163,9 @@ export default function CustomFlagConfigurator({
         ? country
           ? flagSrc(country.code)
           : null
-        : makeRectThumb(design!, logoImg, w, h);
+        : !free && design
+        ? makeRectThumb(design, logoImg, w, h)
+        : null;
     addLine({
       productId: product.id,
       productSlug: product.slug,
@@ -168,8 +182,9 @@ export default function CustomFlagConfigurator({
       widthCm: w,
       heightCm: h,
       material: material?.id ?? null,
-      design:
-        flagType === "custom" && design
+      design: free
+        ? freeDesignOrderDesign(freeLogo)
+        : flagType === "custom" && design
           ? {
               bgColor: design.bgColor,
               thumb,
@@ -335,25 +350,32 @@ export default function CustomFlagConfigurator({
         </>
       ) : (
         <>
-          <div style={{ marginTop: isMobile ? 0 : 4 }}>
-            <button
-              className={`btn-outline btn-design${design ? "" : " btn-design-required"}`}
-              onClick={() => setEditorOpen(true)}
-            >
-              <PenMark className="btn-mark" />
-              {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
-            </button>
-            {design && (
-              <button className="link-reset" onClick={() => setDesign(null)}>
-                Odebrat návrh
-              </button>
-            )}
-          </div>
-          <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
-            {design
-              ? "Návrh je uložený a propíše se do objednávky."
-              : "Povinný krok — nahrajte logo nebo celoplošnou grafiku. Barvu pozadí řešte jen když ji potřebujete."}
-          </p>
+          <ArtworkChoice
+            mode={artworkMode}
+            onModeChange={setArtworkMode}
+            logo={freeLogo}
+            onLogoChange={setFreeLogo}
+            own={
+              <>
+                <div style={{ marginTop: 10 }}>
+                  <button className="btn-outline btn-design" onClick={() => setEditorOpen(true)}>
+                    <PenMark className="btn-mark" />
+                    {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
+                  </button>
+                  {design && (
+                    <button className="link-reset" onClick={() => setDesign(null)}>
+                      Odebrat návrh
+                    </button>
+                  )}
+                </div>
+                <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
+                  {design
+                    ? "Návrh je uložený a propíše se do objednávky."
+                    : "Nahrajte logo nebo celoplošnou grafiku. Grafiku můžete dodat i po objednávce."}
+                </p>
+              </>
+            }
+          />
         </>
       )}
       {unitPrice <= 0 && (
@@ -364,8 +386,7 @@ export default function CustomFlagConfigurator({
     </>
   );
 
-  const canAdd =
-    unitPrice > 0 && (flagType === "state" || Boolean(design?.logoDataUrl));
+  const canAdd = unitPrice > 0;
 
   return (
     <div
@@ -386,7 +407,9 @@ export default function CustomFlagConfigurator({
             className="banner-preview"
             style={{ aspectRatio: `${Math.max(w, 1)} / ${Math.max(h, 1)}` }}
           >
-            {designThumb ? (
+            {artworkMode === "free" ? (
+              <span className="banner-preview-hint">Grafický návrh zdarma</span>
+            ) : designThumb ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={designThumb} alt="Náhled vlajky" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : design?.logoIsPdf ? (

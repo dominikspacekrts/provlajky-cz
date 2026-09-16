@@ -3622,7 +3622,8 @@ document.getElementById('export-client-pdf').addEventListener('click', async () 
 });
 
 // =====================================================================
-// PROHLÁŠENÍ PRO ÚČETNÍ (Oświadczenie) – polské prohlášení o vývozu vlajek
+// PROHLÁŠENÍ PRO ÚČETNÍ (Oświadczenie) – polské prohlášení o vývozu reklamních
+// materiálů (vlajky, bannery apod.)
 // z Polska do ČR (dodavatel FFLINEA). Mění se jen datum + názvy z faktury.
 // =====================================================================
 const DECLARATION_SUPPLIER = 'FFLINEA';
@@ -3665,7 +3666,7 @@ async function generateDeclarationPdf(order, { flagsText, dateStr }) {
   y -= 34;
 
   // Tělo – word-wrap
-  const body = `Oświadczam, że zakupione przez nas flagi reklamowe dla firm: ${flagsText} od ${DECLARATION_SUPPLIER} NIP: ${DECLARATION_NIP} zostały wywiezione poza granicę Państwa Polskiego. Zakupione flagi reklamowe użytkowane będą na terytorium Państwa Czech. Transport flag reklamowych na miejsce docelowe na terytorium Czech.`;
+  const body = `Oświadczam, że zakupione przez nas materiały reklamowe ${flagsText} od ${DECLARATION_SUPPLIER} NIP: ${DECLARATION_NIP} zostały wywiezione poza granicę Państwa Polskiego. Zakupione materiały reklamowe użytkowane będą na terytorium Państwa Czech. Transport materiałów reklamowych na miejsce docelowe na terytorium Czech.`;
   const size = 11.5, lh = 18, maxW = A4w - M * 2;
   const words = body.split(/\s+/);
   let line = '';

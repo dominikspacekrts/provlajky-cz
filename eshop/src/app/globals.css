@@ -646,6 +646,29 @@ label:has(input[type="checkbox"]), .cb-line {
   margin: 10px 0 4px; color: var(--gray);
   font-size: 12.5px; line-height: 1.55;
 }
+/* Volba grafiky: vlastní / grafický návrh zdarma (ArtworkChoice.tsx). */
+.fc-artwork { margin-top: 14px; }
+.fc-artwork-free { margin-top: 10px; }
+.fc-artwork-text, .fc-artwork-hint, .fc-artwork-error {
+  margin: 0 0 10px; color: var(--gray); font-size: 12.5px; line-height: 1.5;
+}
+.fc-artwork-hint { margin: 6px 0 0; }
+.fc-artwork-error { margin: 6px 0 0; color: #b42318; }
+.fc-artwork .editor-upload { padding: 12px 14px; }
+.fc-artwork .editor-upload-icon { width: 30px; height: 30px; padding: 6px; }
+.fc-artwork-file {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: 14px; background: #fff; font-size: 13px;
+}
+.fc-artwork-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-artwork-remove {
+  border: 0; background: none; padding: 0; cursor: pointer; font: inherit;
+  color: var(--gray); text-decoration: underline; text-underline-offset: 3px;
+}
+.fc-artwork-remove:hover { color: var(--ink); }
+.fc-artwork-templates { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.fc-artwork-download { width: 100%; padding: 14px 18px; }
+.fc-artwork-download-icon { width: 18px; height: 18px; flex: none; }
 .fc-delivery-row { align-items: stretch; }
 .fc-delivery-chip {
   flex-direction: column; align-items: flex-start; gap: 2px;

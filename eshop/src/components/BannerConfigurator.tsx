@@ -23,10 +23,18 @@ import {
 } from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+import ArtworkChoice from "@/components/ArtworkChoice";
+import {
+  freeDesignNote,
+  OWN_ARTWORK_PENDING_NOTE,
+  freeDesignOrderDesign,
+  type ArtworkMode,
+  type FreeDesignLogo,
+} from "@/lib/designTemplates";
 
 const RectDesignEditor = dynamic(() => import("./RectDesignEditor"), { ssr: false });
 
-const MOBILE_STEPS = ["Rozměr", "Vlastní návrh"] as const;
+const MOBILE_STEPS = ["Rozměr", "Grafika"] as const;
 
 /** Materiál zafixovaný podle produktu — zákazník si PVC/mesh vybere už na výpisu kategorie. */
 export function resolveBannerMaterial(product: Product): BannerMaterial {
@@ -61,6 +69,8 @@ export default function BannerConfigurator({
   const [design, setDesign] = useState<RectDesign | null>(null);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [artworkMode, setArtworkMode] = useState<ArtworkMode>("own");
+  const [freeLogo, setFreeLogo] = useState<FreeDesignLogo | null>(null);
   const [askNext, setAskNext] = useState(false);
   const [step, setStep] = useState(0);
 
@@ -82,14 +92,15 @@ export default function BannerConfigurator({
   }, [design?.logoDataUrl, design?.logoIsPdf]);
 
   const previewSrc = useMemo(() => {
-    if (!design) return null;
+    if (!design || artworkMode === "free") return null;
     if (design.logoIsPdf) return null;
     return makeRectThumb(design, logoImg, w, h);
-  }, [design, logoImg, w, h]);
+  }, [design, logoImg, w, h, artworkMode]);
 
   function handleAdd() {
     if (unitPrice <= 0) return;
-    const thumb = design ? makeRectThumb(design, logoImg, w, h) : null;
+    const free = artworkMode === "free";
+    const thumb = !free && design ? makeRectThumb(design, logoImg, w, h) : null;
     addLine({
       productId: product.id,
       productSlug: product.slug,
@@ -106,9 +117,11 @@ export default function BannerConfigurator({
       heightCm: h,
       material,
       note: `${w}×${h} cm (${m2.toFixed(2)} m²) · ${BANNER_MATERIAL_LABEL[material]}${
-        design ? " · vlastní návrh z editoru" : " · grafiku dodáme ke schválení"
+        free ? ` · ${freeDesignNote(freeLogo)}` : design ? " · vlastní návrh z editoru" : ` · ${OWN_ARTWORK_PENDING_NOTE}`
       }`,
-      design: design
+      design: free
+        ? freeDesignOrderDesign(freeLogo)
+        : design
         ? {
             bgColor: design.bgColor,
             thumb,
@@ -165,24 +178,32 @@ export default function BannerConfigurator({
   );
 
   const designBlock = (
-    <>
-      <div style={{ marginTop: isMobile ? 0 : 10 }}>
-        <button className="btn-outline btn-design" onClick={() => setEditorOpen(true)}>
-          <PenMark className="btn-mark" />
-          {design ? "Upravit vlastní návrh" : "Navrhnout vlastní grafiku"}
-        </button>
-        {design && (
-          <button className="link-reset" onClick={() => setDesign(null)}>
-            Odebrat návrh
-          </button>
-        )}
-      </div>
-      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
-        {design
-          ? "Návrh je uložený a propíše se do objednávky."
-          : "Volitelné — pokud grafiku nenahrajete, připravíme návrh po objednávce a pošleme ke schválení."}
-      </p>
-    </>
+    <ArtworkChoice
+      mode={artworkMode}
+      onModeChange={setArtworkMode}
+      logo={freeLogo}
+      onLogoChange={setFreeLogo}
+      own={
+        <>
+          <div style={{ marginTop: 10 }}>
+            <button className="btn-outline btn-design" onClick={() => setEditorOpen(true)}>
+              <PenMark className="btn-mark" />
+              {design ? "Upravit vlastní návrh" : "Navrhnout vlastní grafiku"}
+            </button>
+            {design && (
+              <button className="link-reset" onClick={() => setDesign(null)}>
+                Odebrat návrh
+              </button>
+            )}
+          </div>
+          <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
+            {design
+              ? "Návrh je uložený a propíše se do objednávky."
+              : "Nahrajte hotovou grafiku, nebo ji dodejte po objednávce."}
+          </p>
+        </>
+      }
+    />
   );
 
   return (

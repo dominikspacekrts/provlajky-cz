@@ -212,6 +212,10 @@ export type OrderItemDesign = {
   // k výrobě. Buckety s grafikou jsou privátní, takže admin si k odkazu musí
   // vyžádat podepsanou URL s omezenou platností.
   artworkPath?: string;
+  // Zákazník nechce vlastní grafiku — návrh připravíme zdarma podle loga
+  // (logo je v `logo.src`, pokud ho rovnou přiložil; jinak ho pošle e-mailem).
+  freeDesign?: boolean;
+  logoFileName?: string;
 };
 
 export type CartLine = {
