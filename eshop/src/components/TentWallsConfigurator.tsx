@@ -26,6 +26,15 @@ import {
 } from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+import ArtworkChoice from "@/components/ArtworkChoice";
+import {
+  designTemplatesFor,
+  freeDesignNote,
+  OWN_ARTWORK_PENDING_NOTE,
+  freeDesignOrderDesign,
+  type ArtworkMode,
+  type FreeDesignLogo,
+} from "@/lib/designTemplates";
 import TentStage from "@/components/TentStage";
 import { layersForWidth } from "@/lib/tentLayers";
 
@@ -167,11 +176,12 @@ export default function TentWallsConfigurator({
   const cfg = product.config?.tentWalls;
   const [printMode, setPrintMode] = useState<PrintMode>("printed");
   const [fabricColorId, setFabricColorId] = useState(TENT_FABRIC_COLORS[0].id);
-  const [roofColor, setRoofColor] = useState<"black" | "white">("black");
   const [framePainted, setFramePainted] = useState(false);
   const [frameColorId, setFrameColorId] = useState(TENT_FRAME_COLORS[0].id);
   const [sides, setSides] = useState<Record<PositionKey, Side>>({ front: null, back: null, left: null, right: null });
   const [qty, setQty] = useState(1);
+  const [artworkMode, setArtworkMode] = useState<ArtworkMode>("own");
+  const [freeLogo, setFreeLogo] = useState<FreeDesignLogo | null>(null);
   const [askNext, setAskNext] = useState(false);
   const [step, setStep] = useState(0);
   const image = product.images?.[0];
@@ -235,9 +245,15 @@ export default function TentWallsConfigurator({
     const modeNote =
       printMode === "stock"
         ? `Bez potisku, látka ${fabricColor.label}`
-        : `S potiskem · střecha ${roofColor === "black" ? "černá" : "bílá"} (bez potisku)`;
+        : "S potiskem";
     const frameNote = framePainted ? `Rám barvený ${frameColor.label}` : "Rám standardní";
-    const note = [modeNote, frameNote, ...parts].join(" · ");
+    const printed = printMode === "printed";
+    const artworkNote = printed
+      ? artworkMode === "free"
+        ? freeDesignNote(freeLogo)
+        : OWN_ARTWORK_PENDING_NOTE
+      : null;
+    const note = [modeNote, frameNote, artworkNote, ...parts].filter(Boolean).join(" · ");
     addLine({
       productId: product.id,
       productSlug: product.slug,
@@ -251,6 +267,7 @@ export default function TentWallsConfigurator({
       vatRate: product.vat_rate,
       thumb: image || null,
       note,
+      design: printed && artworkMode === "free" ? freeDesignOrderDesign(freeLogo) : null,
     });
     setAskNext(true);
   }
@@ -291,14 +308,6 @@ export default function TentWallsConfigurator({
         </>
       ) : (
         <>
-          <div className="option-label">Barva střechy (bez potisku)</div>
-          <div className="option-row">
-            {(["black", "white"] as const).map((c) => (
-              <button key={c} className={`option-chip${roofColor === c ? " active" : ""}`} onClick={() => setRoofColor(c)}>
-                {c === "black" ? "Černá" : "Bílá"}
-              </button>
-            ))}
-          </div>
           <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
             Potisk přijde na stěny / střechu podle vaší grafiky. Barvu látky tady řešit nemusíte.
           </p>
@@ -374,6 +383,23 @@ export default function TentWallsConfigurator({
     </>
   );
 
+  const templates = designTemplatesFor(product);
+  const artworkBlock =
+    printMode === "printed" ? (
+      <ArtworkChoice
+        mode={artworkMode}
+        onModeChange={setArtworkMode}
+        logo={freeLogo}
+        onLogoChange={setFreeLogo}
+        templates={templates}
+        own={
+          <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 10, lineHeight: 1.45 }}>
+            Grafiku připravte do našich podkladů a po objednávce ji pošlete na info@provlajky.cz.
+          </p>
+        }
+      />
+    ) : null;
+
   const summaryBlock = (
     <>
       <div className="option-label">Shrnutí</div>
@@ -381,7 +407,7 @@ export default function TentWallsConfigurator({
         <li>
           {printMode === "stock"
             ? `Bez potisku · látka ${fabricColor.label}`
-            : `S potiskem · střecha ${roofColor === "black" ? "černá" : "bílá"}`}
+            : "S potiskem"}
         </li>
         <li>{framePainted ? `Rám barvený ${frameColor.label} (+${fmtMoney(frameSell)})` : "Rám standardní"}</li>
         {POSITIONS.map((p) => {
@@ -459,7 +485,12 @@ export default function TentWallsConfigurator({
                 )}
                 {step === 1 && frontBackBlock}
                 {step === 2 && sidesBlock}
-                {step === 3 && summaryBlock}
+                {step === 3 && (
+                  <>
+                    {artworkBlock}
+                    {summaryBlock}
+                  </>
+                )}
               </FcStepBody>
             </>
           ) : (
@@ -470,6 +501,7 @@ export default function TentWallsConfigurator({
               )}
               {printAndColorsBlock}
               {desktopWalls}
+              {artworkBlock}
               {unitPrice <= 0 && (
                 <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
                   Cena zatím není nastavená — napište nám na info@provlajky.cz.

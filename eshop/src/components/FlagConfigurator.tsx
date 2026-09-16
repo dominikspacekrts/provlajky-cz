@@ -39,11 +39,19 @@ import {
 } from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+import ArtworkChoice from "@/components/ArtworkChoice";
+import {
+  freeDesignNote,
+  OWN_ARTWORK_PENDING_NOTE,
+  freeDesignOrderDesign,
+  type ArtworkMode,
+  type FreeDesignLogo,
+} from "@/lib/designTemplates";
 
 const FlagWave = dynamic(() => import("./FlagWave"), { ssr: false });
 const FlagEditorModal = dynamic(() => import("./FlagEditorModal"), { ssr: false });
 
-const MOBILE_STEPS = ["Tvar a velikost", "Tunel na tyč", "Vlastní grafika"] as const;
+const MOBILE_STEPS = ["Tvar a velikost", "Tunel na tyč", "Grafika"] as const;
 
 function ShapeIcon({ shape, size = 44 }: { shape: FlagShape; size?: number }) {
   const h = 100;
@@ -73,6 +81,8 @@ export default function FlagConfigurator({
   const [design, setDesign] = useState<FlagDesign | null>(null);
   const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [artworkMode, setArtworkMode] = useState<ArtworkMode>("own");
+  const [freeLogo, setFreeLogo] = useState<FreeDesignLogo | null>(null);
   const [askNext, setAskNext] = useState(false);
   const [step, setStep] = useState(0);
   const thumbRef = useRef<HTMLCanvasElement | null>(null);
@@ -157,10 +167,13 @@ export default function FlagConfigurator({
   }
 
   function handleAdd() {
+    const free = artworkMode === "free";
     const noteParts = [hs ? `HS tunel (${sleeveColor === "black" ? "černý" : "bílý"})` : "standardní tunel"];
-    if (design) noteParts.push(`vlastní návrh z editoru (pozadí ${design.bgColor})`);
-    if (design?.logoIsPdf) noteParts.push("PDF logo — umístění doladíme ručně");
-    const thumb = makeThumb();
+    if (free) noteParts.push(freeDesignNote(freeLogo));
+    else if (design) noteParts.push(`vlastní návrh z editoru (pozadí ${design.bgColor})`);
+    else noteParts.push(OWN_ARTWORK_PENDING_NOTE);
+    if (!free && design?.logoIsPdf) noteParts.push("PDF logo — umístění doladíme ručně");
+    const thumb = free ? null : makeThumb();
     addLine({
       productId: product.id,
       productSlug: product.slug,
@@ -174,7 +187,7 @@ export default function FlagConfigurator({
       vatRate: product.vat_rate,
       thumb,
       note: noteParts.join(" · "),
-      design: buildOrderDesign(thumb),
+      design: free ? { ...freeDesignOrderDesign(freeLogo), sleeveColor: hs ? sleeveColor : undefined } : buildOrderDesign(thumb),
     });
     setAskNext(true);
   }
@@ -239,10 +252,10 @@ export default function FlagConfigurator({
     </>
   );
 
-  const designBlock = (
+  const ownDesignBlock = (
     <>
-      <div style={{ marginTop: 14 }}>
-        <button className={`btn-outline btn-design${design ? "" : " btn-design-required"}`} onClick={() => setEditorOpen(true)}>
+      <div style={{ marginTop: 10 }}>
+        <button className="btn-outline btn-design" onClick={() => setEditorOpen(true)}>
           <PenMark className="btn-mark" />
           {design ? "Upravit vlastní návrh" : "Navrhnout vlastní vlajku"}
         </button>
@@ -255,9 +268,19 @@ export default function FlagConfigurator({
       <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6, lineHeight: 1.45 }}>
         {design
           ? "Návrh je uložený a propíše se do objednávky."
-          : "Povinný krok — zadejte barvu podkladu a nahrajte logo, ať víme, jak má vlajka vypadat."}
+          : "Zadejte barvu podkladu a nahrajte logo. Grafiku můžete dodat i po objednávce."}
       </p>
     </>
+  );
+
+  const designBlock = (
+    <ArtworkChoice
+      mode={artworkMode}
+      onModeChange={setArtworkMode}
+      logo={freeLogo}
+      onLogoChange={setFreeLogo}
+      own={ownDesignBlock}
+    />
   );
 
   const hintsBlock = (
@@ -265,11 +288,6 @@ export default function FlagConfigurator({
       {unitPrice <= 0 && (
         <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
           Pro tuto velikost zatím nemáme nastavenou cenu — napište nám na info@provlajky.cz.
-        </p>
-      )}
-      {unitPrice > 0 && !design?.logoDataUrl && (
-        <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
-          Nejdřív navrhněte vlajku (barva podkladu + logo) — pak půjde přidat do košíku.
         </p>
       )}
     </>
@@ -286,10 +304,10 @@ export default function FlagConfigurator({
         </div>
         <FlagWave
           shape={shape}
-          color={design ? design.bgColor : "#c9ccd1"}
+          color={design && artworkMode === "own" ? design.bgColor : "#c9ccd1"}
           hs={hs}
           sleeveColor={sleeveColor}
-          drawDesign={drawDesign}
+          drawDesign={artworkMode === "own" ? drawDesign : undefined}
           wind={0.3}
         />
         <FcContactLink />
@@ -345,7 +363,7 @@ export default function FlagConfigurator({
           onQtyChange={setQty}
           unitPrice={unitPrice}
           vatRate={product.vat_rate}
-          disabled={unitPrice <= 0 || !design?.logoDataUrl}
+          disabled={unitPrice <= 0}
           addLabel="Do košíku"
           onAdd={handleAdd}
         />

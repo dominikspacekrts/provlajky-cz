@@ -46,6 +46,10 @@ export type Design = {
   // k výrobě. Buckety jsou privátní, odkaz ke stažení vydá až
   // getArtworkDownloadUrl() a platí hodinu.
   artworkPath?: string;
+  // Zákazník na eshopu zvolil „grafický návrh zdarma" — návrh děláme my podle
+  // loga v `logo.src` (když ho přiložil), jinak logo dorazí e-mailem.
+  freeDesign?: boolean;
+  logoFileName?: string;
 };
 
 export type Order = {
