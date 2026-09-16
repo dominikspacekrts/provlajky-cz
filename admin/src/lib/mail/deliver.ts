@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import { wrapEmailHtml } from "@/lib/email-templates";
+import { getLogoAttachment } from "@/lib/mail/logo";
 import { createServiceClient } from "@/lib/supabase/server";
 
 // Jádro odesílání pošty. Jediné místo v celém projektu, které sahá na SMTP
@@ -27,6 +29,11 @@ export type DeliverMailInput = {
   bcc?: string[];
   subject: string;
   html: string;
+  /**
+   * true = obalit html firemní šablonou (logo, žlutý proužek, patička s
+   * podpisem) stejně jako faktura z adminu. Předává se jen obsah mailu.
+   */
+  branded?: boolean;
   attachments?: MailAttachment[];
   kind?: string;
   orderId?: string | null;
@@ -45,6 +52,8 @@ type MailSettings = {
   pass: string;
   fromName?: string;
   from?: string;
+  signName?: string;
+  signPhone?: string;
 };
 
 export async function deliverMail(input: DeliverMailInput): Promise<DeliverMailResult> {
@@ -53,12 +62,14 @@ export async function deliverMail(input: DeliverMailInput): Promise<DeliverMailR
   // Service client: bránu volá eshop bez přihlášené session, takže tady nelze
   // spoléhat na RLS přes is_allowed_user().
   const supabase = createServiceClient();
-  const attachments = input.attachments ?? [];
-  const attachmentsMeta = attachments.map((a) => ({
-    filename: a.filename,
-    contentType: a.contentType,
-    sizeBytes: Math.ceil((a.contentBase64.length * 3) / 4),
-  }));
+  let attachments = input.attachments ?? [];
+  let html = input.html;
+  const attachmentsMeta = () =>
+    attachments.map((a) => ({
+      filename: a.filename,
+      contentType: a.contentType,
+      sizeBytes: Math.ceil((a.contentBase64.length * 3) / 4),
+    }));
 
   // Adresa provozovatele je v nastavení, ne u volajícího — eshop ji tak vůbec
   // nemusí znát. Doplní se až po načtení nastavení níž.
@@ -78,8 +89,8 @@ export async function deliverMail(input: DeliverMailInput): Promise<DeliverMailR
       cc: input.cc || [],
       bcc: input.bcc || [],
       subject: input.subject,
-      html_body: input.html,
-      attachments_meta: attachmentsMeta,
+      html_body: html,
+      attachments_meta: attachmentsMeta(),
       status,
       error_message: errorMessage || null,
     });
@@ -101,6 +112,13 @@ export async function deliverMail(input: DeliverMailInput): Promise<DeliverMailR
     toAddr = mail.from || mail.user;
   }
 
+  if (input.branded) {
+    // Stejné výchozí hodnoty podpisu jako Nastavení → Maily (lib/actions/settings.ts).
+    html = wrapEmailHtml(html, mail.signName || "Dominik Špaček", mail.signPhone || "+420 605 981 155");
+    const logo = await getLogoAttachment();
+    if (logo) attachments = [logo, ...attachments];
+  }
+
   try {
     const transporter = nodemailer.createTransport({
       host: mail.host,
@@ -120,7 +138,7 @@ export async function deliverMail(input: DeliverMailInput): Promise<DeliverMailR
       cc: input.cc?.length ? input.cc.join(",") : undefined,
       bcc: input.bcc?.length ? input.bcc.join(",") : undefined,
       subject: input.subject,
-      html: input.html,
+      html,
       attachments: attachments.map((a) => ({
         filename: a.filename,
         content: Buffer.from(a.contentBase64, "base64"),
