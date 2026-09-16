@@ -233,12 +233,13 @@ export type Settings = {
   updated_at: string;
 };
 
-export type EmailKind = "invoice" | "visual" | "accountant" | "supplier" | "other";
+export type EmailKind = "invoice" | "visual" | "accountant" | "supplier" | "order_confirmation" | "other";
 
 export type EmailHistoryRow = {
   id: string;
   sent_at: string;
-  sent_by: string;
+  /** null = odeslal automat (eshop), ne člověk z týmu. */
+  sent_by: string | null;
   kind: EmailKind;
   order_id: string | null;
   invoice_id: string | null;

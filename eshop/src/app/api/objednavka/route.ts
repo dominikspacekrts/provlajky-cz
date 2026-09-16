@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 import { createServiceClient } from "@/lib/supabase";
 import { fmtMoney } from "@/lib/money";
 import { getCheckoutSettings } from "@/lib/checkoutSettings";
@@ -24,15 +23,10 @@ import { decodeSafeImageDataUrl } from "@/lib/safe-image";
 // nezavede vlastní sazby pro dopravu/platbu.
 const STANDARD_VAT_RATE = 0.21;
 
-type MailSettings = {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  pass: string;
-  fromName?: string;
-  from?: string;
-};
+// Výchozí limit nastavuje hostingová platforma a bývá kratší, než stihne SMTP
+// handshake — objednávka by se uložila, ale funkci by zabilo dřív, než odpoví,
+// takže by zákazník viděl chybu. Timeouty v sendCustomerMail se sem musí vejít.
+export const maxDuration = 30;
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -483,58 +477,32 @@ export async function POST(req: NextRequest) {
   // Potvrzovací e-mail zákazníkovi — objednávka je v DB hotová bez ohledu na to,
   // jestli se mail povede odeslat, takže selhání tady nesmí shodit odpověď.
   try {
-    const { data: settingsRow } = await supabase.from("settings").select("mail").eq("id", 1).single();
-    const mail = settingsRow?.mail as MailSettings | undefined;
-    if (mail?.host && mail?.user) {
-      const orderLabel = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8)}`;
-      const subject = `Potvrzení objednávky ${orderLabel} — provlajky.cz`;
-      const html = orderConfirmationEmailHtml(
-        orderLabel,
-        billing,
-        lines,
-        selectedShipping?.label ?? null,
-        shippingPriceEx,
-        selectedPayment?.label ?? null,
-        paymentPriceEx,
-        STANDARD_VAT_RATE
-      );
-      const transporter = nodemailer.createTransport({
-        host: mail.host,
-        port: Number(mail.port) || 587,
-        secure: !!mail.secure,
-        auth: { user: mail.user, pass: mail.pass },
-      });
-      const fromName = mail.fromName || "PROVLAJKY";
-      const fromAddr = mail.from || mail.user;
-      try {
-        await transporter.sendMail({ from: `"${fromName}" <${fromAddr}>`, to: billing.email, subject, html });
-        await supabase.from("email_history").insert({
-          sent_by: mail.user,
-          kind: "other",
-          to_addr: billing.email,
-          cc: [],
-          bcc: [],
-          subject,
-          html_body: html,
-          attachments_meta: [],
-          status: "sent",
-        });
-      } catch (sendError) {
-        const message = sendError instanceof Error ? sendError.message : "Neznámá chyba odeslání.";
-        console.error("objednavka: confirmation email failed", sendError);
-        await supabase.from("email_history").insert({
-          sent_by: mail.user,
-          kind: "other",
-          to_addr: billing.email,
-          cc: [],
-          bcc: [],
-          subject,
-          html_body: html,
-          attachments_meta: [],
-          status: "failed",
-          error_message: message,
-        });
-      }
+    // Bez adresy není komu psát. billingFieldErrors() ji výš vyžaduje, takže
+    // sem se to nedostane — ale ať se to při změně validace pozná z logu.
+    const customerEmail = (billing.email || "").trim();
+    if (!customerEmail) {
+      throw new Error("Objednávka nemá e-mail zákazníka, potvrzení se neodesílá.");
+    }
+    const orderLabel = order.order_number ? `#${order.order_number}` : `#${order.id.slice(0, 8)}`;
+    const html = orderConfirmationEmailHtml(
+      orderLabel,
+      billing,
+      lines,
+      selectedShipping?.label ?? null,
+      shippingPriceEx,
+      selectedPayment?.label ?? null,
+      paymentPriceEx,
+      STANDARD_VAT_RATE
+    );
+    const sent = await sendCustomerMail({
+      to: customerEmail,
+      subject: `Potvrzení objednávky ${orderLabel} — provlajky.cz`,
+      html,
+      kind: "order_confirmation",
+      orderId: order.id,
+    });
+    if (!sent.emailed) {
+      console.error("objednavka: confirmation email failed", sent.error);
     }
   } catch (e) {
     console.error("objednavka: confirmation email step failed", e);

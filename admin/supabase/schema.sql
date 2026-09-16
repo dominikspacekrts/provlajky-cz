@@ -153,7 +153,7 @@ create table if not exists supplier_invoices (
 create table if not exists email_history (
   id uuid primary key default gen_random_uuid(),
   sent_at timestamptz not null default now(),
-  sent_by text not null references allowed_users(email),
+  sent_by text references allowed_users(email), -- null = odeslal automat (eshop), viz 2026-09-email-history-system-sender.sql
   kind text not null default 'other', -- 'invoice' | 'visual' | 'accountant' | 'supplier' | 'other'
   order_id uuid references orders(id) on delete set null,
   invoice_id uuid references invoices(id) on delete set null,
