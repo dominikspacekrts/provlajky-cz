@@ -1304,10 +1304,13 @@ label:has(input[type="checkbox"]), .cb-line {
   display: flex; justify-content: center;
   margin: 0 auto 8px;
 }
-.thanks-mark svg {
-  display: block; width: clamp(72px, 12vw, 96px); height: auto;
-  box-shadow: 0 18px 40px -24px rgba(8, 8, 10, 0.55);
+.thanks-mark svg { display: block; width: clamp(92px, 14vw, 120px); height: auto; overflow: visible; }
+.thanks-check-tick, .thanks-check-shadow { stroke-dasharray: 1; stroke-dashoffset: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .thanks-check-tick { stroke-dashoffset: 1; animation: thanks-tick 0.55s var(--nv-ease) 0.15s forwards; }
+  .thanks-check-shadow { stroke-dashoffset: 1; animation: thanks-tick 0.55s var(--nv-ease) 0.32s forwards; }
 }
+@keyframes thanks-tick { to { stroke-dashoffset: 0; } }
 .thanks-title {
   font-size: clamp(26px, 3.4vw, 34px); margin: 20px 0 0;
   font-variation-settings: "wght" 680, "wdth" 108; letter-spacing: -0.03em;
