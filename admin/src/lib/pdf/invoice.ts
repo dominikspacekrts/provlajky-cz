@@ -279,9 +279,48 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     descX = M;
   let sumVat = 0;
   let zebra = false;
+  // h > rowH = položka má pod názvem ještě řádky s konfigurací, pruh musí
+  // sahat dolů až pod ně (y je baseline prvního řádku, další jdou níž).
   const drawZebra = (h: number) => {
-    if (zebra) page.drawRectangle({ x: M - 4, y: y - 9, width: contentR - M + 8, height: h - 4, color: rgb(0.975, 0.978, 0.983) });
+    if (zebra)
+      page.drawRectangle({
+        x: M - 4,
+        y: y - 9 - (h - rowH),
+        width: contentR - M + 8,
+        height: h - 4,
+        color: rgb(0.975, 0.978, 0.983),
+      });
     zebra = !zebra;
+  };
+
+  // Ořez na šířku sloupce Položka — pdf-lib text nezalamuje ani nekontroluje
+  // kolize, takže si delší popis zkrátíme sami.
+  const fitDesc = (txt: string, size: number, f: typeof font) => {
+    let out = txt;
+    while (f.widthOfTextAtSize(T(out), size) > cX.qty - descX - 8 && out.length > 8) out = out.slice(0, -2);
+    return T(out + (out !== txt ? "…" : ""));
+  };
+
+  // Rozpis konfigurace se zalamuje přes celou šířku stránky, ne do úzkého
+  // sloupce Položka — jinak by každá stěna stanu zabrala vlastní řádek a
+  // rozpis by vytlačil QR panel z jediné (nestránkované) stránky.
+  const SPEC_SIZE = 7.5;
+  const SPEC_LINE_H = 9;
+  const SPEC_WIDTH = contentR - descX - 6;
+  const wrapSpecs = (parts: string[]) => {
+    const lines: string[] = [];
+    let current = "";
+    for (const part of parts) {
+      const candidate = current ? `${current} · ${part}` : part;
+      if (current && font.widthOfTextAtSize(T(candidate), SPEC_SIZE) > SPEC_WIDTH) {
+        lines.push(current);
+        current = part;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
   };
 
   for (const it of inv.items) {
@@ -289,18 +328,25 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     const lineVat = lineEx * (it.vatRate || 0);
     const lineGross = lineEx + lineVat;
     sumVat += lineVat;
-    drawZebra(rowH);
+    // Konfigurace (stěny stanu, barva rámu…) jde pod název položky po
+    // řádcích — jinak by se celý popis stanu do jednoho řádku nevešel.
+    const specs = wrapSpecs(it.specs || []);
+    const itemH = rowH + specs.length * SPEC_LINE_H;
+    drawZebra(itemH);
 
-    let desc = it.desc;
-    while (font.widthOfTextAtSize(T(desc), 8.5) > cX.qty - descX - 8 && desc.length > 8) desc = desc.slice(0, -2);
-    page.drawText(T(desc + (desc !== it.desc ? "…" : "")), { x: descX, y, size: 8.5, font, color: ink });
+    page.drawText(fitDesc(it.desc, 8.5, font), { x: descX, y, size: 8.5, font, color: ink });
     rightText(T(String(it.qty)), cX.qty, y, font, 8.5, ink);
     rightText(money(it.unitPrice), cX.unit, y, font, 8.5, ink);
     rightText(T(Math.round((it.vatRate || 0) * 100) + " %"), cX.vat, y, font, 8.5, grey);
     rightText(money(lineEx), cX.ex, y, font, 8.5, ink);
     rightText(money(lineVat), cX.dph, y, font, 8.5, grey);
     rightText(money(lineGross), cX.total, y, fontB, 8.5, ink);
-    y -= rowH;
+    let specY = y - SPEC_LINE_H;
+    for (const spec of specs) {
+      page.drawText(T(spec), { x: descX + 6, y: specY, size: SPEC_SIZE, font, color: grey });
+      specY -= SPEC_LINE_H;
+    }
+    y -= itemH;
   }
 
   const tt = inv.totals!;
@@ -398,13 +444,22 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
   rightText(money(tt.grand) + " " + (inv.currency || "CZK"), contentR - 2, y - 6, fontB, 13, ink);
   y -= barH + 10;
 
-  const qrPng = await makePaymentQrPng(inv);
+  // Patička sedí na pevné výšce (fY níž) a dokument se nestránkuje — u dlouhého
+  // rozpisu (hodně položek, nebo položka s konfigurací na víc řádků) se QR panel
+  // do zbytku stránky nemusí vejít. Zmenší se tedy podle volného místa (texty
+  // uvnitř potřebují ~80 b.) a teprve pod tuhle mez se vynechá — přetisknout se
+  // s patičkou nesmí, ale QR platba je pro zákazníka moc užitečná na to, aby se
+  // zahazovala při prvním těsném rozpisu.
+  const footerTop = M + 14 + 18 + 8;
+  const QR_PANEL_MAX = 104;
+  const QR_PANEL_MIN = 88; // pod tuhle výšku by se texty v panelu dotkly okraje
+  const panelH = Math.min(QR_PANEL_MAX, y - 14 - footerTop);
+  const qrPng = panelH >= QR_PANEL_MIN ? await makePaymentQrPng(inv) : null;
   if (qrPng) {
     try {
       const qrImg = await pdfDoc.embedPng(qrPng);
       y -= 14;
-      const panelH = 104,
-        pad = 14,
+      const pad = 14,
         qs = panelH - pad * 2;
       const panelTop = y,
         panelBottom = y - panelH;

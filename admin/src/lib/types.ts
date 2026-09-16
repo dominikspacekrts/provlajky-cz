@@ -111,6 +111,9 @@ export type OrderTotals = {
 
 export type InvoiceItem = {
   desc: string;
+  /** Rozpis konfigurace pod názvem položky (stěny stanu, barva rámu…) —
+   *  u vlajek/bannerů prázdné, celý popis se vejde do desc. */
+  specs?: string[];
   qty: number;
   unitPrice: number;
   vatRate: number;
@@ -342,6 +345,11 @@ export type ProductConfig = {
   costBySize?: { S: number; M: number; L: number; XL: number }; // kind 'configurable' — náklad pro odhad marže
   tentWalls?: TentWallsConfig;
 };
+
+// Dodavatel produktu — uložený mimo products (tabulka product_suppliers,
+// viz 2026-09-product-suppliers.sql), protože products jsou veřejně čitelné
+// přes eshop a kontakt na dodavatele ven nepatří.
+export type ProductSupplier = { name: string; email: string };
 
 export type Product = {
   id: string;

@@ -16,6 +16,7 @@ import {
   type TentWallOption,
   type FlagMaterial,
   type CustomFlagConfig,
+  type ProductSupplier,
 } from "@/lib/types";
 
 const emptyBanner = (): NonNullable<ProductConfig["banner"]> => ({
@@ -88,9 +89,10 @@ const emptyInput = (defaultCategory: ProductCategory = "plazove-vlajky"): Produc
   sale_pct: 0,
   config: {},
   partner_ids: [],
+  supplier: { name: "", email: "" },
 });
 
-function toInput(p: Product): ProductInput {
+function toInput(p: Product, supplier?: ProductSupplier): ProductInput {
   return {
     slug: p.slug,
     category: p.category,
@@ -107,6 +109,7 @@ function toInput(p: Product): ProductInput {
     sale_pct: p.sale_pct || 0,
     config: p.config || {},
     partner_ids: p.partner_ids || [],
+    supplier: { name: supplier?.name || "", email: supplier?.email || "" },
   };
 }
 
@@ -123,13 +126,18 @@ export default function ProductFormButton({
   product,
   defaultCategory,
   partners = [],
+  supplier,
 }: {
   product?: Product;
   defaultCategory?: ProductCategory;
   partners?: Partner[];
+  /** Z product_suppliers (mimo products, viz 2026-09-product-suppliers.sql). */
+  supplier?: ProductSupplier;
 }) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState<ProductInput>(() => (product ? toInput(product) : emptyInput(defaultCategory)));
+  const [value, setValue] = useState<ProductInput>(() =>
+    product ? toInput(product, supplier) : emptyInput(defaultCategory)
+  );
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -158,7 +166,7 @@ export default function ProductFormButton({
   }
 
   function openModal() {
-    setValue(product ? toInput(product) : emptyInput(defaultCategory));
+    setValue(product ? toInput(product, supplier) : emptyInput(defaultCategory));
     setError(null);
     setOpen(true);
   }
@@ -916,6 +924,32 @@ export default function ProductFormButton({
                   onChange={(e) => set("sale_pct", Number(e.target.value) || 0)}
                 />
               </label>
+
+              <div className="variant-block">
+                <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 8 }}>
+                  Dodavatel — kdo tenhle produkt vyrábí. Na tenhle e-mail pošle tlačítko „Odeslat dodavateli“
+                  v objednávce poptávku. Necháš prázdné → použije se výchozí adresa z Nastavení → Maily.
+                </div>
+                <div className="variant-row" style={{ marginBottom: 0 }}>
+                  <label style={{ flex: 1 }}>
+                    Název dodavatele
+                    <input
+                      value={value.supplier.name}
+                      placeholder="např. Shandong Tents"
+                      onChange={(e) => set("supplier", { ...value.supplier, name: e.target.value })}
+                    />
+                  </label>
+                  <label style={{ flex: 2 }}>
+                    E-mail dodavatele
+                    <input
+                      type="email"
+                      value={value.supplier.email}
+                      placeholder="sales@dodavatel.com"
+                      onChange={(e) => set("supplier", { ...value.supplier, email: e.target.value })}
+                    />
+                  </label>
+                </div>
+              </div>
 
               <div>
                 <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 6 }}>

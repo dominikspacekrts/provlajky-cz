@@ -37,9 +37,16 @@ main {
   margin: 0 auto;
   animation: page-in 0.28s ease both;
 }
+/* Sjezd o 6 px se dělá přes margin-top, ne transform. Prvek s transform != none
+   je containing block pro position: fixed potomky — a protože <main> má
+   animation-fill-mode "both", transform na něm zůstával viset i po doběhnutí
+   animace. Modály (.modal-overlay, position: fixed) se pak centrovaly doprostřed
+   celé stránky místo obrazovky; na dlouhém seznamu produktů to znamenalo, že
+   formulář produktu vyjel mimo aktuální výřez. `transform: none` v koncovém
+   keyframu nestačí — prohlížeč ho i tak spočítá jako matrix(1,0,0,1,0,0). */
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; margin-top: 6px; }
+  to { opacity: 1; margin-top: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   main { animation: none; }
@@ -274,6 +281,22 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 }
 .item-margin { font-size: 11px; font-weight: 500; margin-top: 2px; }
 .item-spacer { flex: 1; }
+
+/* Rozpis konfigurace položky (stěny stanu, barva rámu…) — vlastní řádek pod
+   položkou, ať je v objednávce na první pohled vidět, co si zákazník nakliknul. */
+.item-config {
+  flex-basis: 100%; margin-top: 2px; padding: 10px 12px;
+  background: var(--color-bg-soft, #f7f7f8); border: 1px solid var(--color-border); border-radius: 8px;
+}
+.item-config-title {
+  display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;
+  color: var(--color-gray-500); margin-bottom: 6px;
+}
+.item-config ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.item-config li { font-size: 13px; color: var(--color-gray-700); line-height: 1.4; }
+.item-config li.is-wall { font-size: 14px; color: #111827; }
+.item-config-key { font-weight: 700; }
+.item-config li.is-wall .item-config-key { color: var(--color-primary, #111827); }
 
 .muted { color: var(--color-gray-500); }
 .hidden { display: none !important; }

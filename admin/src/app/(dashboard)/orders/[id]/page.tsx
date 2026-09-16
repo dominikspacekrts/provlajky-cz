@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/actions/settings";
+import { loadProductSuppliers } from "@/lib/actions/products";
 import type { Invoice, Order, OrderItem, Partner, Product, SupplierInvoice } from "@/lib/types";
 import OrderDetailClient from "./order-detail-client";
 
@@ -18,7 +19,7 @@ export default async function OrderDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: order, error }, { data: items }, { data: invoice }, { data: supplierInvoices }, { data: products }, { data: partners }, { data: discountCustomer }, settings] =
+  const [{ data: order, error }, { data: items }, { data: invoice }, { data: supplierInvoices }, { data: products }, { data: partners }, { data: discountCustomer }, settings, productSuppliers] =
     await Promise.all([
       supabase.from("orders").select("*").eq("id", id).single(),
       supabase.from("order_items").select("*").eq("order_id", id).order("id"),
@@ -32,6 +33,9 @@ export default async function OrderDetailPage({
       // se nastaví při odeslání objednávky z eshopu, viz /api/objednavka.
       supabase.from("customers").select("email, discount_code").eq("used_order_id", id).maybeSingle(),
       getSettings(),
+      // Dodavatel per produkt (product_suppliers) — "Odeslat dodavateli"
+      // posílá stany/nafukovací reklamu jinam než plážové vlajky.
+      loadProductSuppliers(),
     ]);
 
   if (error || !order) notFound();
@@ -50,6 +54,7 @@ export default async function OrderDetailPage({
         partners={(partners || []) as Partner[]}
         discountCustomer={discountCustomer as { email: string; discount_code: string } | null}
         costPerSize={settings.cost_per_size}
+        productSuppliers={productSuppliers}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 // Ported from app.js (DEFAULT_MAIL_TPL_*, wrapEmailHtml, fillTemplate) so the
 // e-mail layout/wording stays identical to the old app.
-import { customerLabel, isBanner } from "./domain";
+import { customerLabel, isBanner, isBeachFlag, parseLineName } from "./domain";
 import type { Order, OrderItem } from "./types";
 
 export const DEFAULT_MAIL_TPL_INVOICE = `<p>Dobrý den,</p>
@@ -91,6 +91,14 @@ export function buildSupplierBodyText(
       if (isBanner(it)) {
         return `• PVC banner — ${it.width_cm || 0}×${it.height_cm || 0} cm — quantity: ${it.qty} pcs`;
       }
+      // Stany, brány, totemy a příslušenství — tvar/velikost nemají, celý
+      // popis (včetně výběru stěn) nesou ve wc_line_name. Dřív tudy propadly
+      // do textu "standard beach flag — shape null, size null".
+      if (!isBeachFlag(it)) {
+        const { name, parts } = parseLineName(it.wc_line_name);
+        const spec = parts.map((part) => `\n    - ${part}`).join("");
+        return `• ${name || "item"} — quantity: ${it.qty} pcs${spec}`;
+      }
       // eshop.hs je starší úložiště z konfigurátoru, hs je stejné pole zapisované
       // adminem — čte se, co je nastavené (stejný vzor jako order-detail-client.tsx).
       const hs = it.design?.hs ?? it.design?.eshop?.hs ?? false;
@@ -107,14 +115,17 @@ export function buildSupplierBodyText(
     })
     .join("\n");
 
-  const hasFlags = items.some((it) => !isBanner(it));
+  const hasFlags = items.some(isBeachFlag);
   const hasBanners = items.some(isBanner);
-  const intro =
-    hasFlags && hasBanners
-      ? "please prepare the following items:"
-      : hasBanners
-        ? "please prepare the following PVC banners:"
-        : "please prepare the following beach flags:";
+  const hasOther = items.some((it) => !isBanner(it) && !isBeachFlag(it));
+  const onlyOneKind = [hasFlags, hasBanners, hasOther].filter(Boolean).length === 1;
+  const intro = !onlyOneKind
+    ? "please prepare the following items:"
+    : hasBanners
+      ? "please prepare the following PVC banners:"
+      : hasFlags
+        ? "please prepare the following beach flags:"
+        : "please prepare the following items:";
 
   return `Hello,
 

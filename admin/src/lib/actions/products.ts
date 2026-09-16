@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import type { Product, ProductCategory, ProductConfig, ProductKind } from "@/lib/types";
+import type { Product, ProductCategory, ProductConfig, ProductKind, ProductSupplier } from "@/lib/types";
 
 function slugify(name: string) {
   return name
@@ -30,6 +30,9 @@ export type ProductInput = {
   sale_pct: number;
   config: ProductConfig;
   partner_ids: string[];
+  // Neukládá se do products (veřejně čitelné přes eshop), ale do
+  // product_suppliers — viz saveProductSupplier níž.
+  supplier: ProductSupplier;
 };
 
 // PostgREST hlásí sloupec, který ve schema cache nezná (migrace na něj ještě
@@ -39,45 +42,91 @@ export type ProductInput = {
 // — a cokoliv podobného příště, bez nutnosti to řešit zvlášť pro každý sloupec).
 const MISSING_COLUMN_RE = /Could not find the '(\w+)' column/;
 
-async function withMissingColumnFallback(
-  run: (row: Record<string, unknown>) => PromiseLike<{ error: { message: string } | null }>,
+async function withMissingColumnFallback<T>(
+  run: (row: Record<string, unknown>) => PromiseLike<{ data: T | null; error: { message: string } | null }>,
   row: Record<string, unknown>
-) {
+): Promise<{ data: T | null; error: { message: string } | null }> {
   let payload = row;
   for (let attempt = 0; attempt < 6; attempt++) {
-    const { error } = await run(payload);
-    if (!error) return null;
+    const { data, error } = await run(payload);
+    if (!error) return { data, error: null };
     const missing = MISSING_COLUMN_RE.exec(error.message)?.[1];
-    if (!missing || !(missing in payload)) return error;
+    if (!missing || !(missing in payload)) return { data: null, error };
     const next = { ...payload };
     delete next[missing];
     payload = next;
   }
-  return { message: "Příliš mnoho chybějících sloupců — zkontroluj, jestli proběhly všechny SQL migrace." };
+  return {
+    data: null,
+    error: { message: "Příliš mnoho chybějících sloupců — zkontroluj, jestli proběhly všechny SQL migrace." },
+  };
+}
+
+// Kontakt na dodavatele leží v product_suppliers, ne v products — products
+// mají RLS politiku "public can view active products", takže sloupec s
+// e-mailem by si přečetl kdokoliv přes veřejné API eshopu.
+async function saveProductSupplier(productId: string, supplier: ProductSupplier | undefined) {
+  const name = (supplier?.name || "").trim();
+  const email = (supplier?.email || "").trim();
+  const supabase = await createClient();
+  const { error } =
+    !name && !email
+      ? await supabase.from("product_suppliers").delete().eq("product_id", productId)
+      : await supabase
+          .from("product_suppliers")
+          .upsert({ product_id: productId, name, email, updated_at: new Date().toISOString() });
+  if (error) {
+    throw new Error(
+      `Produkt je uložený, ale dodavatele se uložit nepodařilo: ${error.message}. ` +
+        "Proběhla migrace admin/supabase/2026-09-product-suppliers.sql?"
+    );
+  }
+}
+
+/** Mapa product_id → dodavatel. Prázdná, dokud neproběhne migrace. */
+export async function loadProductSuppliers(): Promise<Record<string, ProductSupplier>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("product_suppliers").select("product_id, name, email");
+  if (error || !data) return {};
+  const out: Record<string, ProductSupplier> = {};
+  for (const row of data as { product_id: string; name: string | null; email: string | null }[]) {
+    out[row.product_id] = { name: row.name || "", email: row.email || "" };
+  }
+  return out;
 }
 
 export async function createProduct(input: ProductInput) {
   const supabase = await createClient();
   const slug = input.slug.trim() ? slugify(input.slug) : slugify(input.name);
-  const error = await withMissingColumnFallback(
-    (row) => supabase.from("products").insert(row),
-    { ...input, slug }
+  const { supplier, ...productFields } = input;
+  const { data, error } = await withMissingColumnFallback<{ id: string }>(
+    (row) => supabase.from("products").insert(row).select("id").single(),
+    { ...productFields, slug }
   );
   if (error) throw new Error(error.message);
-  revalidatePath("/products");
-  revalidatePath("/");
+  try {
+    if (data?.id) await saveProductSupplier(data.id, supplier);
+  } finally {
+    revalidatePath("/products");
+    revalidatePath("/");
+  }
 }
 
 export async function updateProduct(id: string, input: ProductInput) {
   const supabase = await createClient();
   const slug = input.slug.trim() ? slugify(input.slug) : slugify(input.name);
-  const error = await withMissingColumnFallback(
-    (row) => supabase.from("products").update(row).eq("id", id),
-    { ...input, slug, updated_at: new Date().toISOString() }
+  const { supplier, ...productFields } = input;
+  const { error } = await withMissingColumnFallback(
+    (row) => supabase.from("products").update(row).eq("id", id).select("id").single(),
+    { ...productFields, slug, updated_at: new Date().toISOString() }
   );
   if (error) throw new Error(error.message);
-  revalidatePath("/products");
-  revalidatePath("/");
+  try {
+    await saveProductSupplier(id, supplier);
+  } finally {
+    revalidatePath("/products");
+    revalidatePath("/");
+  }
 }
 
 export async function deleteProduct(id: string) {
