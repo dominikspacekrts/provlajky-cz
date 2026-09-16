@@ -31,6 +31,42 @@ export function CheckMark({ className = "" }: { className?: string }) {
   );
 }
 
+/** Velká značka „hotovo“ na děkovací stránce — ne emoji.
+ *  Samotná fajfka bez rámečku: černý tah se žlutým posunutým stínem jako v logu. */
+export function OrderThanksMark({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      className={`thanks-check ${className}`.trim()}
+      viewBox="0 0 120 96"
+      width="120"
+      height="96"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        className="thanks-check-shadow"
+        d="M20 50 45 75 104 16"
+        fill="none"
+        stroke="#ffe701"
+        strokeWidth="16"
+        strokeLinecap="butt"
+        strokeLinejoin="miter"
+        pathLength={1}
+      />
+      <path
+        className="thanks-check-tick"
+        d="M12 42 37 67 96 8"
+        fill="none"
+        stroke="#08080a"
+        strokeWidth="14"
+        strokeLinecap="butt"
+        strokeLinejoin="miter"
+        pathLength={1}
+      />
+    </svg>
+  );
+}
+
 export function CloseMark({ className = "" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true" focusable="false">

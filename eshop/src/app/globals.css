@@ -104,24 +104,32 @@ h1, h2, h3, h4 {
 .btn-yellow:active::before, .btn-outline:active::before, .btn-design:active::before { opacity: 1; }
 
 .btn-yellow {
-  color: var(--yellow);
-  background-image: linear-gradient(180deg, #2c2c32 0%, #121216 34%, #08080a 68%, #000 100%);
+  color: var(--ink);
+  background-image: linear-gradient(180deg, #ffee55 0%, #ffe701 34%, #ffdf00 68%, #eecb00 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 4px 10px -4px rgba(8, 8, 10, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 12px -4px rgba(8, 8, 10, 0.45);
 }
 .btn-yellow:hover:not(:disabled) {
   background-position: 50% 100%;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    0 8px 18px -6px rgba(8, 8, 10, 0.55),
-    0 10px 30px -14px rgba(255, 231, 1, 0.55);
+    inset 0 1px 0 #fff,
+    0 9px 20px -6px rgba(8, 8, 10, 0.5),
+    0 10px 28px -14px rgba(255, 231, 1, 0.55);
 }
 .btn-yellow:active:not(:disabled) {
   background-position: 50% 100%;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 2px 5px rgba(122, 96, 0, 0.42);
 }
 .btn-yellow:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* Odkazy s třídou tlačítka — nesmí zdědit barvu z okolních `a` (page-panel apod.). */
+a.btn-yellow { color: var(--ink); text-decoration: none; }
+a.btn-yellow:hover { color: var(--ink); }
+a.btn-outline { color: var(--ink); text-decoration: none; }
+a.btn-outline:hover { color: #fff; }
+a.btn-design { color: var(--yellow); text-decoration: none; }
+a.btn-design:hover { color: var(--yellow); }
 
 .btn-outline {
   color: var(--ink); border-color: rgba(8, 8, 10, 0.26);
@@ -1274,11 +1282,44 @@ label:has(input[type="checkbox"]), .cb-line {
 .page-panel a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px;
   text-decoration-thickness: 1px; }
 .page-panel a:hover { color: var(--gray); }
-/* tlačítka a karty nejsou textové odkazy — podtržení se jich netýká */
-.page-panel a.btn-yellow, .page-panel a.btn-outline, .page-panel a.btn-design,
-.page-panel a.category-card, .page-panel a.link-reset { text-decoration: none; }
-.page-panel a.btn-yellow:hover { color: var(--yellow); }
-.page-panel a.btn-outline:hover { color: #fff; }
+/* tlačítka a karty nejsou textové odkazy — barva i podtržení se jich netýká */
+.page-panel a.btn-yellow,
+.page-panel a.btn-outline,
+.page-panel a.btn-design,
+.page-panel a.category-card,
+.page-panel a.link-reset { text-decoration: none; }
+.page-panel a.btn-yellow { color: var(--ink); }
+.page-panel a.btn-yellow:hover,
+.page-panel a.btn-yellow:focus-visible { color: var(--ink); }
+.page-panel a.btn-outline { color: var(--ink); }
+.page-panel a.btn-outline:hover,
+.page-panel a.btn-outline:focus-visible { color: #fff; }
+.page-panel a.btn-design { color: var(--yellow); }
+.page-panel a.btn-design:hover,
+.page-panel a.btn-design:focus-visible { color: var(--yellow); }
+
+/* --- děkovací stránka po objednávce -------------------------------- */
+.thanks-page { padding-block: clamp(48px, 8vh, 88px); }
+.thanks-mark {
+  display: flex; justify-content: center;
+  margin: 0 auto 8px;
+}
+.thanks-mark svg { display: block; width: clamp(92px, 14vw, 120px); height: auto; overflow: visible; }
+.thanks-check-tick, .thanks-check-shadow { stroke-dasharray: 1; stroke-dashoffset: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .thanks-check-tick { stroke-dashoffset: 1; animation: thanks-tick 0.55s var(--nv-ease) 0.15s forwards; }
+  .thanks-check-shadow { stroke-dashoffset: 1; animation: thanks-tick 0.55s var(--nv-ease) 0.32s forwards; }
+}
+@keyframes thanks-tick { to { stroke-dashoffset: 0; } }
+.thanks-title {
+  font-size: clamp(26px, 3.4vw, 34px); margin: 20px 0 0;
+  font-variation-settings: "wght" 680, "wdth" 108; letter-spacing: -0.03em;
+}
+.thanks-body {
+  color: var(--gray); margin: 14px auto 0; max-width: 480px;
+  font-size: 15.5px; line-height: 1.65;
+}
+.thanks-cta { margin-top: 28px; display: inline-flex; }
 
 /* --- responzivita podstránek ------------------------------------------ */
 @media (max-width: 1000px) and (min-width: 861px) {
