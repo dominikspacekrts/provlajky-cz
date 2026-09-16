@@ -2,6 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "provlajky-root",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 8000,
+      "autoPort": true
+    },
+    {
       "name": "provlajky-admin",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "admin"],

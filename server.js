@@ -116,10 +116,14 @@ function serveStatic(req, res, pathname) {
   if (!filePath.startsWith(ROOT)) { res.writeHead(403); return res.end('Forbidden'); }
 
   fs.stat(filePath, (err, stat) => {
-    if (err || !stat.isFile()) { res.writeHead(404); return res.end('Not found'); }
-    const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-    fs.createReadStream(filePath).pipe(res);
+    // directory → serve its index.html (e.g. /dotaznik/ → /dotaznik/index.html)
+    if (!err && stat.isDirectory()) filePath = path.join(filePath, 'index.html');
+    fs.stat(filePath, (err2, stat2) => {
+      if (err2 || !stat2.isFile()) { res.writeHead(404); return res.end('Not found'); }
+      const ext = path.extname(filePath).toLowerCase();
+      res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+      fs.createReadStream(filePath).pipe(res);
+    });
   });
 }
 

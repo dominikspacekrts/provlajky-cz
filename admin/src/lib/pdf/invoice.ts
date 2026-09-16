@@ -166,18 +166,13 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
 
   y = Math.min(ly, ry) - 16;
 
-  // "Daňový doklad — FAKTURA" titulek s vláskovými linkami po stranách.
+  // Titulek "FAKTURA" vpravo, "Daňový doklad" vlevo — oba na společném účaří,
+  // pod nimi jediná linka přes celou šířku.
+  y -= 8;
   const titleW = fontB.widthOfTextAtSize("FAKTURA", 22);
-  page.drawLine({ start: { x: M, y: y + 5 }, end: { x: M + 84, y: y + 5 }, thickness: 1.2, color: ink });
-  page.drawText(T("Daňový doklad"), { x: M + 92, y, size: 9, font: fontB, color: grey });
-  page.drawLine({
-    start: { x: M + 92 + font.widthOfTextAtSize("Daňový doklad", 9) + 14, y: y + 5 },
-    end: { x: contentR - titleW - 16, y: y + 5 },
-    thickness: 1.2,
-    color: ink,
-  });
-  page.drawText(T("FAKTURA"), { x: contentR - titleW, y: y - 3, size: 22, font: fontB, color: ink });
-  y -= 30;
+  page.drawText(T("Daňový doklad"), { x: M, y, size: 9, font: fontB, color: grey });
+  page.drawText(T("FAKTURA"), { x: contentR - titleW, y, size: 22, font: fontB, color: ink });
+  y -= 12;
   page.drawLine({ start: { x: M, y }, end: { x: contentR, y }, thickness: 0.8, color: ink });
   y -= 16;
 
