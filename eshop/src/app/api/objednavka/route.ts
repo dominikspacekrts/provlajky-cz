@@ -32,6 +32,9 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
 
+// Jen obsah mailu — logo, žlutý proužek a patičku s podpisem doplní admin
+// (mailová brána obaluje maily zákazníkům stejnou šablonou jako fakturu,
+// viz admin/src/lib/email-templates.ts → wrapEmailHtml).
 function orderConfirmationEmailHtml(
   orderLabel: string,
   billing: CustomerAddress,
@@ -42,15 +45,16 @@ function orderConfirmationEmailHtml(
   paymentPriceEx: number,
   vatRate: number
 ): string {
+  const cell = "padding:10px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top";
   const rows = lines
     .map(
       (l) =>
         `<tr>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;">${escapeHtml(l.name)}${
-          l.note ? `<br><span style="color:#777;font-size:12px;">${escapeHtml(l.note)}</span>` : ""
+          <td style="${cell}">${escapeHtml(l.name)}${
+          l.note ? `<br><span style="color:#6b7280;font-size:13px">${escapeHtml(l.note)}</span>` : ""
         }</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center;">${l.qty}×</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;">${fmtMoney(l.unitPrice * l.qty)}</td>
+          <td style="${cell};text-align:center;white-space:nowrap">${l.qty}×</td>
+          <td style="${cell};text-align:right;white-space:nowrap">${fmtMoney(l.unitPrice * l.qty)}</td>
         </tr>`
     )
     .join("");
@@ -60,42 +64,40 @@ function orderConfirmationEmailHtml(
   const vat = productVat + (shippingPriceEx + paymentPriceEx) * vatRate;
   const extraRows = [
     shippingLabel ? { label: `Doprava — ${shippingLabel}`, price: shippingPriceEx } : null,
-    paymentLabel && paymentPriceEx > 0 ? { label: `Platba — ${paymentLabel}`, price: paymentPriceEx } : null,
+    paymentLabel ? { label: `Platba — ${paymentLabel}`, price: paymentPriceEx } : null,
   ].filter((r): r is { label: string; price: number } => r != null);
   const extraRowsHtml = extraRows
     .map(
       (r) =>
         `<tr>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;">${escapeHtml(r.label)}</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center;">—</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;">${r.price > 0 ? fmtMoney(r.price) : "Zdarma"}</td>
+          <td style="${cell};color:#4b5563" colspan="2">${escapeHtml(r.label)}</td>
+          <td style="${cell};text-align:right;white-space:nowrap;color:#4b5563">${r.price > 0 ? fmtMoney(r.price) : "Zdarma"}</td>
         </tr>`
     )
     .join("");
-  const name = billing.name || billing.company || "";
-  return `
-    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 560px; margin: 0 auto;">
-      <p>Dobrý den${name ? ` ${escapeHtml(name)}` : ""},</p>
-      <p>děkujeme, přijali jsme Vaši objednávku <strong>${escapeHtml(orderLabel)}</strong> na provlajky.cz. Ozveme se s pokyny k platbě, případně upřesněním detailů.</p>
-      <table style="width:100%;border-collapse:collapse;margin-top:16px;">
-        <thead>
-          <tr>
-            <th style="text-align:left;padding:6px 10px;border-bottom:2px solid #08080a;">Položka</th>
-            <th style="text-align:center;padding:6px 10px;border-bottom:2px solid #08080a;">Ks</th>
-            <th style="text-align:right;padding:6px 10px;border-bottom:2px solid #08080a;">Cena</th>
-          </tr>
-        </thead>
-        <tbody>${rows}${extraRowsHtml}</tbody>
-      </table>
-      <p style="margin-top:14px;">
-        Mezisoučet bez DPH: <strong>${fmtMoney(subtotalEx)}</strong><br>
-        DPH: <strong>${fmtMoney(vat)}</strong><br>
-        Celkem: <strong>${fmtMoney(subtotalEx + vat)}</strong>
-      </p>
-      <p>Máte dotaz? Ozvěte se na <a href="mailto:info@provlajky.cz">info@provlajky.cz</a> nebo <a href="tel:+420605981155">+420 605 981 155</a>.</p>
-      <p>Tým PROVLAJKY.CZ</p>
-    </div>
-  `;
+  // Oslovení bez jména jako u faktury — "Dobrý den Jan Novák" by chtělo 5. pád.
+  return `<p>Dobrý den,</p>
+<p>děkujeme, Vaši objednávku <strong>č. ${escapeHtml(orderLabel.replace(/^#/, ""))}</strong> jsme přijali a <strong>čeká na zpracování</strong>. Zkontrolujeme ji a obratem Vám pošleme fakturu s pokyny k platbě, případně se ozveme kvůli upřesnění detailů.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:20px 0 8px;font-size:14px">
+  <thead>
+    <tr>
+      <th style="text-align:left;padding:8px;border-bottom:2px solid #1f2329">Položka</th>
+      <th style="text-align:center;padding:8px;border-bottom:2px solid #1f2329">Ks</th>
+      <th style="text-align:right;padding:8px;border-bottom:2px solid #1f2329">Bez DPH</th>
+    </tr>
+  </thead>
+  <tbody>${rows}${extraRowsHtml}</tbody>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin-bottom:16px">
+  <tr><td style="padding:3px 8px;color:#4b5563">Mezisoučet bez DPH</td><td style="padding:3px 8px;text-align:right">${fmtMoney(subtotalEx)}</td></tr>
+  <tr><td style="padding:3px 8px;color:#4b5563">DPH</td><td style="padding:3px 8px;text-align:right">${fmtMoney(vat)}</td></tr>
+  <tr><td style="padding:8px;font-size:16px;font-weight:bold">Celkem s DPH</td><td style="padding:8px;text-align:right;font-size:16px;font-weight:bold">${fmtMoney(subtotalEx + vat)}</td></tr>
+</table>
+<p style="background:#f7f8f9;border-left:3px solid #f4d03f;padding:12px 14px;margin:16px 0;color:#444">
+<strong>Co bude následovat</strong><br>
+Zboží vyrábíme na zakázku, proto s výrobou začneme až po úhradě faktury. Dodací lhůta se počítá ode dne, kdy nám platba přijde na účet.</p>
+<p>Máte dotaz nebo chcete něco změnit? Stačí odpovědět na tento e-mail.</p>
+<p>S pozdravem,<br>tým PROVLAJKY</p>`;
 }
 
 type Body = {

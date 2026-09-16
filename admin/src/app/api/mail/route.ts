@@ -74,6 +74,9 @@ export async function POST(req: NextRequest) {
     replyTo: body.replyTo,
     subject,
     html,
+    // Zákazníkům firemní šablona s logem jako u faktury; zpráva z kontaktního
+    // formuláře jde nám, tam stačí holý text.
+    branded: !body.toOperator,
     kind: body.kind || "other",
     orderId: body.orderId ?? null,
     // null = odeslal automat, ne člověk z týmu.

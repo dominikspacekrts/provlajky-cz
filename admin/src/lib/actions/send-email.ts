@@ -1,9 +1,8 @@
 "use server";
 
-import fs from "node:fs/promises";
-import path from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { deliverMail, type MailAttachment } from "@/lib/mail/deliver";
+import { getLogoAttachment } from "@/lib/mail/logo";
 import type { EmailKind } from "@/lib/types";
 
 export type SendEmailAttachment = MailAttachment;
@@ -21,20 +20,6 @@ export type SendEmailInput = {
 };
 
 export type SendEmailResult = { ok: boolean; error?: string };
-
-let logoB64Cache: string | null | undefined;
-async function getLogoAttachment(): Promise<SendEmailAttachment | null> {
-  if (logoB64Cache === undefined) {
-    try {
-      const bytes = await fs.readFile(path.join(process.cwd(), "src/lib/assets/provlajky-logo.png"));
-      logoB64Cache = bytes.toString("base64");
-    } catch {
-      logoB64Cache = null;
-    }
-  }
-  if (!logoB64Cache) return null;
-  return { filename: "logo.png", contentBase64: logoB64Cache, contentType: "image/png", cid: "provlajkylogo" };
-}
 
 // Ruční odeslání z adminu (faktura, vizualizace, účetní, dodavatel). Samotné
 // odeslání i zápis do email_history řeší deliverMail — tady zbývá jen ověřit,

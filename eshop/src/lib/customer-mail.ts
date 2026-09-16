@@ -92,32 +92,30 @@ export async function sendOperatorMail(opts: {
   });
 }
 
-export function discountCodeEmailHtml(name: string | undefined, code: string, pct: number): string {
-  const greeting = name ? `Ahoj ${escapeHtml(name)},` : "Ahoj,";
-  return `
-    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto;">
-      <p>${greeting}</p>
-      <p>děkujeme za registraci na provlajky.cz. Váš slevový kód na <strong>${pct} %</strong> z první objednávky:</p>
-      <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; background: #ffe701; color: #08080a; padding: 12px 20px; display: inline-block;">${escapeHtml(code)}</p>
-      <p>Kód zadejte v objednávce a klikněte na „Uplatnit“. Platí jednorázově na jednu objednávku.</p>
-      <p>Tým PROVLAJKY.CZ</p>
-    </div>
-  `;
+// Šablony obsahují jen obsah mailu — logo, žlutý proužek a patičku s podpisem
+// doplní admin (brána obaluje maily zákazníkům stejně jako fakturu).
+
+export function discountCodeEmailHtml(_name: string | undefined, code: string, pct: number): string {
+  return `<p>Dobrý den,</p>
+<p>děkujeme za registraci na provlajky.cz. Tady je Váš slevový kód na <strong>${pct} %</strong> z první objednávky:</p>
+<p style="text-align:center;margin:24px 0">
+  <span style="display:inline-block;font-size:26px;font-weight:bold;letter-spacing:4px;background:#f4d03f;color:#1f2329;padding:14px 26px;border-radius:8px">${escapeHtml(code)}</span>
+</p>
+<p style="background:#f7f8f9;border-left:3px solid #f4d03f;padding:12px 14px;margin:16px 0;color:#444">
+Kód zadejte v objednávce a klikněte na „Uplatnit“. Platí jednorázově na jednu objednávku.</p>
+<p>S pozdravem,<br>tým PROVLAJKY</p>`;
 }
 
-export function passwordLinkEmailHtml(name: string | undefined, link: string, kind: "set_password" | "reset_password"): string {
-  const greeting = name ? `Ahoj ${escapeHtml(name)},` : "Ahoj,";
+export function passwordLinkEmailHtml(_name: string | undefined, link: string, kind: "set_password" | "reset_password"): string {
   const lead =
     kind === "set_password"
-      ? "pro dokončení účtu na provlajky.cz si nastavte heslo na tomto odkazu (platí 24 hodin):"
-      : "pro obnovení hesla na provlajky.cz použijte tento odkaz (platí 24 hodin):";
-  return `
-    <div style="font-family: Arial, Helvetica, sans-serif; max-width: 480px; margin: 0 auto;">
-      <p>${greeting}</p>
-      <p>${lead}</p>
-      <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#ffe701;color:#08080a;padding:12px 20px;font-weight:bold;text-decoration:none;">Nastavit heslo</a></p>
-      <p style="font-size:12px;color:#666;">Pokud jste o to nežádali, e-mail ignorujte.</p>
-      <p>Tým PROVLAJKY.CZ</p>
-    </div>
-  `;
+      ? "pro dokončení účtu na provlajky.cz si prosím nastavte heslo. Odkaz platí 24 hodin."
+      : "pro obnovení hesla na provlajky.cz použijte tlačítko níže. Odkaz platí 24 hodin.";
+  return `<p>Dobrý den,</p>
+<p>${lead}</p>
+<p style="text-align:center;margin:24px 0">
+  <a href="${escapeHtml(link)}" style="display:inline-block;background:#f4d03f;color:#1f2329;padding:13px 26px;font-weight:bold;text-decoration:none;border-radius:8px">Nastavit heslo</a>
+</p>
+<p style="font-size:13px;color:#6b7280">Pokud jste o to nežádali, tento e-mail můžete ignorovat.</p>
+<p>S pozdravem,<br>tým PROVLAJKY</p>`;
 }
