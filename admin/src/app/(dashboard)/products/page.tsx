@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { loadProductSuppliers } from "@/lib/actions/products";
 import { fmtMoney } from "@/lib/domain";
 import { PRODUCT_CATEGORIES, NAV_GROUPS, type Partner, type Product, type ProductCategory } from "@/lib/types";
 import ActiveToggle from "./active-toggle";
@@ -41,9 +42,11 @@ function priceLabel(p: Product): string {
 
 export default async function ProductsPage() {
   const supabase = await createClient();
-  const [{ data }, { data: partnersData }] = await Promise.all([
+  const [{ data }, { data: partnersData }, suppliers] = await Promise.all([
     supabase.from("products").select("*").order("category").order("sort_order"),
     supabase.from("partners").select("*").order("name"),
+    // Kontakty na dodavatele jsou ve vlastní (neveřejné) tabulce, ne v products.
+    loadProductSuppliers(),
   ]);
   const products = (data || []) as Product[];
   const partners = (partnersData || []) as Partner[];
@@ -98,7 +101,7 @@ export default async function ProductsPage() {
                         <div className="product-actions">
                           <ActiveToggle productId={p.id} active={p.active} />
                           <div style={{ display: "flex", gap: 8 }}>
-                            <ProductFormButton product={p} partners={partners} />
+                            <ProductFormButton product={p} partners={partners} supplier={suppliers[p.id]} />
                             <DeleteProductButton productId={p.id} name={p.name} />
                           </div>
                         </div>

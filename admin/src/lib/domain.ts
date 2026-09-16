@@ -350,6 +350,60 @@ export function isBanner(it: Pick<OrderItem, "type">) {
   return it.type === "banner";
 }
 
+// Skutečná plážová vlajka má vždycky nastavený tvar (viz addOrderItemFromProduct
+// a konfigurátor na eshopu). Položky z ostatních produktů (stany, totemy,
+// brány, příslušenství) tvar nemají a celý popis nesou ve wc_line_name.
+export function isBeachFlag(it: Pick<OrderItem, "type" | "shape">) {
+  return !isBanner(it) && it.shape != null;
+}
+
+// --- wc_line_name: "Název produktu — část · část · část" ---------------------
+// Eshop skládá název položky z názvu produktu a poznámky s konfigurací
+// (viz eshop/src/app/api/objednavka/route.ts a TentWallsConfigurator.handleAdd).
+// Rozebrání zpátky používá admin na čitelný rozpis v objednávce i na faktuře.
+const LINE_NAME_SEP = " — ";
+const LINE_PART_SEP = " · ";
+
+export function parseLineName(raw: string | null | undefined): { name: string; parts: string[] } {
+  const s = (raw || "").trim();
+  const i = s.indexOf(LINE_NAME_SEP);
+  if (i === -1) return { name: s, parts: [] };
+  return {
+    name: s.slice(0, i).trim(),
+    parts: s
+      .slice(i + LINE_NAME_SEP.length)
+      .split(LINE_PART_SEP)
+      .map((p) => p.trim())
+      .filter(Boolean),
+  };
+}
+
+export function joinLineName(name: string, parts: string[]) {
+  const n = name.trim();
+  return parts.length ? `${n}${LINE_NAME_SEP}${parts.join(LINE_PART_SEP)}` : n;
+}
+
+/** Je tahle část konfigurace stěna stanu? (pro zvýraznění v rozpisu) */
+export function isWallPart(part: string) {
+  return Object.keys(TENT_WALL_POSITION_LABELS).some((label) => part.startsWith(label + ":"));
+}
+
+// Popis položky na fakturu: název + rozpis konfigurace na samostatné řádky.
+// Dřív tu byla natvrdo "Plážová vlajka", takže stan i totem vyjely na faktuře
+// jako plážová vlajka.
+export function invoiceItemDesc(
+  it: Pick<OrderItem, "type" | "shape" | "size" | "width_cm" | "height_cm" | "wc_line_name">
+): { desc: string; specs: string[] } {
+  if (isBanner(it)) {
+    return { desc: `PVC banner – ${it.width_cm || 0}×${it.height_cm || 0} cm`, specs: [] };
+  }
+  if (isBeachFlag(it)) {
+    return { desc: `Plážová vlajka – tvar ${it.shape}, velikost ${it.size}`, specs: [] };
+  }
+  const { name, parts } = parseLineName(it.wc_line_name);
+  return { desc: name || "Položka", specs: parts };
+}
+
 export function itemLineTotal(it: Pick<OrderItem, "unit_price" | "qty">) {
   return (it.unit_price || 0) * (it.qty || 0);
 }

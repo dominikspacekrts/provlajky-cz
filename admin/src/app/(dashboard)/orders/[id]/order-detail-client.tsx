@@ -18,7 +18,11 @@ import {
   fmtMoney,
   hasActualCost,
   isBanner,
+  isBeachFlag,
+  isWallPart,
   itemMargin,
+  joinLineName,
+  parseLineName,
   orderLabel,
   orderSource,
   statusClass,
@@ -26,7 +30,7 @@ import {
   statusSelectEntries,
   type ProductLookup,
 } from "@/lib/domain";
-import type { Invoice, Order, OrderItem, Partner, Product, Settings, SupplierInvoice } from "@/lib/types";
+import type { Invoice, Order, OrderItem, Partner, Product, ProductSupplier, Settings, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
 import DownloadVisualButton from "./download-visual-button";
@@ -54,6 +58,7 @@ export default function OrderDetailClient({
   partners,
   discountCustomer,
   costPerSize,
+  productSuppliers,
 }: {
   order: Order;
   items: OrderItem[];
@@ -63,6 +68,8 @@ export default function OrderDetailClient({
   partners: Partner[];
   discountCustomer: { email: string; discount_code: string } | null;
   costPerSize: Settings["cost_per_size"];
+  /** product_id → dodavatel (product_suppliers), pro „Odeslat dodavateli“. */
+  productSuppliers: Record<string, ProductSupplier>;
 }) {
   const [isPending, startTransition] = useTransition();
   const [discountPct, setDiscountPct] = useState(order.discount_pct || 0);
@@ -124,7 +131,7 @@ export default function OrderDetailClient({
           {invoice && <DeleteInvoiceButton invoiceId={invoice.id} invoiceNumber={invoice.number} orderId={order.id} />}
           <DownloadVisualButton order={order} items={items} />
           <SendVisualButton order={order} items={items} />
-          <SendSupplierButton order={order} items={items} />
+          <SendSupplierButton order={order} items={items} products={products} productSuppliers={productSuppliers} />
           <DeleteOrderButton orderId={order.id} orderNumber={order.order_number} />
         </div>
       </div>
@@ -282,7 +289,12 @@ function ItemRow({
   // Skutečná vlajka má vždycky nastavený tvar (viz addOrderItemFromProduct) —
   // položky přidané z jiných produktů (stany, totemy…) shape nemají, takže
   // by tvar/velikost selecty pro ně nedávaly smysl.
-  const isFlag = !banner && item.shape != null;
+  const isFlag = isBeachFlag(item);
+  // "Nůžkový stan 3×3 — S potiskem · Rám standardní · Přední stěna: celá (…)":
+  // do inputu patří jen název, konfigurace se vypisuje po řádcích pod řádkem
+  // položky. Při uložení názvu se konfigurace zase připojí, ať zůstane
+  // čitelná pro dopočet nákladu (viz itemCost → parseTentWallsFromLineName).
+  const parsedLine = parseLineName(item.wc_line_name);
   const lineTotal = (item.unit_price || 0) * (item.qty || 0);
   // null = náklad neznámý (položka bez product_id, nebo produkt/volba, ke
   // které se neváže žádná nákupní cena) — u takových se marže nezobrazuje.
@@ -386,8 +398,9 @@ function ItemRow({
         <div className="field" style={{ flex: 2, minWidth: 220 }}>
           Položka
           <input
-            defaultValue={item.wc_line_name ?? ""}
-            onBlur={(e) => save({ wc_line_name: e.target.value })}
+            key={item.wc_line_name ?? ""}
+            defaultValue={parsedLine.name}
+            onBlur={(e) => save({ wc_line_name: joinLineName(e.target.value, parsedLine.parts) })}
           />
         </div>
       )}
@@ -421,6 +434,29 @@ function ItemRow({
           Smazat
         </button>
       </div>
+      {parsedLine.parts.length > 0 && (
+        <div className="item-config">
+          <span className="item-config-title">Konfigurace</span>
+          <ul>
+            {parsedLine.parts.map((part, i) => {
+              const sep = part.indexOf(": ");
+              const label = sep === -1 ? null : part.slice(0, sep);
+              const detail = sep === -1 ? part : part.slice(sep + 2);
+              return (
+                <li key={`${part}-${i}`} className={isWallPart(part) ? "is-wall" : undefined}>
+                  {label ? (
+                    <>
+                      <span className="item-config-key">{label}:</span> {detail}
+                    </>
+                  ) : (
+                    detail
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       {partners.length > 0 && (
         <div style={{ flexBasis: "100%", paddingTop: 4 }}>
           <span className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.03em", marginRight: 10 }}>

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { computeOrderTotals, isBanner } from "@/lib/domain";
+import { computeOrderTotals, invoiceItemDesc } from "@/lib/domain";
 import { generateInvoicePdf } from "@/lib/pdf/invoice";
 import type { Invoice, Order, OrderItem } from "@/lib/types";
 
@@ -34,9 +34,9 @@ function buildInvoiceRow(order: Order, items: OrderItem[], number: string) {
       ship_phone: s.phone,
     },
     items: items.map((it) => ({
-      desc: isBanner(it)
-        ? `PVC banner – ${it.width_cm || 0}×${it.height_cm || 0} cm`
-        : `Plážová vlajka – tvar ${it.shape}, velikost ${it.size}`,
+      // Popis se bere z typu položky, ne natvrdo — stan/totem/brána mají celý
+      // popis ve wc_line_name (viz invoiceItemDesc).
+      ...invoiceItemDesc(it),
       qty: it.qty,
       unitPrice: it.unit_price || 0,
       vatRate: it.vat_rate != null ? it.vat_rate : 0.21,
