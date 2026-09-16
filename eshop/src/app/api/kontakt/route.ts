@@ -1,25 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
-import { createServiceClient } from "@/lib/supabase";
 import { isValidEmail } from "@/lib/validation";
+import { sendOperatorMail } from "@/lib/customer-mail";
 import { clientIp, rateLimit, rateLimitResponse } from "@/lib/security";
 
-// Kontaktní formulář (/kontakt) → e-mail na provozovatele (SMTP nastavení
-// sdílené s registrací, viz api/registrace). Zprávu neukládáme do Supabase —
-// jde jen o přeposlání e-mailem, reply-to je nastavené na odesílatele, ať se
-// dá rovnou odpovědět.
+// Kontaktní formulář (/kontakt) → e-mail na provozovatele. Odesílá ho admin
+// přes mailovou bránu, adresu příjemce zná z nastavení. Zprávu neukládáme do
+// Supabase — jde jen o přeposlání e-mailem, reply-to je nastavené na
+// odesílatele, ať se dá rovnou odpovědět.
 
 type Body = { name?: string; email?: string; phone?: string; message?: string };
-
-type MailSettings = {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  pass: string;
-  fromName?: string;
-  from?: string;
-};
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -60,63 +49,18 @@ export async function POST(req: NextRequest) {
   if (!isValidEmail(email)) return NextResponse.json({ error: "Zadejte platný e-mail." }, { status: 400 });
   if (!message) return NextResponse.json({ error: "Napište prosím zprávu." }, { status: 400 });
 
-  const supabase = createServiceClient();
-  const { data: settingsRow } = await supabase.from("settings").select("mail").eq("id", 1).single();
-  const mail = settingsRow?.mail as MailSettings | undefined;
+  const sent = await sendOperatorMail({
+    subject: `Zpráva z kontaktního formuláře — ${name}`,
+    html: contactEmailHtml(name, email, phone, message),
+    replyTo: `"${name.replace(/"/g, "")}" <${email}>`,
+  });
 
-  if (!mail?.host || !mail?.user) {
-    return NextResponse.json(
-      { error: "Formulář teď nejde odeslat (SMTP není nastaveno) — napište nám prosím rovnou na info@provlajky.cz." },
-      { status: 500 }
-    );
-  }
-
-  const toAddr = mail.from || mail.user;
-  const subject = `Zpráva z kontaktního formuláře — ${name}`;
-  const html = contactEmailHtml(name, email, phone, message);
-
-  const logResult = async (status: "sent" | "failed", errorMessage?: string) => {
-    await supabase.from("email_history").insert({
-      sent_by: mail.user,
-      kind: "other",
-      to_addr: toAddr,
-      cc: [],
-      bcc: [],
-      subject,
-      html_body: html,
-      attachments_meta: [],
-      status,
-      error_message: errorMessage || null,
-    });
-  };
-
-  try {
-    const transporter = nodemailer.createTransport({
-      host: mail.host,
-      port: Number(mail.port) || 587,
-      secure: !!mail.secure,
-      auth: { user: mail.user, pass: mail.pass },
-    });
-
-    const fromName = mail.fromName || "PROVLAJKY";
-    const fromAddr = mail.from || mail.user;
-
-    await transporter.sendMail({
-      from: `"${fromName}" <${fromAddr}>`,
-      to: toAddr,
-      replyTo: `"${name}" <${email}>`,
-      subject,
-      html,
-    });
-
-    await logResult("sent");
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Neznámá chyba odeslání.";
-    await logResult("failed", message);
+  if (!sent.emailed) {
+    console.error("kontakt: odeslání selhalo", sent.error);
     return NextResponse.json(
       { error: "Zprávu se nepodařilo odeslat, zkuste to prosím znovu nebo napište na info@provlajky.cz." },
       { status: 500 }
     );
   }
+  return NextResponse.json({ ok: true });
 }

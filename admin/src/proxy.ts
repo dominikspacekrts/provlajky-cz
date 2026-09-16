@@ -55,7 +55,11 @@ export const config = {
   // Statické soubory v /public (loga, PDF worker, šablony) musí projít bez
   // přihlášení — bez téhle výjimky je proxy přesměrovávala na /login, takže
   // se třeba logo v hlavičce/na přihlašovací stránce nikdy nenačetlo.
+  //
+  // api/mail je mailová brána pro eshop: chodí sem strojové požadavky bez
+  // session, které si autorizaci řeší samy sdíleným klíčem. Bez téhle výjimky
+  // by je proxy odpovídala přesměrováním na /login a žádný mail by neodešel.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/exchange-rate|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|mjs|pdf)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/exchange-rate|api/mail|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|mjs|pdf)$).*)",
   ],
 };

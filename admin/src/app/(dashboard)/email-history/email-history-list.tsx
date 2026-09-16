@@ -9,6 +9,7 @@ const KIND_LABELS: Record<EmailKind, string> = {
   visual: "Vizualizace",
   accountant: "Účetní",
   supplier: "Dodavatel",
+  order_confirmation: "Potvrzení objednávky",
   other: "Ostatní",
 };
 
@@ -69,7 +70,7 @@ export default function EmailHistoryList({ rows }: { rows: EmailHistoryRow[] }) 
               <div className="meta">
                 {r.to_addr}
                 {r.cc.length > 0 ? ` (+ ${r.cc.length} v kopii)` : ""} · {new Date(r.sent_at).toLocaleString("cs-CZ")} · odeslal{" "}
-                {r.sent_by}
+                {r.sent_by ?? "automat (eshop)"}
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>

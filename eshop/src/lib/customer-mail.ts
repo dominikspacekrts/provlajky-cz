@@ -1,79 +1,95 @@
-import nodemailer from "nodemailer";
-import { createServiceClient } from "@/lib/supabase";
-
-type MailSettings = {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  pass: string;
-  fromName?: string;
-  from?: string;
-};
+// Eshop na SMTP nesahá. Veškerou poštu zákazníkům odesílá admin přes svou
+// mailovou bránu (admin/src/app/api/mail/route.ts) — jedno místo s přístupem
+// k údajům, jedna Historie mailů.
+//
+// Důvod: maily odeslané přímo z eshopu nedorazily, zatímco stejný SMTP účet
+// z adminu fungoval. Tímhle eshop odesílání vůbec neřeší.
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
 
-async function getMailSettings(): Promise<MailSettings | null> {
-  const supabase = createServiceClient();
-  const { data } = await supabase.from("settings").select("mail").eq("id", 1).single();
-  const mail = data?.mail as MailSettings | undefined;
-  if (!mail?.host || !mail?.user) return null;
-  return mail;
+type GatewayPayload = {
+  to?: string;
+  toOperator?: boolean;
+  replyTo?: string;
+  subject: string;
+  html: string;
+  kind: string;
+  orderId?: string | null;
+};
+
+/** Nikdy nevyhazuje výjimku — objednávka ani registrace nesmí spadnout na poště. */
+async function callGateway(payload: GatewayPayload): Promise<{ emailed: boolean; error?: string }> {
+  const baseUrl = process.env.MAIL_GATEWAY_URL;
+  const secret = process.env.MAIL_GATEWAY_SECRET;
+  if (!baseUrl || !secret) {
+    const error = "Mailová brána není nastavená (MAIL_GATEWAY_URL / MAIL_GATEWAY_SECRET).";
+    console.error(`callGateway: ${error}`);
+    return { emailed: false, error };
+  }
+
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/api/mail`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${secret}` },
+      body: JSON.stringify(payload),
+      // Zápis do email_history dělá admin, takže nemá smysl čekat déle, než
+      // žije funkce checkoutu (viz maxDuration v api/objednavka/route.ts).
+      signal: AbortSignal.timeout(20_000),
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      const error = `Brána odpověděla ${res.status}. ${detail.slice(0, 200)}`.trim();
+      console.error(`callGateway: ${error}`);
+      return { emailed: false, error };
+    }
+    return { emailed: true };
+  } catch (e) {
+    // Sem spadne i vypršení AbortSignal.timeout.
+    const error = e instanceof Error ? e.message : "Brána je nedostupná.";
+    console.error("callGateway: gateway call failed", e);
+    return { emailed: false, error };
+  }
 }
 
+/** Mail zákazníkovi (potvrzení objednávky, slevový kód, obnova hesla). */
 export async function sendCustomerMail(opts: {
   to: string;
   subject: string;
   html: string;
+  /** Typ pro filtr v Historii mailů. */
+  kind?: string;
+  /** Naváže mail na objednávku, ať je vidět u jejího detailu. */
+  orderId?: string | null;
 }): Promise<{ emailed: boolean; error?: string }> {
-  const mail = await getMailSettings();
-  if (!mail) {
-    return { emailed: false, error: "SMTP není nastaveno." };
-  }
+  return callGateway({
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    kind: opts.kind || "other",
+    orderId: opts.orderId ?? null,
+  });
+}
 
-  const supabase = createServiceClient();
-  const logResult = async (status: "sent" | "failed", errorMessage?: string) => {
-    // email_history.sent_by → allowed_users(email). Když SMTP user v tabulce není,
-    // insert spadne — nesmí shodit odeslání zákazníkovi ani celou registraci.
-    const { error } = await supabase.from("email_history").insert({
-      sent_by: mail.user,
-      kind: "other",
-      to_addr: opts.to,
-      cc: [],
-      bcc: [],
-      subject: opts.subject,
-      html_body: opts.html,
-      attachments_meta: [],
-      status,
-      error_message: errorMessage || null,
-    });
-    if (error) console.error("sendCustomerMail: email_history log failed", error);
-  };
-
-  try {
-    const transporter = nodemailer.createTransport({
-      host: mail.host,
-      port: Number(mail.port) || 587,
-      secure: !!mail.secure,
-      auth: { user: mail.user, pass: mail.pass },
-    });
-    const fromName = mail.fromName || "PROVLAJKY";
-    const fromAddr = mail.from || mail.user;
-    await transporter.sendMail({
-      from: `"${fromName}" <${fromAddr}>`,
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
-    });
-    await logResult("sent");
-    return { emailed: true };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Neznámá chyba odeslání.";
-    await logResult("failed", message);
-    return { emailed: false, error: message };
-  }
+/**
+ * Zpráva provozovateli (kontaktní formulář). Cílovou adresu zná jen admin
+ * z nastavení, eshop ji nepotřebuje.
+ */
+export async function sendOperatorMail(opts: {
+  subject: string;
+  html: string;
+  replyTo?: string;
+  kind?: string;
+}): Promise<{ emailed: boolean; error?: string }> {
+  return callGateway({
+    toOperator: true,
+    replyTo: opts.replyTo,
+    subject: opts.subject,
+    html: opts.html,
+    kind: opts.kind || "other",
+  });
 }
 
 export function discountCodeEmailHtml(name: string | undefined, code: string, pct: number): string {
