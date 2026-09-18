@@ -30,11 +30,12 @@ import {
   statusSelectEntries,
   type ProductLookup,
 } from "@/lib/domain";
-import type { Invoice, Order, OrderItem, Partner, Product, ProductSupplier, Settings, SupplierInvoice } from "@/lib/types";
+import type { Invoice, Order, OrderItem, Partner, Product, ProductSupplier, Review, Settings, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
 import DownloadVisualButton from "./download-visual-button";
 import SendSupplierButton from "./send-supplier-button";
+import SendReviewButton from "./send-review-button";
 import SupplierPaidToggle from "./supplier-paid-toggle";
 import SupplierInvoices from "./supplier-invoices";
 import AddItemButton from "./add-item-button";
@@ -59,6 +60,7 @@ export default function OrderDetailClient({
   discountCustomer,
   costPerSize,
   productSuppliers,
+  review,
 }: {
   order: Order;
   items: OrderItem[];
@@ -70,6 +72,7 @@ export default function OrderDetailClient({
   costPerSize: Settings["cost_per_size"];
   /** product_id → dodavatel (product_suppliers), pro „Odeslat dodavateli“. */
   productSuppliers: Record<string, ProductSupplier>;
+  review: Pick<Review, "status" | "rating"> | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [discountPct, setDiscountPct] = useState(order.discount_pct || 0);
@@ -132,6 +135,7 @@ export default function OrderDetailClient({
           <DownloadVisualButton order={order} items={items} />
           <SendVisualButton order={order} items={items} />
           <SendSupplierButton order={order} items={items} products={products} productSuppliers={productSuppliers} />
+          <SendReviewButton order={order} review={review} />
           <DeleteOrderButton orderId={order.id} orderNumber={order.order_number} />
         </div>
       </div>

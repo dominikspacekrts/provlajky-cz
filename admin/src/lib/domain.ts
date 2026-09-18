@@ -407,3 +407,9 @@ export function invoiceItemDesc(
 export function itemLineTotal(it: Pick<OrderItem, "unit_price" | "qty">) {
   return (it.unit_price || 0) * (it.qty || 0);
 }
+
+// Fotky z recenzí leží ve veřejném bucketu review-photos (2026-09-reviews.sql),
+// v DB je jen cesta uvnitř bucketu.
+export function reviewPhotoUrl(path: string) {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/review-photos/${path}`;
+}

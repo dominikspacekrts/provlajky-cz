@@ -10,6 +10,7 @@ const KIND_LABELS: Record<EmailKind, string> = {
   accountant: "Účetní",
   supplier: "Dodavatel",
   order_confirmation: "Potvrzení objednávky",
+  review_request: "Žádost o hodnocení",
   other: "Ostatní",
 };
 

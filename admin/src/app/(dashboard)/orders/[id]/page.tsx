@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/actions/settings";
 import { loadProductSuppliers } from "@/lib/actions/products";
-import type { Invoice, Order, OrderItem, Partner, Product, SupplierInvoice } from "@/lib/types";
+import type { Invoice, Order, OrderItem, Partner, Product, Review, SupplierInvoice } from "@/lib/types";
 import OrderDetailClient from "./order-detail-client";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function OrderDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: order, error }, { data: items }, { data: invoice }, { data: supplierInvoices }, { data: products }, { data: partners }, { data: discountCustomer }, settings, productSuppliers] =
+  const [{ data: order, error }, { data: items }, { data: invoice }, { data: supplierInvoices }, { data: products }, { data: partners }, { data: discountCustomer }, settings, productSuppliers, { data: review }] =
     await Promise.all([
       supabase.from("orders").select("*").eq("id", id).single(),
       supabase.from("order_items").select("*").eq("order_id", id).order("id"),
@@ -36,6 +36,9 @@ export default async function OrderDetailPage({
       // Dodavatel per produkt (product_suppliers) — "Odeslat dodavateli"
       // posílá stany/nafukovací reklamu jinam než plážové vlajky.
       loadProductSuppliers(),
+      // Pozvánka k hodnocení — před spuštěním 2026-09-reviews.sql dotaz spadne
+      // na chybějící tabulku a vrátí data: null, tlačítko pak ukáže „Odeslat“.
+      supabase.from("reviews").select("status, rating").eq("order_id", id).maybeSingle(),
     ]);
 
   if (error || !order) notFound();
@@ -55,6 +58,7 @@ export default async function OrderDetailPage({
         discountCustomer={discountCustomer as { email: string; discount_code: string } | null}
         costPerSize={settings.cost_per_size}
         productSuppliers={productSuppliers}
+        review={review as Pick<Review, "status" | "rating"> | null}
       />
     </div>
   );

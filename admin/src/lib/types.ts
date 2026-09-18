@@ -237,7 +237,27 @@ export type Settings = {
   updated_at: string;
 };
 
-export type EmailKind = "invoice" | "visual" | "accountant" | "supplier" | "order_confirmation" | "other";
+export type EmailKind = "invoice" | "visual" | "accountant" | "supplier" | "order_confirmation" | "review_request" | "other";
+
+// Recenze zákazníka (2026-09-reviews.sql). status 'invited' = odkaz odeslán,
+// zákazník zatím nevyplnil; 'submitted' = vyplněno.
+export type Review = {
+  id: string;
+  order_id: string | null;
+  token: string;
+  status: "invited" | "submitted";
+  invited_at: string;
+  submitted_at: string | null;
+  rating: number | null;
+  body: string | null;
+  author_name: string | null;
+  author_role: string | null;
+  photos: string[];
+  cover_photo: string | null;
+  allow_publish: boolean;
+  published: boolean;
+  created_at: string;
+};
 
 export type EmailHistoryRow = {
   id: string;
