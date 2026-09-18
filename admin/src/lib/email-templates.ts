@@ -21,6 +21,17 @@ export const DEFAULT_MAIL_TPL_ACCOUNTANT = `<p>Ahoj,</p>
 <p>Prosím o potvrzení zaplacení odpovědí na tento mail.</p>
 <p>díky<br>Dominik Špaček</p>`;
 
+// {{link}} = osobní odkaz na hodnocení na eshopu (viz lib/actions/reviews.ts).
+export const DEFAULT_MAIL_TPL_REVIEW = `<p>Dobrý den,</p>
+<p>děkujeme, že jste si vybrali PROVLAJKY. Rádi bychom věděli, jak jste spokojeni s objednávkou <strong>č. {{order}}</strong>.</p>
+<p>Zabere to minutu: stačí kliknout na počet hvězdiček, případně připsat pár slov a přidat fotku, jak Vaše reklama vypadá v akci.</p>
+<table cellpadding="0" cellspacing="0" style="margin:22px 0"><tr><td style="background:#f4d03f;border-radius:6px">
+<a href="{{link}}" style="display:inline-block;padding:14px 26px;color:#1f2329;font-weight:bold;text-decoration:none;font-size:15px">Ohodnotit objednávku ★★★★★</a>
+</td></tr></table>
+<p style="color:#6b7280;font-size:13px">Pokud tlačítko nefunguje, zkopírujte do prohlížeče tento odkaz:<br><a href="{{link}}" style="color:#6b7280">{{link}}</a></p>
+<p>Za každou zpětnou vazbu děkujeme.</p>
+<p>S pozdravem,<br>tým PROVLAJKY</p>`;
+
 export function escapeHtml(s: string) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -34,7 +45,7 @@ export function fillTemplate(
   tpl: string,
   order: Pick<Order, "customer" | "order_number">,
   totalStr: string,
-  extra: { date?: string; invoice?: string } = {}
+  extra: { date?: string; invoice?: string; link?: string } = {}
 ) {
   const cust = customerLabel(order);
   return (tpl || "")
@@ -42,7 +53,8 @@ export function fillTemplate(
     .replace(/\{\{order\}\}/g, escapeHtml(order.order_number || ""))
     .replace(/\{\{total\}\}/g, escapeHtml(totalStr || ""))
     .replace(/\{\{date\}\}/g, escapeHtml(extra.date || new Date().toLocaleDateString("cs-CZ")))
-    .replace(/\{\{invoice\}\}/g, escapeHtml(extra.invoice || ""));
+    .replace(/\{\{invoice\}\}/g, escapeHtml(extra.invoice || ""))
+    .replace(/\{\{link\}\}/g, escapeHtml(extra.link || ""));
 }
 
 export function wrapEmailHtml(bodyHtml: string, signName: string, signPhone: string) {

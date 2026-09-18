@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase";
 import type { Product, ProductCategory } from "@/lib/types";
 import Nova2Client from "@/components/Nova2Client";
+import { fetchPublishedReviews } from "@/lib/reviews";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,6 @@ async function fetchSalePctByCategory(): Promise<Partial<Record<ProductCategory,
 }
 
 export default async function Home() {
-  const salePctByCategory = await fetchSalePctByCategory();
-  return <Nova2Client salePctByCategory={salePctByCategory} />;
+  const [salePctByCategory, reviews] = await Promise.all([fetchSalePctByCategory(), fetchPublishedReviews()]);
+  return <Nova2Client salePctByCategory={salePctByCategory} reviews={reviews} />;
 }

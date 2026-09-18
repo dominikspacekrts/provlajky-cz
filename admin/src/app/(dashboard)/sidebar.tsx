@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/settings", icon: "⚙️", label: "Nastavení" },
   { href: "/statistika", icon: "📊", label: "Statistika" },
   { href: "/products", icon: "🏳️", label: "Produkty" },
+  { href: "/recenze", icon: "⭐", label: "Recenze" },
   { href: "/konfigurace-webu", icon: "🖼️", label: "Konfigurace webu" },
   { href: "/migrate", icon: "📥", label: "Migrace ze staré appky" },
 ];

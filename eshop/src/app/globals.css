@@ -2516,3 +2516,131 @@ html:has(.nv) { scroll-behavior: smooth; }
 }
 
 
+
+/* --- dotazník spokojenosti (/hodnoceni/<token>) ----------------------
+   Jedna úzká kolona. Hvězdičky jsou velké a dobře trefitelné prstem, zbytek
+   formuláře se rozbalí až po výběru známky. */
+.rv-page { max-width: 680px; margin: 0 auto; }
+.rv-head { padding-bottom: clamp(22px, 3.4vh, 34px); border-bottom: 1px solid var(--border); }
+.rv-eyebrow {
+  margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gray);
+  font-variation-settings: "wght" 620, "wdth" 100;
+}
+.rv-head h1 {
+  font-size: clamp(32px, 5vw, 56px); font-variation-settings: "wght" 680, "wdth" 116; letter-spacing: -0.036em;
+}
+.rv-items { margin: 14px 0 0; color: var(--gray); font-size: 15px; line-height: 1.6; }
+
+.rv-block { border: 0; margin: 0; padding: clamp(24px, 3.4vh, 34px) 0 0; min-width: 0; }
+.rv-label {
+  display: block; padding: 0; margin-bottom: 10px;
+  font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink);
+  font-variation-settings: "wght" 640, "wdth" 96;
+}
+.rv-optional { color: var(--gray-light); letter-spacing: 0.04em; text-transform: none; font-variation-settings: "wght" 480, "wdth" 100; margin-left: 4px; }
+.rv-hint { margin: -2px 0 12px; font-size: 14px; color: var(--gray); line-height: 1.5; }
+
+.rv-rating { text-align: center; padding-top: clamp(30px, 5vh, 48px); }
+/* legend by jinak seděla na horní hraně fieldsetu mimo padding */
+.rv-rating .rv-label { float: left; width: 100%; margin-bottom: 16px; }
+.rv-rating .rv-stars { clear: both; }
+.rv-stars { display: inline-flex; gap: clamp(2px, 1.2vw, 10px); }
+.rv-star { position: relative; cursor: pointer; padding: 4px; display: block; }
+.rv-star input {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer;
+}
+.rv-star svg {
+  display: block; width: clamp(46px, 13vw, 62px); height: clamp(46px, 13vw, 62px);
+  fill: transparent; stroke: rgba(8, 8, 10, 0.3); stroke-width: 1.2; stroke-linejoin: round;
+  transition: fill 0.2s var(--nv-ease), stroke 0.2s var(--nv-ease), transform 0.25s var(--nv-ease);
+}
+.rv-star svg.is-on { fill: var(--yellow); stroke: #c9a800; }
+.rv-star:hover svg { transform: scale(1.1); }
+.rv-star:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
+.rv-star:has(input:checked) svg { animation: rv-pop 0.35s var(--nv-ease); }
+@keyframes rv-pop { 50% { transform: scale(1.22); } }
+.rv-rating-label {
+  margin: 10px 0 0; min-height: 1.5em; font-size: 17px; color: var(--ink);
+  font-variation-settings: "wght" 600, "wdth" 104;
+}
+
+/* Rozbalení zbytku formuláře: grid 0fr → 1fr animuje i neznámou výšku. */
+.rv-rest { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.55s var(--nv-ease-io), opacity 0.4s var(--nv-ease); opacity: 0; }
+.rv-rest.is-open { grid-template-rows: 1fr; opacity: 1; }
+.rv-rest-inner { overflow: hidden; min-height: 0; }
+.rv-rest:not(.is-open) .rv-rest-inner { visibility: hidden; }
+
+.rv-photos {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px;
+  padding: 10px; border: 1px dashed var(--border); background: #fff;
+  transition: border-color 0.25s var(--nv-ease), background 0.25s var(--nv-ease);
+}
+.rv-photos.is-drag { border-color: var(--ink); background: #fffbd6; }
+.rv-photo, .rv-photo-add { position: relative; aspect-ratio: 1; overflow: hidden; }
+.rv-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.3s; }
+.rv-photo.is-loading img { opacity: 0.45; }
+.rv-photo.is-error img { opacity: 0.25; filter: grayscale(1); }
+.rv-photo-spinner {
+  position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+  border: 2px solid rgba(8, 8, 10, 0.18); border-top-color: var(--ink); border-radius: 50%;
+  animation: rv-spin 0.8s linear infinite;
+}
+@keyframes rv-spin { to { transform: rotate(360deg); } }
+.rv-photo-error {
+  position: absolute; inset: auto 0 0 0; padding: 6px; font-size: 11px; line-height: 1.3;
+  background: rgba(220, 38, 38, 0.92); color: #fff;
+}
+.rv-photo-remove {
+  position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; background: rgba(8, 8, 10, 0.72); color: #fff; font-size: 18px; line-height: 1; cursor: pointer;
+}
+.rv-photo-remove:hover { background: var(--ink); }
+.rv-photo-add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--border); background: var(--background); color: var(--ink); cursor: pointer;
+  font: inherit; font-size: 13px; transition: background 0.25s var(--nv-ease), border-color 0.25s var(--nv-ease);
+}
+.rv-photo-add svg { width: 26px; height: 26px; }
+.rv-photo-add:hover { background: #fff; border-color: var(--ink); }
+
+.rv-author { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.rv-field { display: block; text-transform: none; letter-spacing: 0; }
+@media (max-width: 560px) { .rv-author { grid-template-columns: 1fr; } }
+
+.rv-consent {
+  display: flex !important; gap: 14px; align-items: flex-start; cursor: pointer;
+  margin-top: clamp(24px, 3.4vh, 34px); padding: 16px 18px;
+  background: #fff; border: 1px solid var(--border);
+  transition: border-color 0.25s var(--nv-ease), background 0.25s var(--nv-ease);
+}
+.rv-consent.is-on { border-color: var(--ink); background: #fffbd6; }
+.rv-consent input { width: 20px; height: 20px; flex-shrink: 0; margin: 1px 0 0; }
+.rv-consent span { display: flex; flex-direction: column; gap: 4px; }
+.rv-consent strong { color: var(--ink); font-size: 15px; font-variation-settings: "wght" 640, "wdth" 100; }
+.rv-consent small { font-size: 13px; line-height: 1.5; color: var(--gray); }
+
+.rv-error { margin: 18px 0 0; color: #dc2626; font-size: 14px; }
+.rv-actions { margin-top: clamp(26px, 4vh, 38px); display: flex; justify-content: center; }
+.rv-actions .btn-yellow { min-width: min(100%, 300px); padding: 20px 34px; }
+@media (max-width: 560px) { .rv-actions .btn-yellow { width: 100%; } }
+
+.rv-done { text-align: center; padding: clamp(20px, 6vh, 60px) 0; }
+.rv-done h1 { font-size: clamp(32px, 5vw, 56px); margin: 18px 0 14px; }
+.rv-done p.muted { max-width: 46ch; margin: 0 auto; font-size: 16px; line-height: 1.65; }
+.rv-done-stars { display: inline-flex; gap: 6px; }
+.rv-done-stars svg { width: 40px; height: 40px; fill: transparent; stroke: rgba(8, 8, 10, 0.25); stroke-width: 1.2; }
+.rv-done-stars svg.is-on { fill: var(--yellow); stroke: #c9a800; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rv-rest, .rv-star svg { transition-duration: 0.01ms; }
+  .rv-star:has(input:checked) svg { animation: none; }
+}
+
+/* Reference z recenzí: hvězdičky nad citací, slide bez fotky jen s textem. */
+.nv-refs-stars { display: flex; gap: 3px; margin-bottom: 14px; }
+.nv-refs-stars svg { width: 18px; height: 18px; fill: rgba(8, 8, 10, 0.14); }
+.nv-refs-stars svg.is-on { fill: #f2c800; }
+.nv-refs-slide.is-textonly { grid-template-columns: minmax(0, 1fr); }
+.nv-refs-slide.is-textonly .nv-refs-copy { max-width: 60rem; min-height: clamp(240px, 32vw, 420px); }
+.nv-refs-slide.is-textonly .nv-refs-quote { font-size: clamp(22px, 2.6vw, 38px); max-width: 40ch; }

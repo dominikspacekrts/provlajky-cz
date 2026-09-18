@@ -11,6 +11,7 @@
 
 import Link from "next/link";
 import HomeReferences from "@/components/HomeReferences";
+import type { PublicReview } from "@/lib/reviews";
 import NovaFields from "@/components/NovaFields";
 import { NovaArrow, useInView } from "@/components/NovaReveal";
 import { useDiscountPopup } from "@/components/DiscountPopup";
@@ -72,8 +73,10 @@ const STEPS = [
 
 export default function Nova2Client({
   salePctByCategory,
+  reviews,
 }: {
   salePctByCategory: Partial<Record<ProductCategory, number>>;
+  reviews: PublicReview[];
 }) {
   const { openDiscountPopup } = useDiscountPopup();
   const lead = useInView<HTMLElement>();
@@ -130,7 +133,7 @@ export default function Nova2Client({
         </div>
       </section>
 
-      <HomeReferences />
+      <HomeReferences reviews={reviews} />
 
       <NovaFields salePctByCategory={salePctByCategory} />
 

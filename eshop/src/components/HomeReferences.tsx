@@ -2,20 +2,26 @@
 
 /*
  * Galerie referencí na homepage — nahradila statickou dvojici fotek
- * ("Vlajky v akci"). Jeden slide = fotka z akce + citace zákazníka, jehož
- * vlajky jsou na té fotce vidět. Posouvá se sám po 20 sekundách zprava
- * doleva; kdo chce, přepíná jménem firmy, šipkami nebo tahem prstem.
+ * ("Vlajky v akci"). Jeden slide = fotka z akce + citace zákazníka. Posouvá
+ * se sám po 20 sekundách zprava doleva; kdo chce, přepíná jménem firmy,
+ * šipkami nebo tahem prstem.
  *
- * POZOR — TEXTY CITACÍ JSOU NÁVRH, NE PŘEPIS SKUTEČNÉ RECENZE.
- * Firmy na fotkách jsou reální zákazníci, ale slova jsou vymyšlená jako
- * placeholder. Než tohle půjde na produkci, musí každý zákazník svoji
- * citaci potvrdit (fabrikovaná recenze = nekalá obchodní praktika,
- * § 4 a příloha 1 zákona o ochraně spotřebitele). Až přijdou skutečná
- * znění, stačí přepsat `quote`, `person` a `role` níž.
+ * Obsah jsou skutečné recenze z dotazníku spokojenosti (admin → Recenze),
+ * jen ty se souhlasem zákazníka, které admin zveřejnil. Recenze bez fotky
+ * dostane slide jen s textem.
+ *
+ * POZOR — PLACEHOLDER_REFERENCES NÍŽ JSOU VYMYŠLENÉ TEXTY, NE RECENZE.
+ * Firmy na fotkách jsou reální zákazníci, ale slova jsou placeholder.
+ * Fabrikovaná recenze je nekalá obchodní praktika (§ 4 a příloha 1 zákona
+ * o ochraně spotřebitele), proto se ukazují jen mimo produkci, dokud
+ * nepřibude první zveřejněná recenze. Na produkci se bez recenzí sekce
+ * vůbec nevykreslí.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInView } from "@/components/NovaReveal";
+import type { PublicReview } from "@/lib/reviews";
+import { isProduction } from "@/lib/site";
 
 const AUTOPLAY_MS = 20000;
 
@@ -25,11 +31,12 @@ type Reference = {
   role: string;
   person: string;
   quote: string;
-  photo: string;
+  photo: string | null;
   alt: string;
+  rating?: number;
 };
 
-const REFERENCES: Reference[] = [
+const PLACEHOLDER_REFERENCES: Reference[] = [
   {
     id: "rts",
     company: "Race the Streets",
@@ -72,7 +79,40 @@ const REFERENCES: Reference[] = [
   },
 ];
 
-export default function HomeReferences() {
+function fromReview(r: PublicReview): Reference {
+  // Firma je v přepínači čitelnější než jméno; bez firmy nese slide podpis.
+  const company = r.authorRole || r.authorName;
+  return {
+    id: r.id,
+    company,
+    role: "",
+    person: r.authorRole ? r.authorName : "",
+    quote: r.body,
+    photo: r.photo,
+    alt: `Fotka od zákazníka ${company}`,
+    rating: r.rating,
+  };
+}
+
+function StarRow({ rating }: { rating: number }) {
+  return (
+    <div className="nv-refs-stars" role="img" aria-label={`Hodnocení ${rating} z 5`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <svg key={n} viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={n <= rating ? "is-on" : undefined}>
+          <path d="M12 2.8l2.83 5.73 6.32.92-4.57 4.46 1.08 6.3L12 17.24l-5.66 2.97 1.08-6.3-4.57-4.46 6.32-.92z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+export default function HomeReferences({ reviews }: { reviews: PublicReview[] }) {
+  const REFERENCES = reviews.length ? reviews.map(fromReview) : isProduction() ? [] : PLACEHOLDER_REFERENCES;
+  if (!REFERENCES.length) return null;
+  return <ReferencesCarousel references={REFERENCES} />;
+}
+
+function ReferencesCarousel({ references: REFERENCES }: { references: Reference[] }) {
   const section = useInView<HTMLElement>();
   const [index, setIndex] = useState(0);
   // Autoposun běží, jen když na sekci nikdo nesahá a je vidět — jinak by
@@ -168,22 +208,27 @@ export default function HomeReferences() {
           {REFERENCES.map((r, i) => (
             <article
               key={r.id}
-              className="nv-refs-slide"
+              className={`nv-refs-slide${r.photo ? "" : " is-textonly"}`}
               aria-roledescription="snímek"
               aria-label={`${i + 1} z ${count}: ${r.company}`}
               aria-hidden={i === index ? undefined : true}
             >
-              <div className="nv-refs-photo">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={r.photo} alt={r.alt} loading={i === 0 ? "eager" : "lazy"} draggable={false} />
-              </div>
+              {r.photo && (
+                <div className="nv-refs-photo">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={r.photo} alt={r.alt} loading={i === 0 ? "eager" : "lazy"} draggable={false} />
+                </div>
+              )}
               <div className="nv-refs-copy">
-                <blockquote className="nv-refs-quote">{r.quote}</blockquote>
+                <div>
+                  {r.rating ? <StarRow rating={r.rating} /> : null}
+                  {r.quote && <blockquote className="nv-refs-quote">{r.quote}</blockquote>}
+                </div>
                 <div className="nv-refs-by">
                   <span className="nv-refs-company">{r.company}</span>
-                  <span className="nv-refs-role">
-                    {r.person} — {r.role}
-                  </span>
+                  {(r.person || r.role) && (
+                    <span className="nv-refs-role">{[r.person, r.role].filter(Boolean).join(" — ")}</span>
+                  )}
                 </div>
               </div>
             </article>
@@ -216,7 +261,9 @@ export default function HomeReferences() {
       </div>
 
       <p className="nv-refs-live" aria-live="polite">
-        {active.company}: {active.quote}
+        {active.company}
+        {active.rating ? `, ${active.rating} z 5` : ""}
+        {active.quote ? `: ${active.quote}` : ""}
       </p>
     </section>
   );
