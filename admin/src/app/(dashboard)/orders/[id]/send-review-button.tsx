@@ -25,6 +25,10 @@ export default function SendReviewButton({ order, review }: { order: Order; revi
     setBusy(true);
     try {
       const [invite, tpl] = await Promise.all([getOrCreateReviewInvite(order.id), getMailTemplatesForClient()]);
+      if (!invite.ok) {
+        alert(invite.error);
+        return;
+      }
       openEmailPreview({
         kind: "review_request",
         orderId: order.id,
