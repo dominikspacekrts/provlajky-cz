@@ -72,14 +72,11 @@ function ReviewCard({ review: r }: { review: ReviewRow }) {
   const cover = r.cover_photo || r.photos[0] || null;
   const b = r.order?.customer?.billing;
 
-  function run(fn: () => Promise<void>) {
+  function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
     startTransition(async () => {
-      try {
-        await fn();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Akce se nepovedla.");
-      }
+      const res = await fn().catch(() => ({ ok: false, error: "Akce se nepovedla." }));
+      if (!res.ok) setError(res.error || "Akce se nepovedla.");
     });
   }
 
