@@ -54,7 +54,19 @@ export type ProductVariant = {
 };
 
 // Cena jedné volby stěny (jednostranný/oboustranný potisk, nákup/prodej).
-export type TentWallOption = { buySingle: number; buyDouble: number; sellSingle: number; sellDouble: number };
+// Clo a doprava jsou náklad v adminu — prodejní cena pro zákazníka zůstává sell*.
+export type TentWallOption = {
+  buySingle: number;
+  buyDouble: number;
+  sellSingle: number;
+  sellDouble: number;
+  customsSingle?: number;
+  customsDouble?: number;
+  airFreightSingle?: number;
+  airFreightDouble?: number;
+  trainFreightSingle?: number;
+  trainFreightDouble?: number;
+};
 
 // Nůžkový stan skládaný po částech: zákazník začíná se stanem jen se
 // střechou (base) a k němu si podle chuti přidává zadní stěnu a boční
@@ -66,12 +78,21 @@ export type TentWallOption = { buySingle: number; buyDouble: number; sellSingle:
 export type TentWallsConfig = {
   baseBuy: number;
   baseSell: number;
+  baseCustoms?: number;
+  baseAirFreight?: number;
+  baseTrainFreight?: number;
   /** Základ bez potisku střechy (frame + canopy). 0 = použít baseBuy/baseSell. */
   stockBaseBuy?: number;
   stockBaseSell?: number;
+  stockBaseCustoms?: number;
+  stockBaseAirFreight?: number;
+  stockBaseTrainFreight?: number;
   /** Příplatek za barvení rámu (výchozí 1000 / 2000). */
   frameColorBuy?: number;
   frameColorSell?: number;
+  frameColorCustoms?: number;
+  frameColorAirFreight?: number;
+  frameColorTrainFreight?: number;
   backWidthM: number;
   fullWallBack: TentWallOption;
   halfWallBack: TentWallOption;

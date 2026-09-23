@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createProduct, updateProduct, uploadProductImage, type ProductInput } from "@/lib/actions/products";
+import { customsFromBuy, resolveCustoms } from "@/lib/domain";
 import {
   PRODUCT_CATEGORIES,
   type Partner,
@@ -58,20 +59,161 @@ const emptyVariant = (): ProductVariant => ({
   sellTrain: 0,
 });
 
-const emptyTentWallOption = (): TentWallOption => ({ buySingle: 0, buyDouble: 0, sellSingle: 0, sellDouble: 0 });
+const emptyTentWallOption = (): TentWallOption => ({
+  buySingle: 0,
+  buyDouble: 0,
+  sellSingle: 0,
+  sellDouble: 0,
+  customsSingle: 0,
+  customsDouble: 0,
+  airFreightSingle: 0,
+  airFreightDouble: 0,
+  trainFreightSingle: 0,
+  trainFreightDouble: 0,
+});
 const emptyTentWalls = (): TentWallsConfig => ({
   baseBuy: 0,
   baseSell: 0,
+  baseCustoms: 0,
+  baseAirFreight: 0,
+  baseTrainFreight: 0,
   stockBaseBuy: 0,
   stockBaseSell: 0,
+  stockBaseCustoms: 0,
+  stockBaseAirFreight: 0,
+  stockBaseTrainFreight: 0,
   frameColorBuy: 1000,
   frameColorSell: 2000,
+  frameColorCustoms: customsFromBuy(1000),
+  frameColorAirFreight: 0,
+  frameColorTrainFreight: 0,
   backWidthM: 3,
   fullWallBack: emptyTentWallOption(),
   halfWallBack: emptyTentWallOption(),
   fullWallSide: emptyTentWallOption(),
   halfWallSide: emptyTentWallOption(),
 });
+
+function ensureTentCustoms(tw: TentWallsConfig): TentWallsConfig {
+  const opt = (o: TentWallOption): TentWallOption => ({
+    ...o,
+    customsSingle: resolveCustoms(o.buySingle, o.customsSingle),
+    customsDouble: resolveCustoms(o.buyDouble, o.customsDouble),
+    airFreightSingle: o.airFreightSingle ?? 0,
+    airFreightDouble: o.airFreightDouble ?? 0,
+    trainFreightSingle: o.trainFreightSingle ?? 0,
+    trainFreightDouble: o.trainFreightDouble ?? 0,
+  });
+  const frameBuy = tw.frameColorBuy ?? 1000;
+  return {
+    ...tw,
+    baseCustoms: resolveCustoms(tw.baseBuy, tw.baseCustoms),
+    baseAirFreight: tw.baseAirFreight ?? 0,
+    baseTrainFreight: tw.baseTrainFreight ?? 0,
+    stockBaseCustoms: resolveCustoms(tw.stockBaseBuy ?? 0, tw.stockBaseCustoms),
+    stockBaseAirFreight: tw.stockBaseAirFreight ?? 0,
+    stockBaseTrainFreight: tw.stockBaseTrainFreight ?? 0,
+    frameColorBuy: frameBuy,
+    frameColorSell: tw.frameColorSell ?? 2000,
+    frameColorCustoms: resolveCustoms(frameBuy, tw.frameColorCustoms),
+    frameColorAirFreight: tw.frameColorAirFreight ?? 0,
+    frameColorTrainFreight: tw.frameColorTrainFreight ?? 0,
+    fullWallBack: opt(tw.fullWallBack),
+    halfWallBack: opt(tw.halfWallBack),
+    fullWallSide: opt(tw.fullWallSide),
+    halfWallSide: opt(tw.halfWallSide),
+  };
+}
+
+type TentCostPatch = {
+  buy?: number;
+  customs?: number;
+  airFreight?: number;
+  trainFreight?: number;
+  sell?: number;
+};
+
+function TentCostFields({
+  buy,
+  customs,
+  airFreight,
+  trainFreight,
+  sell,
+  onChange,
+}: {
+  buy: number;
+  customs: number;
+  airFreight: number;
+  trainFreight: number;
+  sell: number;
+  onChange: (patch: TentCostPatch) => void;
+}) {
+  const costAir = buy + customs + airFreight;
+  const costTrain = buy + customs + trainFreight;
+  return (
+    <>
+      <div className="tent-cost-row">
+        <label>
+          Nákup / ks
+          <input
+            type="number"
+            step="0.01"
+            value={buy}
+            onChange={(e) => {
+              const next = Number(e.target.value) || 0;
+              onChange({ buy: next, customs: customsFromBuy(next) });
+            }}
+          />
+        </label>
+        <label>
+          Clo
+          <input
+            type="number"
+            step="0.01"
+            value={customs}
+            onChange={(e) => onChange({ customs: Number(e.target.value) || 0 })}
+          />
+        </label>
+        <label>
+          Doprava letecky
+          <input
+            type="number"
+            step="0.01"
+            value={airFreight}
+            onChange={(e) => onChange({ airFreight: Number(e.target.value) || 0 })}
+          />
+        </label>
+        <label>
+          Doprava vlakem
+          <input
+            type="number"
+            step="0.01"
+            value={trainFreight}
+            onChange={(e) => onChange({ trainFreight: Number(e.target.value) || 0 })}
+          />
+        </label>
+      </div>
+      <div className="variant-sum">
+        <span>
+          Náklad <b>letecky:</b> {fmt(costAir)} &nbsp;·&nbsp; <b>vlakem:</b> {fmt(costTrain)}
+        </span>
+      </div>
+      <div className="tent-sell-row">
+        <label>
+          Prodejní cena
+          <input
+            type="number"
+            step="0.01"
+            value={sell}
+            onChange={(e) => onChange({ sell: Number(e.target.value) || 0 })}
+          />
+          <small style={{ color: sell >= costAir ? "#16a34a" : "#dc2626" }}>marže letecky {fmt(sell - costAir)}</small>
+          <small style={{ color: sell >= costTrain ? "#16a34a" : "#dc2626" }}>marže vlakem {fmt(sell - costTrain)}</small>
+        </label>
+      </div>
+    </>
+  );
+}
 
 const emptyInput = (defaultCategory: ProductCategory = "plazove-vlajky"): ProductInput => ({
   slug: "",
@@ -135,9 +277,13 @@ export default function ProductFormButton({
   supplier?: ProductSupplier;
 }) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState<ProductInput>(() =>
-    product ? toInput(product, supplier) : emptyInput(defaultCategory)
-  );
+  const [value, setValue] = useState<ProductInput>(() => {
+    const input = product ? toInput(product, supplier) : emptyInput(defaultCategory);
+    if (input.kind === "tent_walls" && input.config.tentWalls) {
+      return { ...input, config: { ...input.config, tentWalls: ensureTentCustoms(input.config.tentWalls) } };
+    }
+    return input;
+  });
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -237,8 +383,36 @@ export default function ProductFormButton({
   function setTentWalls(next: TentWallsConfig) {
     setValue((cur) => ({ ...cur, config: { ...cur.config, tentWalls: next } }));
   }
-  function patchTentWallOption(key: "fullWallBack" | "halfWallBack" | "fullWallSide" | "halfWallSide", patch: Partial<TentWallOption>) {
-    setTentWalls({ ...tentWalls, [key]: { ...tentWalls[key], ...patch } });
+  function patchTentBase(
+    prefix: "base" | "stockBase" | "frameColor",
+    patch: TentCostPatch,
+  ) {
+    const buyKey = prefix === "base" ? "baseBuy" : prefix === "stockBase" ? "stockBaseBuy" : "frameColorBuy";
+    const sellKey = prefix === "base" ? "baseSell" : prefix === "stockBase" ? "stockBaseSell" : "frameColorSell";
+    const customsKey = prefix === "base" ? "baseCustoms" : prefix === "stockBase" ? "stockBaseCustoms" : "frameColorCustoms";
+    const airKey = prefix === "base" ? "baseAirFreight" : prefix === "stockBase" ? "stockBaseAirFreight" : "frameColorAirFreight";
+    const trainKey = prefix === "base" ? "baseTrainFreight" : prefix === "stockBase" ? "stockBaseTrainFreight" : "frameColorTrainFreight";
+    setTentWalls({
+      ...tentWalls,
+      ...(patch.buy != null ? { [buyKey]: patch.buy } : {}),
+      ...(patch.sell != null ? { [sellKey]: patch.sell } : {}),
+      ...(patch.customs != null ? { [customsKey]: patch.customs } : {}),
+      ...(patch.airFreight != null ? { [airKey]: patch.airFreight } : {}),
+      ...(patch.trainFreight != null ? { [trainKey]: patch.trainFreight } : {}),
+    });
+  }
+  function patchTentSide(
+    key: "fullWallBack" | "halfWallBack" | "fullWallSide" | "halfWallSide",
+    side: "Single" | "Double",
+    patch: TentCostPatch,
+  ) {
+    const o = { ...tentWalls[key] };
+    if (patch.buy != null) o[`buy${side}`] = patch.buy;
+    if (patch.sell != null) o[`sell${side}`] = patch.sell;
+    if (patch.customs != null) o[`customs${side}`] = patch.customs;
+    if (patch.airFreight != null) o[`airFreight${side}`] = patch.airFreight;
+    if (patch.trainFreight != null) o[`trainFreight${side}`] = patch.trainFreight;
+    setTentWalls({ ...tentWalls, [key]: o });
   }
 
   function submit() {
@@ -730,90 +904,98 @@ export default function ProductFormButton({
               )}
 
               {value.kind === "tent_walls" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div className="variant-block">
-                    <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 8 }}>
-                      Zákazník začíná se stanem jen se střechou (base) a přidává si zadní a boční stěny zvlášť — bez
-                      stěny / poloviční / celá, jednostranný nebo oboustranný potisk. Zadní stěna má šířku podle
-                      velikosti stanu (níže), boční stěny jsou vždy 3 m. Poloviční stěna v ceně zahrnuje i boční tyč.
-                    </div>
+                <div className="variant-block">
+                  <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 8 }}>
+                    Zákazník začíná se stanem jen se střechou a přidává si stěny zvlášť. U každé části zadej náklad
+                    stejně jako u nafukovacích stanů: nákup, clo, doprava letecky a vlakem. Clo je 12 % z nákupu a
+                    dopočte se při změně nákupu. Součet je v šedém pruhu, pod ním je prodejní cena.
+                  </div>
 
-                    <div className="variant-row" style={{ alignItems: "flex-end" }}>
-                      <label style={{ flex: 1 }}>
-                        Šířka zadní stěny (m)
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={tentWalls.backWidthM}
-                          onChange={(e) => setTentWalls({ ...tentWalls, backWidthM: Number(e.target.value) || 0 })}
-                        />
-                      </label>
-                      <label style={{ flex: 1 }}>
-                        Základ s potiskem — nákup
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={tentWalls.baseBuy}
-                          onChange={(e) => setTentWalls({ ...tentWalls, baseBuy: Number(e.target.value) || 0 })}
-                        />
-                      </label>
-                      <label style={{ flex: 1 }}>
-                        Základ s potiskem — prodej
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={tentWalls.baseSell}
-                          onChange={(e) => setTentWalls({ ...tentWalls, baseSell: Number(e.target.value) || 0 })}
-                        />
-                        <small style={{ color: tentWalls.baseSell >= tentWalls.baseBuy ? "#16a34a" : "#dc2626" }}>
-                          marže {fmt(tentWalls.baseSell - tentWalls.baseBuy)}
-                        </small>
-                      </label>
+                  <div className="variant-card">
+                    <div className="variant-card-summary-row">
+                      <div className="variant-card-summary" style={{ cursor: "default" }}>
+                        <span className="variant-card-summary-label">Šířka zadní stěny</span>
+                      </div>
                     </div>
-
-                    <div className="variant-row" style={{ alignItems: "flex-end", marginTop: 10 }}>
-                      <label style={{ flex: 1 }}>
-                        Základ bez potisku — nákup
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={tentWalls.stockBaseBuy ?? 0}
-                          onChange={(e) => setTentWalls({ ...tentWalls, stockBaseBuy: Number(e.target.value) || 0 })}
-                        />
-                        <small style={{ color: "var(--color-gray-600)" }}>
-                          Frame + canopy bez tisku (z ceníku). 0 = použije se základ s potiskem.
-                        </small>
-                      </label>
-                      <label style={{ flex: 1 }}>
-                        Základ bez potisku — prodej
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={tentWalls.stockBaseSell ?? 0}
-                          onChange={(e) => setTentWalls({ ...tentWalls, stockBaseSell: Number(e.target.value) || 0 })}
-                        />
-                      </label>
-                      <label style={{ flex: 1 }}>
-                        Barvení rámu — nákup
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={tentWalls.frameColorBuy ?? 1000}
-                          onChange={(e) => setTentWalls({ ...tentWalls, frameColorBuy: Number(e.target.value) || 0 })}
-                        />
-                      </label>
-                      <label style={{ flex: 1 }}>
-                        Barvení rámu — prodej
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={tentWalls.frameColorSell ?? 2000}
-                          onChange={(e) => setTentWalls({ ...tentWalls, frameColorSell: Number(e.target.value) || 0 })}
-                        />
-                        <small style={{ color: "var(--color-gray-600)" }}>Výchozí 1000 / 2000 Kč.</small>
-                      </label>
+                    <div className="variant-card-body">
+                      <div className="tent-sell-row">
+                        <label>
+                          Šířka zadní stěny (m)
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={tentWalls.backWidthM}
+                            onChange={(e) => setTentWalls({ ...tentWalls, backWidthM: Number(e.target.value) || 0 })}
+                          />
+                          <small style={{ color: "var(--color-gray-600)" }}>Boční stěny jsou vždy 3 m.</small>
+                        </label>
+                      </div>
                     </div>
                   </div>
+
+                  {(
+                    [
+                      ["base", "Základ s potiskem", undefined],
+                      ["stockBase", "Základ bez potisku", "Frame + canopy bez tisku. Nákup 0 = použije se základ s potiskem."],
+                      ["frameColor", "Barvení rámu", "Výchozí nákup 1 000 Kč, prodej 2 000 Kč."],
+                    ] as const
+                  ).map(([prefix, title, hint]) => {
+                    const buy =
+                      prefix === "base"
+                        ? tentWalls.baseBuy
+                        : prefix === "stockBase"
+                          ? tentWalls.stockBaseBuy ?? 0
+                          : tentWalls.frameColorBuy ?? 1000;
+                    const customs =
+                      prefix === "base"
+                        ? tentWalls.baseCustoms ?? 0
+                        : prefix === "stockBase"
+                          ? tentWalls.stockBaseCustoms ?? 0
+                          : tentWalls.frameColorCustoms ?? customsFromBuy(1000);
+                    const air =
+                      prefix === "base"
+                        ? tentWalls.baseAirFreight ?? 0
+                        : prefix === "stockBase"
+                          ? tentWalls.stockBaseAirFreight ?? 0
+                          : tentWalls.frameColorAirFreight ?? 0;
+                    const train =
+                      prefix === "base"
+                        ? tentWalls.baseTrainFreight ?? 0
+                        : prefix === "stockBase"
+                          ? tentWalls.stockBaseTrainFreight ?? 0
+                          : tentWalls.frameColorTrainFreight ?? 0;
+                    const sell =
+                      prefix === "base"
+                        ? tentWalls.baseSell
+                        : prefix === "stockBase"
+                          ? tentWalls.stockBaseSell ?? 0
+                          : tentWalls.frameColorSell ?? 2000;
+                    return (
+                      <div key={prefix} className="variant-card">
+                        <div className="variant-card-summary-row">
+                          <div className="variant-card-summary" style={{ cursor: "default" }}>
+                            <span className="variant-card-summary-label">{title}</span>
+                            <span className="variant-card-summary-price">
+                              {sell > 0 ? fmt(sell) : "cena nenastavena"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="variant-card-body">
+                          {hint && (
+                            <div style={{ fontSize: 12, color: "var(--color-gray-600)", marginBottom: 8 }}>{hint}</div>
+                          )}
+                          <TentCostFields
+                            buy={buy}
+                            customs={customs}
+                            airFreight={air}
+                            trainFreight={train}
+                            sell={sell}
+                            onChange={(patch) => patchTentBase(prefix, patch)}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
 
                   {(
                     [
@@ -824,54 +1006,39 @@ export default function ProductFormButton({
                     ] as const
                   ).map(([key, title]) => {
                     const o = tentWalls[key];
+                    const sellPrices = [o.sellSingle, o.sellDouble].filter((n) => n > 0);
+                    const from = sellPrices.length > 0 ? Math.min(...sellPrices) : null;
                     return (
                       <div key={key} className="variant-card">
-                        <div style={{ padding: "10px 12px", fontWeight: 600, fontSize: 13.5 }}>{title}</div>
-                        <div className="variant-card-body">
-                          <div className="variant-row" style={{ alignItems: "flex-end" }}>
-                            <label style={{ flex: 1 }}>
-                              Nákup — jednostranný
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={o.buySingle}
-                                onChange={(e) => patchTentWallOption(key, { buySingle: Number(e.target.value) || 0 })}
-                              />
-                            </label>
-                            <label style={{ flex: 1 }}>
-                              Prodej — jednostranný
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={o.sellSingle}
-                                onChange={(e) => patchTentWallOption(key, { sellSingle: Number(e.target.value) || 0 })}
-                              />
-                              <small style={{ color: o.sellSingle >= o.buySingle ? "#16a34a" : "#dc2626" }}>
-                                marže {fmt(o.sellSingle - o.buySingle)}
-                              </small>
-                            </label>
-                            <label style={{ flex: 1 }}>
-                              Nákup — oboustranný
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={o.buyDouble}
-                                onChange={(e) => patchTentWallOption(key, { buyDouble: Number(e.target.value) || 0 })}
-                              />
-                            </label>
-                            <label style={{ flex: 1 }}>
-                              Prodej — oboustranný
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={o.sellDouble}
-                                onChange={(e) => patchTentWallOption(key, { sellDouble: Number(e.target.value) || 0 })}
-                              />
-                              <small style={{ color: o.sellDouble >= o.buyDouble ? "#16a34a" : "#dc2626" }}>
-                                marže {fmt(o.sellDouble - o.buyDouble)}
-                              </small>
-                            </label>
+                        <div className="variant-card-summary-row">
+                          <div className="variant-card-summary" style={{ cursor: "default" }}>
+                            <span className="variant-card-summary-label">{title}</span>
+                            <span className="variant-card-summary-price">
+                              {from != null ? `od ${fmt(from)}` : "cena nenastavena"}
+                            </span>
                           </div>
+                        </div>
+                        <div className="variant-card-body">
+                          <div className="tent-part-label">Jednostranný potisk</div>
+                          <TentCostFields
+                            buy={o.buySingle}
+                            customs={o.customsSingle ?? 0}
+                            airFreight={o.airFreightSingle ?? 0}
+                            trainFreight={o.trainFreightSingle ?? 0}
+                            sell={o.sellSingle}
+                            onChange={(patch) => patchTentSide(key, "Single", patch)}
+                          />
+                          <div className="tent-part-label" style={{ marginTop: 14 }}>
+                            Oboustranný potisk
+                          </div>
+                          <TentCostFields
+                            buy={o.buyDouble}
+                            customs={o.customsDouble ?? 0}
+                            airFreight={o.airFreightDouble ?? 0}
+                            trainFreight={o.trainFreightDouble ?? 0}
+                            sell={o.sellDouble}
+                            onChange={(patch) => patchTentSide(key, "Double", patch)}
+                          />
                         </div>
                       </div>
                     );

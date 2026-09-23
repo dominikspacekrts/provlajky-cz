@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { addOrderItemFromProduct } from "@/lib/actions/orders";
+import { resolveCustoms } from "@/lib/domain";
 import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
 
 const SHAPES = ["A", "B", "C", "D", "E", "F"];
@@ -102,7 +103,10 @@ export default function AddItemButton({
       // jen základ (střecha) — přidané stěny je potřeba dopočítat ručně a
       // cenu přepsat v poli "Cena/ks" níž, tenhle formulář zvlášť stěny neřeší.
       const tw = product.config.tentWalls;
-      return tw ? (internal ? tw.baseBuy : tw.baseSell) : 0;
+      if (!tw) return 0;
+      if (!internal) return tw.baseSell;
+      const freight = delivery === "air" ? tw.baseAirFreight ?? 0 : tw.baseTrainFreight ?? 0;
+      return tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms) + freight;
     }
     // simple
     return internal ? product.config.buyPrice ?? 0 : product.price;
@@ -259,6 +263,16 @@ export default function AddItemButton({
                     </select>
                   </label>
                 </div>
+              )}
+
+              {product?.kind === "tent_walls" && (
+                <label>
+                  Doprava (do interního nákladu základu)
+                  <select value={delivery} onChange={(e) => setDelivery(e.target.value as "air" | "train")}>
+                    <option value="air">letecky (14 dní)</option>
+                    <option value="train">vlakem (2 měsíce)</option>
+                  </select>
+                </label>
               )}
 
               {product?.kind === "options" && (
