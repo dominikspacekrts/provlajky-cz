@@ -237,7 +237,25 @@ export type Settings = {
   updated_at: string;
 };
 
-export type EmailKind = "invoice" | "visual" | "accountant" | "supplier" | "order_confirmation" | "review_request" | "other";
+export type EmailKind =
+  | "invoice"
+  | "visual"
+  | "accountant"
+  | "supplier"
+  | "order_confirmation"
+  | "review_request"
+  | "newsletter"
+  | "other";
+
+// Re-export newsletter domain types for convenience.
+export type {
+  ColdcallCompany,
+  ColdcallStatus,
+  NewsletterCampaign,
+  NewsletterRider,
+  PromoCode,
+  PromoCodeRules,
+} from "@/lib/newsletter/types";
 
 // Recenze zákazníka (2026-09-reviews.sql). status 'invited' = odkaz odeslán,
 // zákazník zatím nevyplnil; 'submitted' = vyplněno.
@@ -361,7 +379,7 @@ export type TentWallOption = {
 export type TentWallsConfig = {
   baseBuy: number;
   baseSell: number;
-  /** Clo ze základu s potiskem. Chybí-li, 12 % z baseBuy. */
+  /** Clo ze základu s potiskem. Chybí-li a clo je zapnuté, % z baseBuy. */
   baseCustoms?: number;
   baseAirFreight?: number;
   baseTrainFreight?: number;
@@ -377,6 +395,9 @@ export type TentWallsConfig = {
   frameColorCustoms?: number;
   frameColorAirFreight?: number;
   frameColorTrainFreight?: number;
+  /** Clo za celý produkt: zapnuto/vypnuto (výchozí zapnuto) a sazba v % (výchozí 12). */
+  customsEnabled?: boolean;
+  customsPct?: number;
   backWidthM: number;
   fullWallBack: TentWallOption;
   halfWallBack: TentWallOption;

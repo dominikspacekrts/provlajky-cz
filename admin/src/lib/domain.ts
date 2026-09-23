@@ -161,16 +161,32 @@ function parseTentWallsFromLineName(wcLineName: string | null | undefined) {
   }
   return result;
 }
-/** Clo u dovážených stanů je 12 % z nákupní ceny, zaokrouhlené na koruny. */
+/** Výchozí clo u dovážených stanů — 12 % z nákupu. */
 export const TENT_CUSTOMS_RATE = 0.12;
+export const TENT_CUSTOMS_PCT_DEFAULT = 12;
 
-export function customsFromBuy(buy: number): number {
-  return Math.round((Number(buy) || 0) * TENT_CUSTOMS_RATE);
+/** Sazba cla z nastavení nůžkového stanu (0 = clo vypnuté). */
+export function tentCustomsRate(
+  tw: Pick<{ customsEnabled?: boolean; customsPct?: number }, "customsEnabled" | "customsPct"> | null | undefined
+): number {
+  if (!tw || tw.customsEnabled === false) return 0;
+  const pct = tw.customsPct ?? TENT_CUSTOMS_PCT_DEFAULT;
+  return Math.max(0, Number(pct) || 0) / 100;
 }
 
-/** Uložené clo, nebo 12 % z nákupu, když v datech produktu ještě není. */
-export function resolveCustoms(buy: number, customs: number | undefined | null): number {
-  return customs == null ? customsFromBuy(buy) : customs;
+export function customsFromBuy(buy: number, rate = TENT_CUSTOMS_RATE): number {
+  if (rate <= 0) return 0;
+  return Math.round((Number(buy) || 0) * rate);
+}
+
+/** Uložené clo, nebo dopočet z nákupu × sazba; při sazbě 0 vždy 0. */
+export function resolveCustoms(
+  buy: number,
+  customs: number | undefined | null,
+  rate = TENT_CUSTOMS_RATE
+): number {
+  if (rate <= 0) return 0;
+  return customs == null ? customsFromBuy(buy, rate) : customs;
 }
 
 function tentWallOptionFor(cfg: NonNullable<Product["config"]>["tentWalls"], key: "front" | "back" | "left" | "right") {
@@ -231,8 +247,9 @@ export function itemCost(item: CostItem, productById: Map<string, ProductLookup>
     case "tent_walls": {
       const tw = cfg.tentWalls;
       if (!tw) return null;
+      const rate = tentCustomsRate(tw);
       const walls = parseTentWallsFromLineName(item.wc_line_name);
-      let cost = tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms);
+      let cost = tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms, rate);
       for (const key of ["front", "back", "left", "right"] as const) {
         const w = walls[key];
         if (!w) continue;
@@ -241,7 +258,7 @@ export function itemCost(item: CostItem, productById: Map<string, ProductLookup>
         const o = w.full ? opts.full : opts.half;
         const buy = w.double ? o.buyDouble : o.buySingle;
         const customs = w.double ? o.customsDouble : o.customsSingle;
-        cost += buy + resolveCustoms(buy, customs);
+        cost += buy + resolveCustoms(buy, customs, rate);
       }
       return cost;
     }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { addOrderItemFromProduct } from "@/lib/actions/orders";
-import { resolveCustoms } from "@/lib/domain";
+import { resolveCustoms, tentCustomsRate } from "@/lib/domain";
 import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
 
 const SHAPES = ["A", "B", "C", "D", "E", "F"];
@@ -106,7 +106,7 @@ export default function AddItemButton({
       if (!tw) return 0;
       if (!internal) return tw.baseSell;
       const freight = delivery === "air" ? tw.baseAirFreight ?? 0 : tw.baseTrainFreight ?? 0;
-      return tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms) + freight;
+      return tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms, tentCustomsRate(tw)) + freight;
     }
     // simple
     return internal ? product.config.buyPrice ?? 0 : product.price;

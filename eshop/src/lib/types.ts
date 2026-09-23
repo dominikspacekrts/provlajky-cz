@@ -93,6 +93,9 @@ export type TentWallsConfig = {
   frameColorCustoms?: number;
   frameColorAirFreight?: number;
   frameColorTrainFreight?: number;
+  /** Clo za celý produkt (admin): zapnuto/vypnuto a sazba v %. */
+  customsEnabled?: boolean;
+  customsPct?: number;
   backWidthM: number;
   fullWallBack: TentWallOption;
   halfWallBack: TentWallOption;

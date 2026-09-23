@@ -459,12 +459,18 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
   margin-bottom: 0;
 }
 .tent-cost-row input,
+.tent-cost-row select,
 .tent-sell-row input {
   width: 100%;
   padding: 7px 8px;
   border: 1px solid var(--color-gray-300);
   border-radius: 7px;
   font-size: 13px;
+  background: white;
+}
+.tent-cost-row input:disabled {
+  background: #f3f4f6;
+  color: var(--color-gray-500);
 }
 .tent-part-label {
   font-size: 12.5px;

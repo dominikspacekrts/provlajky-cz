@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createProduct, updateProduct, uploadProductImage, type ProductInput } from "@/lib/actions/products";
-import { customsFromBuy, resolveCustoms } from "@/lib/domain";
+import { customsFromBuy, resolveCustoms, tentCustomsRate, TENT_CUSTOMS_PCT_DEFAULT } from "@/lib/domain";
 import {
   PRODUCT_CATEGORIES,
   type Partner,
@@ -87,6 +87,8 @@ const emptyTentWalls = (): TentWallsConfig => ({
   frameColorCustoms: customsFromBuy(1000),
   frameColorAirFreight: 0,
   frameColorTrainFreight: 0,
+  customsEnabled: true,
+  customsPct: TENT_CUSTOMS_PCT_DEFAULT,
   backWidthM: 3,
   fullWallBack: emptyTentWallOption(),
   halfWallBack: emptyTentWallOption(),
@@ -95,10 +97,13 @@ const emptyTentWalls = (): TentWallsConfig => ({
 });
 
 function ensureTentCustoms(tw: TentWallsConfig): TentWallsConfig {
+  const customsEnabled = tw.customsEnabled !== false;
+  const customsPct = tw.customsPct ?? TENT_CUSTOMS_PCT_DEFAULT;
+  const rate = tentCustomsRate({ customsEnabled, customsPct });
   const opt = (o: TentWallOption): TentWallOption => ({
     ...o,
-    customsSingle: resolveCustoms(o.buySingle, o.customsSingle),
-    customsDouble: resolveCustoms(o.buyDouble, o.customsDouble),
+    customsSingle: resolveCustoms(o.buySingle, o.customsSingle, rate),
+    customsDouble: resolveCustoms(o.buyDouble, o.customsDouble, rate),
     airFreightSingle: o.airFreightSingle ?? 0,
     airFreightDouble: o.airFreightDouble ?? 0,
     trainFreightSingle: o.trainFreightSingle ?? 0,
@@ -107,17 +112,40 @@ function ensureTentCustoms(tw: TentWallsConfig): TentWallsConfig {
   const frameBuy = tw.frameColorBuy ?? 1000;
   return {
     ...tw,
-    baseCustoms: resolveCustoms(tw.baseBuy, tw.baseCustoms),
+    customsEnabled,
+    customsPct,
+    baseCustoms: resolveCustoms(tw.baseBuy, tw.baseCustoms, rate),
     baseAirFreight: tw.baseAirFreight ?? 0,
     baseTrainFreight: tw.baseTrainFreight ?? 0,
-    stockBaseCustoms: resolveCustoms(tw.stockBaseBuy ?? 0, tw.stockBaseCustoms),
+    stockBaseCustoms: resolveCustoms(tw.stockBaseBuy ?? 0, tw.stockBaseCustoms, rate),
     stockBaseAirFreight: tw.stockBaseAirFreight ?? 0,
     stockBaseTrainFreight: tw.stockBaseTrainFreight ?? 0,
     frameColorBuy: frameBuy,
     frameColorSell: tw.frameColorSell ?? 2000,
-    frameColorCustoms: resolveCustoms(frameBuy, tw.frameColorCustoms),
+    frameColorCustoms: resolveCustoms(frameBuy, tw.frameColorCustoms, rate),
     frameColorAirFreight: tw.frameColorAirFreight ?? 0,
     frameColorTrainFreight: tw.frameColorTrainFreight ?? 0,
+    fullWallBack: opt(tw.fullWallBack),
+    halfWallBack: opt(tw.halfWallBack),
+    fullWallSide: opt(tw.fullWallSide),
+    halfWallSide: opt(tw.halfWallSide),
+  };
+}
+
+/** Přepočítá clo u všech částí podle nákupu × aktuální sazby (po změně Ano/Ne nebo %). */
+function recalculateAllCustoms(tw: TentWallsConfig): TentWallsConfig {
+  const rate = tentCustomsRate(tw);
+  const opt = (o: TentWallOption): TentWallOption => ({
+    ...o,
+    customsSingle: customsFromBuy(o.buySingle, rate),
+    customsDouble: customsFromBuy(o.buyDouble, rate),
+  });
+  const frameBuy = tw.frameColorBuy ?? 1000;
+  return {
+    ...tw,
+    baseCustoms: customsFromBuy(tw.baseBuy, rate),
+    stockBaseCustoms: customsFromBuy(tw.stockBaseBuy ?? 0, rate),
+    frameColorCustoms: customsFromBuy(frameBuy, rate),
     fullWallBack: opt(tw.fullWallBack),
     halfWallBack: opt(tw.halfWallBack),
     fullWallSide: opt(tw.fullWallSide),
@@ -139,6 +167,7 @@ function TentCostFields({
   airFreight,
   trainFreight,
   sell,
+  customsRate,
   onChange,
 }: {
   buy: number;
@@ -146,10 +175,12 @@ function TentCostFields({
   airFreight: number;
   trainFreight: number;
   sell: number;
+  customsRate: number;
   onChange: (patch: TentCostPatch) => void;
 }) {
   const costAir = buy + customs + airFreight;
   const costTrain = buy + customs + trainFreight;
+  const customsOff = customsRate <= 0;
   return (
     <>
       <div className="tent-cost-row">
@@ -161,7 +192,7 @@ function TentCostFields({
             value={buy}
             onChange={(e) => {
               const next = Number(e.target.value) || 0;
-              onChange({ buy: next, customs: customsFromBuy(next) });
+              onChange({ buy: next, customs: customsFromBuy(next, customsRate) });
             }}
           />
         </label>
@@ -171,6 +202,7 @@ function TentCostFields({
             type="number"
             step="0.01"
             value={customs}
+            disabled={customsOff}
             onChange={(e) => onChange({ customs: Number(e.target.value) || 0 })}
           />
         </label>
@@ -917,18 +949,58 @@ export default function ProductFormButton({
                 <div className="variant-block">
                   <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 8 }}>
                     Zákazník začíná se stanem jen se střechou a přidává si stěny zvlášť. U každé části zadej náklad
-                    stejně jako u nafukovacích stanů: nákup, clo, doprava letecky a vlakem. Clo je 12 % z nákupu a
-                    dopočte se při změně nákupu. Součet je v šedém pruhu, pod ním je prodejní cena.
+                    stejně jako u nafukovacích stanů: nákup, clo, doprava letecky a vlakem. Clo za celý produkt
+                    nastavíš nahoře (ano/ne a %). Součet je v šedém pruhu, pod ním je prodejní cena.
                   </div>
 
                   <div className="variant-card">
                     <div className="variant-card-summary-row">
                       <div className="variant-card-summary" style={{ cursor: "default" }}>
-                        <span className="variant-card-summary-label">Šířka zadní stěny</span>
+                        <span className="variant-card-summary-label">Clo a šířka</span>
                       </div>
                     </div>
                     <div className="variant-card-body">
-                      <div className="tent-sell-row">
+                      <div className="tent-cost-row">
+                        <label>
+                          Clo
+                          <select
+                            value={tentWalls.customsEnabled !== false ? "yes" : "no"}
+                            onChange={(e) => {
+                              const enabled = e.target.value === "yes";
+                              setTentWalls(
+                                recalculateAllCustoms({
+                                  ...tentWalls,
+                                  customsEnabled: enabled,
+                                  customsPct: tentWalls.customsPct ?? TENT_CUSTOMS_PCT_DEFAULT,
+                                })
+                              );
+                            }}
+                          >
+                            <option value="yes">Ano</option>
+                            <option value="no">Ne</option>
+                          </select>
+                        </label>
+                        <label>
+                          Clo (%)
+                          <input
+                            type="number"
+                            step="0.1"
+                            min={0}
+                            disabled={tentWalls.customsEnabled === false}
+                            value={tentWalls.customsPct ?? TENT_CUSTOMS_PCT_DEFAULT}
+                            onChange={(e) => {
+                              const pct = Math.max(0, Number(e.target.value) || 0);
+                              setTentWalls(
+                                recalculateAllCustoms({
+                                  ...tentWalls,
+                                  customsEnabled: true,
+                                  customsPct: pct,
+                                })
+                              );
+                            }}
+                          />
+                          <small style={{ color: "var(--color-gray-600)" }}>Výchozí 12 %. Platí pro všechny části.</small>
+                        </label>
                         <label>
                           Šířka zadní stěny (m)
                           <input
@@ -950,6 +1022,7 @@ export default function ProductFormButton({
                       ["frameColor", "Barvení rámu", "Výchozí nákup 1 000 Kč, prodej 2 000 Kč."],
                     ] as const
                   ).map(([prefix, title, hint]) => {
+                    const rate = tentCustomsRate(tentWalls);
                     const buy =
                       prefix === "base"
                         ? tentWalls.baseBuy
@@ -958,10 +1031,10 @@ export default function ProductFormButton({
                           : tentWalls.frameColorBuy ?? 1000;
                     const customs =
                       prefix === "base"
-                        ? resolveCustoms(buy, tentWalls.baseCustoms)
+                        ? resolveCustoms(buy, tentWalls.baseCustoms, rate)
                         : prefix === "stockBase"
-                          ? resolveCustoms(buy, tentWalls.stockBaseCustoms)
-                          : resolveCustoms(buy, tentWalls.frameColorCustoms);
+                          ? resolveCustoms(buy, tentWalls.stockBaseCustoms, rate)
+                          : resolveCustoms(buy, tentWalls.frameColorCustoms, rate);
                     const air =
                       prefix === "base"
                         ? tentWalls.baseAirFreight ?? 0
@@ -1000,6 +1073,7 @@ export default function ProductFormButton({
                             airFreight={air}
                             trainFreight={train}
                             sell={sell}
+                            customsRate={rate}
                             onChange={(patch) => patchTentBase(prefix, patch)}
                           />
                         </div>
@@ -1016,6 +1090,7 @@ export default function ProductFormButton({
                     ] as const
                   ).map(([key, title]) => {
                     const o = tentWalls[key];
+                    const rate = tentCustomsRate(tentWalls);
                     const sellPrices = [o.sellSingle, o.sellDouble].filter((n) => n > 0);
                     const from = sellPrices.length > 0 ? Math.min(...sellPrices) : null;
                     return (
@@ -1032,10 +1107,11 @@ export default function ProductFormButton({
                           <div className="tent-part-label">Jednostranný potisk</div>
                           <TentCostFields
                             buy={o.buySingle}
-                            customs={resolveCustoms(o.buySingle, o.customsSingle)}
+                            customs={resolveCustoms(o.buySingle, o.customsSingle, rate)}
                             airFreight={o.airFreightSingle ?? 0}
                             trainFreight={o.trainFreightSingle ?? 0}
                             sell={o.sellSingle}
+                            customsRate={rate}
                             onChange={(patch) => patchTentSide(key, "Single", patch)}
                           />
                           <div className="tent-part-label" style={{ marginTop: 14 }}>
@@ -1043,10 +1119,11 @@ export default function ProductFormButton({
                           </div>
                           <TentCostFields
                             buy={o.buyDouble}
-                            customs={resolveCustoms(o.buyDouble, o.customsDouble)}
+                            customs={resolveCustoms(o.buyDouble, o.customsDouble, rate)}
                             airFreight={o.airFreightDouble ?? 0}
                             trainFreight={o.trainFreightDouble ?? 0}
                             sell={o.sellDouble}
+                            customsRate={rate}
                             onChange={(patch) => patchTentSide(key, "Double", patch)}
                           />
                         </div>

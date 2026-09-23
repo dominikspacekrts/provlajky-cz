@@ -187,32 +187,48 @@ export async function POST(req: NextRequest) {
   }
   const lines = verified.lines;
 
-  // Slevový kód se ověřuje a spotřebovává výhradně tady, server-side — nikdy
-  // z prohlížeče. Neplatný/použitý kód objednávku odmítne, ať zákazník ví,
-  // že sleva neprošla, místo aby se potichu ztratila.
-  let discountCustomer: { id: string; discount_pct: number } | null = null;
-  const normalizedCode = discountCode?.trim().toUpperCase();
-  if (normalizedCode) {
-    const { data: customer, error: lookupError } = await supabase
-      .from("customers")
-      .select("id, discount_pct, used_at")
-      .eq("discount_code", normalizedCode)
-      .maybeSingle();
-    if (lookupError) {
-      console.error("objednavka: discount code lookup failed", lookupError);
-      return NextResponse.json({ error: "Nepodařilo se ověřit slevový kód, zkuste to prosím znovu." }, { status: 500 });
-    }
-    if (!customer || customer.used_at) {
-      return NextResponse.json({ error: "Slevový kód je neplatný nebo už byl použitý." }, { status: 400 });
-    }
-    discountCustomer = { id: customer.id, discount_pct: customer.discount_pct };
-  }
-
   // Cena dopravy/platby se počítá tady, server-side, z adminem nastavených
   // částek — klientem poslané ceny se nikdy nepoužijí (viz Settings →
   // Doprava a platby).
   const checkoutSettings = await getCheckoutSettings();
   const subtotalEx = lines.reduce((s, l) => s + l.unitPrice * l.qty, 0);
+
+  // Slevový kód: nejdřív promo_codes (newsletter), pak customers (registrace).
+  // Ověření i spotřebování výhradně server-side.
+  let discountCustomer: { id: string; discount_pct: number } | null = null;
+  let discountPromo: { id: string; discount_pct: number } | null = null;
+  const normalizedCode = discountCode?.trim().toUpperCase();
+  if (normalizedCode) {
+    const { resolveDiscountCode } = await import("@/lib/promo-codes");
+    const resolved = await resolveDiscountCode(supabase, normalizedCode, subtotalEx);
+    if (!resolved.ok) {
+      if (resolved.status === 500) {
+        return NextResponse.json({ error: "Nepodařilo se ověřit slevový kód, zkuste to prosím znovu." }, { status: 500 });
+      }
+      return NextResponse.json({ error: resolved.message }, { status: 400 });
+    }
+    if (resolved.discount.source === "promo") {
+      let pct = resolved.discount.discountPct;
+      // Fixed: ještě jednou dopočti z aktuálního mezisoučtu (validate mohl mít 0).
+      const { data: promoRow } = await supabase
+        .from("promo_codes")
+        .select("discount_type, discount_value")
+        .eq("id", resolved.discount.promoId)
+        .maybeSingle();
+      if (promoRow?.discount_type === "fixed" && subtotalEx > 0) {
+        pct = Math.min(100, (Number(promoRow.discount_value) / subtotalEx) * 100);
+      }
+      if (pct <= 0) {
+        return NextResponse.json({ error: "Slevový kód nejde uplatnit na prázdný košík." }, { status: 400 });
+      }
+      discountPromo = { id: resolved.discount.promoId, discount_pct: pct };
+    } else {
+      discountCustomer = {
+        id: resolved.discount.customerId,
+        discount_pct: resolved.discount.discountPct,
+      };
+    }
+  }
   const selectedShipping = checkoutSettings.shippingMethods.find((m) => m.id === shippingMethodId) ?? null;
   const shippingFree =
     checkoutSettings.shippingFreeOverAmount > 0 && subtotalEx >= checkoutSettings.shippingFreeOverAmount;
@@ -233,7 +249,7 @@ export async function POST(req: NextRequest) {
       currency: "CZK",
       customer: { billing, shipping: shipping || billing },
       title: titleSuffix ? `Objednávka z eshopu — ${titleSuffix}`.slice(0, 200) : "Objednávka z eshopu",
-      discount_pct: discountCustomer?.discount_pct ?? 0,
+      discount_pct: discountPromo?.discount_pct ?? discountCustomer?.discount_pct ?? 0,
       shipping: shippingPriceEx + paymentPriceEx,
       ship_vat_rate: STANDARD_VAT_RATE,
     })
@@ -245,9 +261,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nepodařilo se založit objednávku, zkuste to prosím znovu." }, { status: 500 });
   }
 
-  // Atomické nárokování slevového kódu — podmínka used_at IS NULL zabrání
-  // dvojímu čerpání i v souběžných požadavcích.
-  if (discountCustomer) {
+  // Atomické nárokování slevového kódu — podmínka used_at IS NULL / used_count
+  // zabrání dvojímu čerpání i v souběžných požadavcích.
+  if (discountPromo) {
+    const { claimPromoCode } = await import("@/lib/promo-codes");
+    const claimed = await claimPromoCode(supabase, discountPromo.id, order.id);
+    if (!claimed) {
+      await supabase.from("orders").update({ discount_pct: 0 }).eq("id", order.id);
+    }
+  } else if (discountCustomer) {
     const { data: claimed } = await supabase
       .from("customers")
       .update({ used_at: new Date().toISOString(), used_order_id: order.id })
