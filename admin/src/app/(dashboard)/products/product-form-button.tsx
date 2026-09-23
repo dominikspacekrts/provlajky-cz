@@ -312,7 +312,15 @@ export default function ProductFormButton({
   }
 
   function openModal() {
-    setValue(product ? toInput(product, supplier) : emptyInput(defaultCategory));
+    const input = product ? toInput(product, supplier) : emptyInput(defaultCategory);
+    // U nůžkových stanů clo v DB ještě nemusí být — dopočti 12 % z nákupu hned
+    // při otevření, ať pole Clo není prázdné / nula.
+    if (input.kind === "tent_walls") {
+      const tw = input.config.tentWalls ?? emptyTentWalls();
+      setValue({ ...input, config: { ...input.config, tentWalls: ensureTentCustoms(tw) } });
+    } else {
+      setValue(input);
+    }
     setError(null);
     setOpen(true);
   }
@@ -379,7 +387,9 @@ export default function ProductFormButton({
     setValue((cur) => ({ ...cur, config: { ...cur.config, costBySize: next } }));
   }
 
-  const tentWalls = value.config.tentWalls ?? emptyTentWalls();
+  // Clo a doprava u nůžkového stanu — clo chybí-li v DB, dopočti 12 % z nákupu
+  // hned při čtení, ať pole Clo vždy ukazuje číslo (i u starých produktů).
+  const tentWalls = ensureTentCustoms(value.config.tentWalls ?? emptyTentWalls());
   function setTentWalls(next: TentWallsConfig) {
     setValue((cur) => ({ ...cur, config: { ...cur.config, tentWalls: next } }));
   }
@@ -435,7 +445,7 @@ export default function ProductFormButton({
         : value.kind === "simple"
         ? { buyPrice: value.config.buyPrice ?? 0 }
         : value.kind === "tent_walls"
-        ? { tentWalls }
+        ? { tentWalls: ensureTentCustoms(tentWalls) }
         : {};
     setError(null);
     startTransition(async () => {
@@ -948,10 +958,10 @@ export default function ProductFormButton({
                           : tentWalls.frameColorBuy ?? 1000;
                     const customs =
                       prefix === "base"
-                        ? tentWalls.baseCustoms ?? 0
+                        ? resolveCustoms(buy, tentWalls.baseCustoms)
                         : prefix === "stockBase"
-                          ? tentWalls.stockBaseCustoms ?? 0
-                          : tentWalls.frameColorCustoms ?? customsFromBuy(1000);
+                          ? resolveCustoms(buy, tentWalls.stockBaseCustoms)
+                          : resolveCustoms(buy, tentWalls.frameColorCustoms);
                     const air =
                       prefix === "base"
                         ? tentWalls.baseAirFreight ?? 0
@@ -1022,7 +1032,7 @@ export default function ProductFormButton({
                           <div className="tent-part-label">Jednostranný potisk</div>
                           <TentCostFields
                             buy={o.buySingle}
-                            customs={o.customsSingle ?? 0}
+                            customs={resolveCustoms(o.buySingle, o.customsSingle)}
                             airFreight={o.airFreightSingle ?? 0}
                             trainFreight={o.trainFreightSingle ?? 0}
                             sell={o.sellSingle}
@@ -1033,7 +1043,7 @@ export default function ProductFormButton({
                           </div>
                           <TentCostFields
                             buy={o.buyDouble}
-                            customs={o.customsDouble ?? 0}
+                            customs={resolveCustoms(o.buyDouble, o.customsDouble)}
                             airFreight={o.airFreightDouble ?? 0}
                             trainFreight={o.trainFreightDouble ?? 0}
                             sell={o.sellDouble}
