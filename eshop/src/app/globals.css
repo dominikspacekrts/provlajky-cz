@@ -2082,6 +2082,13 @@ html:has(.nv) { scroll-behavior: smooth; }
   font-size: clamp(13.5px, 1.05vw, 16px); line-height: 1.55;
   text-wrap: balance;
 }
+.nv .nv-tile-price {
+  margin: 10px 0 0;
+  font-size: 13.5px; letter-spacing: 0.01em;
+  font-variation-settings: "wght" 480;
+  opacity: 0.78;
+}
+.nv .nv-tile-price b { font-variation-settings: "wght" 700; font-weight: normal; opacity: 1; }
 .nv-tile-cta {
   position: relative; display: inline-flex; align-items: center; gap: 10px;
   margin-top: clamp(18px, 2.4vh, 26px); padding-bottom: 6px;

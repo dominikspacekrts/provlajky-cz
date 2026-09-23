@@ -57,6 +57,8 @@ export type PromoCodeRules = {
   maxUses: number | null;
   /** Počet dní platnosti od vytvoření; null = bez expirace. */
   validDays: number | null;
+  /** Začátek kódu, např. RACE10 → RACE10-7KQ2MX. Chybí = výchozí podle typu kampaně. */
+  prefix?: string;
 };
 
 export type PromoCode = {

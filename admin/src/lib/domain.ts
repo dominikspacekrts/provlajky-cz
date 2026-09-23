@@ -156,11 +156,20 @@ function parseTentWallsFromLineName(wcLineName: string | null | undefined) {
   const result: Partial<Record<"front" | "back" | "left" | "right", { full: boolean; double: boolean }>> = {};
   if (!wcLineName) return result;
   for (const [label, key] of Object.entries(TENT_WALL_POSITION_LABELS)) {
-    const m = wcLineName.match(new RegExp(`${label}: (celá|poloviční) \\((jednostranný|oboustranný) potisk\\)`));
+    const m = wcLineName.match(new RegExp(`${label}: (celá|poloviční) (?:\\((jednostranný|oboustranný) potisk\\)|bez potisku)`));
     if (m) result[key] = { full: m[1] === "celá", double: m[2] === "oboustranný" };
   }
   return result;
 }
+
+/** Způsob dodání z názvu položky (DELIVERY_LABEL v eshopu); starší položky ho nemají. */
+function parseTentDelivery(wcLineName: string | null | undefined): "air" | "train" | null {
+  if (!wcLineName) return null;
+  if (wcLineName.includes("Economy doručení")) return "train";
+  if (wcLineName.includes("Expresní doručení")) return "air";
+  return null;
+}
+
 /** Výchozí clo u dovážených stanů — 12 % z nákupu. */
 export const TENT_CUSTOMS_RATE = 0.12;
 export const TENT_CUSTOMS_PCT_DEFAULT = 12;
@@ -249,7 +258,22 @@ export function itemCost(item: CostItem, productById: Map<string, ProductLookup>
       if (!tw) return null;
       const rate = tentCustomsRate(tw);
       const walls = parseTentWallsFromLineName(item.wc_line_name);
-      let cost = tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms, rate);
+      const delivery = parseTentDelivery(item.wc_line_name);
+      const freight = (air: number | undefined, train: number | undefined) =>
+        delivery === "air" ? air ?? 0 : delivery === "train" ? train ?? 0 : 0;
+      const stock = /Bez potisku/.test(item.wc_line_name || "") && (tw.stockBaseBuy ?? 0) > 0;
+      let cost = stock
+        ? tw.stockBaseBuy! +
+          resolveCustoms(tw.stockBaseBuy!, tw.stockBaseCustoms, rate) +
+          freight(tw.stockBaseAirFreight, tw.stockBaseTrainFreight)
+        : tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms, rate) + freight(tw.baseAirFreight, tw.baseTrainFreight);
+      if (/Rám barvený/.test(item.wc_line_name || "")) {
+        const frameBuy = tw.frameColorBuy ?? 1000;
+        cost +=
+          frameBuy +
+          resolveCustoms(frameBuy, tw.frameColorCustoms, rate) +
+          freight(tw.frameColorAirFreight, tw.frameColorTrainFreight);
+      }
       for (const key of ["front", "back", "left", "right"] as const) {
         const w = walls[key];
         if (!w) continue;
@@ -258,7 +282,12 @@ export function itemCost(item: CostItem, productById: Map<string, ProductLookup>
         const o = w.full ? opts.full : opts.half;
         const buy = w.double ? o.buyDouble : o.buySingle;
         const customs = w.double ? o.customsDouble : o.customsSingle;
-        cost += buy + resolveCustoms(buy, customs, rate);
+        cost +=
+          buy +
+          resolveCustoms(buy, customs, rate) +
+          (w.double
+            ? freight(o.airFreightDouble, o.trainFreightDouble)
+            : freight(o.airFreightSingle, o.trainFreightSingle));
       }
       return cost;
     }

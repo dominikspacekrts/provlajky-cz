@@ -1,8 +1,16 @@
 import { createClient } from "@/lib/supabase";
 import { getCheckoutSettings } from "@/lib/checkoutSettings";
-import { availableSpeeds, variantSellPrice } from "@/lib/money";
+import { availableSpeeds, tentBaseSell, variantSellPrice } from "@/lib/money";
 import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from "@/lib/types";
 import { SITE_URL } from "@/lib/site";
+
+// Feed musí sedět s cenou, se kterou se konfigurátor otevře: s potiskem,
+// letecky (vlakem jen když letecky není nastavené).
+function tentFeedPrice(product: Product): number {
+  const cfg = product.config?.tentWalls;
+  if (!cfg) return 0;
+  return tentBaseSell(cfg, false, "fast") || tentBaseSell(cfg, false, "slow");
+}
 
 // Společný podklad pro /feeds/google.xml a /feeds/heureka.xml. Oba feedy
 // popisují stejné zboží, liší se jen obalem — proto se položky staví jednou tady.
@@ -174,7 +182,7 @@ function itemsForProduct(product: Product): FeedItem[] {
   }
 
   const singlePrice =
-    product.kind === "tent_walls" ? product.config?.tentWalls?.baseSell || 0 : product.price || 0;
+    product.kind === "tent_walls" ? tentFeedPrice(product) : product.price || 0;
   if (singlePrice <= 0) return [];
   return [
     {

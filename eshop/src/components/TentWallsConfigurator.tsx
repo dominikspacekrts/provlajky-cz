@@ -6,7 +6,16 @@
 
 import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
-import { fmtMoney } from "@/lib/money";
+import {
+  DELIVERY_HINT,
+  DELIVERY_LABEL,
+  fmtMoney,
+  tentBaseSell,
+  tentPartSell,
+  tentSpeeds,
+  tentWallSell,
+  type DeliverySpeed,
+} from "@/lib/money";
 import { TENT_PRODUCT_BLURB } from "@/lib/productCopy";
 import {
   DEFAULT_FRAME_COLOR_BUY,
@@ -50,7 +59,7 @@ const POSITIONS: { key: PositionKey; label: string; short: string }[] = [
   { key: "right", label: "Pravá boční stěna", short: "Pravá" },
 ];
 
-const MOBILE_STEPS = ["Potisk a barvy", "Přední a zadní", "Boční stěny", "Shrnutí"] as const;
+const MOBILE_STEPS = ["Potisk a barvy", "Přední a zadní", "Boční stěny", "Dodání", "Shrnutí"] as const;
 
 function optionFor(cfg: NonNullable<Product["config"]>["tentWalls"], key: PositionKey) {
   if (!cfg) return null;
@@ -59,12 +68,10 @@ function optionFor(cfg: NonNullable<Product["config"]>["tentWalls"], key: Positi
     : { full: cfg.fullWallBack, half: cfg.halfWallBack };
 }
 
-function sidePrice(side: Side, opts: { full: TentWallOption; half: TentWallOption } | null, buy: boolean) {
+function sidePrice(side: Side, opts: { full: TentWallOption; half: TentWallOption } | null, speed: DeliverySpeed) {
   if (!side || !opts) return 0;
   const o = side.type === "full" ? opts.full : opts.half;
-  // Bez potisku účtujeme jednostrannou / skladovou cenu stěny.
-  if (buy) return side.double ? o.buyDouble : o.buySingle;
-  return side.double ? o.sellDouble : o.sellSingle;
+  return tentWallSell(o, side.double, speed);
 }
 
 function PositionRow({
@@ -184,30 +191,35 @@ export default function TentWallsConfigurator({
   const [freeLogo, setFreeLogo] = useState<FreeDesignLogo | null>(null);
   const [askNext, setAskNext] = useState(false);
   const [step, setStep] = useState(0);
+  const [speed, setSpeed] = useState<DeliverySpeed>("fast");
   const image = product.images?.[0];
   const layers = layersForWidth(cfg?.backWidthM);
 
   const frameBuy = cfg?.frameColorBuy ?? DEFAULT_FRAME_COLOR_BUY;
-  const frameSell = cfg?.frameColorSell ?? DEFAULT_FRAME_COLOR_SELL;
-  const stockBaseSell = (cfg?.stockBaseSell ?? 0) > 0 ? cfg!.stockBaseSell! : cfg?.baseSell ?? 0;
-  const baseSell = printMode === "stock" ? stockBaseSell : cfg?.baseSell ?? 0;
+  const stock = printMode === "stock";
+  const speeds = cfg ? tentSpeeds(cfg, stock) : [];
+  const activeSpeed: DeliverySpeed = speeds.includes(speed) ? speed : speeds[0] ?? "fast";
+  const frameSell = tentPartSell(cfg?.frameColorSell ?? DEFAULT_FRAME_COLOR_SELL, cfg?.frameColorSellTrain, activeSpeed);
 
-  const priceByPosition = useMemo(() => {
-    const out = {} as Record<PositionKey, number>;
-    for (const p of POSITIONS) {
-      const side = sides[p.key];
-      // Bez potisku vždy single cena.
-      const priced = side && printMode === "stock" ? { ...side, double: false } : side;
-      out[p.key] = sidePrice(priced, optionFor(cfg, p.key), false);
-    }
-    return out;
-  }, [cfg, sides, printMode]);
+  const pricesFor = useMemo(() => {
+    return (s: DeliverySpeed) => {
+      const byPosition = {} as Record<PositionKey, number>;
+      for (const p of POSITIONS) {
+        const side = sides[p.key];
+        // Bez potisku vždy single cena.
+        const priced = side && stock ? { ...side, double: false } : side;
+        byPosition[p.key] = sidePrice(priced, optionFor(cfg, p.key), s);
+      }
+      if (!cfg) return { byPosition, unit: 0 };
+      const walls = POSITIONS.reduce((sum, p) => sum + byPosition[p.key], 0);
+      const frame = framePainted
+        ? tentPartSell(cfg.frameColorSell ?? DEFAULT_FRAME_COLOR_SELL, cfg.frameColorSellTrain, s)
+        : 0;
+      return { byPosition, unit: tentBaseSell(cfg, stock, s) + walls + frame };
+    };
+  }, [cfg, sides, stock, framePainted]);
 
-  const unitPrice = useMemo(() => {
-    if (!cfg) return 0;
-    const walls = POSITIONS.reduce((sum, p) => sum + priceByPosition[p.key], 0);
-    return baseSell + walls + (framePainted ? frameSell : 0);
-  }, [cfg, priceByPosition, baseSell, framePainted, frameSell]);
+  const { byPosition: priceByPosition, unit: unitPrice } = pricesFor(activeSpeed);
 
   const fabricColor = TENT_FABRIC_COLORS.find((c) => c.id === fabricColorId) ?? TENT_FABRIC_COLORS[0];
   const frameColor = TENT_FRAME_COLORS.find((c) => c.id === frameColorId) ?? TENT_FRAME_COLORS[0];
@@ -253,7 +265,7 @@ export default function TentWallsConfigurator({
         ? freeDesignNote(freeLogo)
         : OWN_ARTWORK_PENDING_NOTE
       : null;
-    const note = [modeNote, frameNote, artworkNote, ...parts].filter(Boolean).join(" · ");
+    const note = [modeNote, frameNote, DELIVERY_LABEL[activeSpeed], artworkNote, ...parts].filter(Boolean).join(" · ");
     addLine({
       productId: product.id,
       productSlug: product.slug,
@@ -400,6 +412,31 @@ export default function TentWallsConfigurator({
       />
     ) : null;
 
+  const deliveryBlock = (
+    <>
+      <div className="option-label" style={{ marginTop: 12 }}>
+        Rychlost dodání
+      </div>
+      <div className="option-row fc-delivery-row">
+        {speeds.map((s) => (
+          <button
+            key={s}
+            className={`option-chip fc-delivery-chip${activeSpeed === s ? " active" : ""}`}
+            onClick={() => setSpeed(s)}
+          >
+            <span className="fc-delivery-main">
+              {DELIVERY_LABEL[s]} · {fmtMoney(pricesFor(s).unit)}
+            </span>
+            <span className="fc-delivery-hint">{DELIVERY_HINT[s]}</span>
+          </button>
+        ))}
+      </div>
+      <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 4, lineHeight: 1.45 }}>
+        Lhůta dodání běží od přijetí platby na náš účet.
+      </p>
+    </>
+  );
+
   const summaryBlock = (
     <>
       <div className="option-label">Shrnutí</div>
@@ -410,6 +447,9 @@ export default function TentWallsConfigurator({
             : "S potiskem"}
         </li>
         <li>{framePainted ? `Rám barvený ${frameColor.label} (+${fmtMoney(frameSell)})` : "Rám standardní"}</li>
+        <li>
+          {DELIVERY_LABEL[activeSpeed]} ({DELIVERY_HINT[activeSpeed]})
+        </li>
         {POSITIONS.map((p) => {
           const s = sides[p.key];
           return (
@@ -485,7 +525,8 @@ export default function TentWallsConfigurator({
                 )}
                 {step === 1 && frontBackBlock}
                 {step === 2 && sidesBlock}
-                {step === 3 && (
+                {step === 3 && deliveryBlock}
+                {step === 4 && (
                   <>
                     {artworkBlock}
                     {summaryBlock}
@@ -501,6 +542,7 @@ export default function TentWallsConfigurator({
               )}
               {printAndColorsBlock}
               {desktopWalls}
+              {speeds.length > 0 && deliveryBlock}
               {artworkBlock}
               {unitPrice <= 0 && (
                 <p style={{ color: "var(--gray)", fontSize: 12.5, marginTop: 6 }}>
@@ -541,7 +583,7 @@ export default function TentWallsConfigurator({
       <AddedToCartDialog
         open={askNext}
         onClose={() => setAskNext(false)}
-        summary={`${product.name} · ${printMode === "stock" ? "bez potisku" : "s potiskem"} · ${wallsNote}`}
+        summary={`${product.name} · ${printMode === "stock" ? "bez potisku" : "s potiskem"} · ${wallsNote} · ${DELIVERY_LABEL[activeSpeed]}`}
       />
     </div>
   );

@@ -15,6 +15,26 @@
 import Link from "next/link";
 import { NovaArrow, useInView } from "./NovaReveal";
 import type { ProductCategory } from "@/lib/types";
+import { fmtMoney } from "@/lib/money";
+
+export type TilePrice = { price: number; perM2: boolean };
+export type TilePriceHints = {
+  byCategory: Partial<Record<ProductCategory, TilePrice>>;
+  bySlug: Record<string, TilePrice>;
+};
+
+// Dlaždice, která vede přímo na produkt, ukazuje cenu toho produktu;
+// ostatní nejnižší cenu napříč svými kategoriemi.
+function tileFromPrice(t: Tile, categories: ProductCategory[], hints: TilePriceHints): TilePrice | null {
+  const slug = t.href.startsWith("/produkt/") ? t.href.slice("/produkt/".length) : null;
+  if (slug) return hints.bySlug[slug] ?? null;
+  let best: TilePrice | null = null;
+  for (const c of categories) {
+    const hint = hints.byCategory[c];
+    if (hint && (!best || hint.price < best.price)) best = hint;
+  }
+  return best;
+}
 
 // Většina dlaždic má id shodné s reálnou kategorií produktu — jen "nafukovaci"
 // je souhrn tří kategorií (brány, totemy, nafukovací stany), takže potřebuje
@@ -139,8 +159,11 @@ const TILES: Tile[] = [
 export default function NovaFields({
   /** Sleva (%) podle reálné kategorie (nastavuje se v adminu u produktu). */
   salePctByCategory,
+  /** Nejnižší aktuální ceny (bez DPH) — počítané ze stejných dat jako karty kategorií. */
+  priceHints,
 }: {
   salePctByCategory: Partial<Record<ProductCategory, number>>;
+  priceHints: TilePriceHints;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>(0.05);
 
@@ -149,6 +172,7 @@ export default function NovaFields({
       {TILES.map((t, i) => {
         const categories = TILE_CATEGORIES[t.id] || [t.id as ProductCategory];
         const salePct = Math.max(0, ...categories.map((c) => salePctByCategory[c] || 0));
+        const from = tileFromPrice(t, categories, priceHints);
         return (
         <section
           key={t.id}
@@ -160,6 +184,12 @@ export default function NovaFields({
             {salePct > 0 && <span className="nv-tile-badge">−{salePct} %</span>}
             <h3 className="nv-tile-title">{t.title}</h3>
             <p className="nv-tile-note">{t.note}</p>
+            {from && (
+              <p className="nv-tile-price">
+                od <b>{fmtMoney(from.price)}</b>
+                {from.perM2 ? "/m²" : ""} bez DPH
+              </p>
+            )}
             <span className="nv-tile-cta">
               {t.cta}
               <NovaArrow />

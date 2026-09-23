@@ -159,6 +159,7 @@ type TentCostPatch = {
   airFreight?: number;
   trainFreight?: number;
   sell?: number;
+  sellTrain?: number;
 };
 
 function TentCostFields({
@@ -167,6 +168,8 @@ function TentCostFields({
   airFreight,
   trainFreight,
   sell,
+  sellTrain,
+  trainEmptyHint,
   customsRate,
   onChange,
 }: {
@@ -175,11 +178,15 @@ function TentCostFields({
   airFreight: number;
   trainFreight: number;
   sell: number;
+  sellTrain: number;
+  /** Co znamená prázdná cena vlakem u této části. */
+  trainEmptyHint: string;
   customsRate: number;
   onChange: (patch: TentCostPatch) => void;
 }) {
   const costAir = buy + customs + airFreight;
   const costTrain = buy + customs + trainFreight;
+  const effectiveTrain = sellTrain > 0 ? sellTrain : sell;
   const customsOff = customsRate <= 0;
   return (
     <>
@@ -232,15 +239,27 @@ function TentCostFields({
       </div>
       <div className="tent-sell-row">
         <label>
-          Prodejní cena
+          Prodej letecky
           <input
             type="number"
             step="0.01"
             value={sell}
             onChange={(e) => onChange({ sell: Number(e.target.value) || 0 })}
           />
-          <small style={{ color: sell >= costAir ? "#16a34a" : "#dc2626" }}>marže letecky {fmt(sell - costAir)}</small>
-          <small style={{ color: sell >= costTrain ? "#16a34a" : "#dc2626" }}>marže vlakem {fmt(sell - costTrain)}</small>
+          <small style={{ color: sell >= costAir ? "#16a34a" : "#dc2626" }}>marže {fmt(sell - costAir)}</small>
+        </label>
+        <label>
+          Prodej vlakem
+          <input
+            type="number"
+            step="0.01"
+            value={sellTrain || ""}
+            placeholder={trainEmptyHint}
+            onChange={(e) => onChange({ sellTrain: Number(e.target.value) || 0 })}
+          />
+          <small style={{ color: effectiveTrain >= costTrain ? "#16a34a" : "#dc2626" }}>
+            marže {fmt(effectiveTrain - costTrain)}
+          </small>
         </label>
       </div>
     </>
@@ -431,6 +450,8 @@ export default function ProductFormButton({
   ) {
     const buyKey = prefix === "base" ? "baseBuy" : prefix === "stockBase" ? "stockBaseBuy" : "frameColorBuy";
     const sellKey = prefix === "base" ? "baseSell" : prefix === "stockBase" ? "stockBaseSell" : "frameColorSell";
+    const sellTrainKey =
+      prefix === "base" ? "baseSellTrain" : prefix === "stockBase" ? "stockBaseSellTrain" : "frameColorSellTrain";
     const customsKey = prefix === "base" ? "baseCustoms" : prefix === "stockBase" ? "stockBaseCustoms" : "frameColorCustoms";
     const airKey = prefix === "base" ? "baseAirFreight" : prefix === "stockBase" ? "stockBaseAirFreight" : "frameColorAirFreight";
     const trainKey = prefix === "base" ? "baseTrainFreight" : prefix === "stockBase" ? "stockBaseTrainFreight" : "frameColorTrainFreight";
@@ -438,6 +459,7 @@ export default function ProductFormButton({
       ...tentWalls,
       ...(patch.buy != null ? { [buyKey]: patch.buy } : {}),
       ...(patch.sell != null ? { [sellKey]: patch.sell } : {}),
+      ...(patch.sellTrain != null ? { [sellTrainKey]: patch.sellTrain } : {}),
       ...(patch.customs != null ? { [customsKey]: patch.customs } : {}),
       ...(patch.airFreight != null ? { [airKey]: patch.airFreight } : {}),
       ...(patch.trainFreight != null ? { [trainKey]: patch.trainFreight } : {}),
@@ -451,6 +473,7 @@ export default function ProductFormButton({
     const o = { ...tentWalls[key] };
     if (patch.buy != null) o[`buy${side}`] = patch.buy;
     if (patch.sell != null) o[`sell${side}`] = patch.sell;
+    if (patch.sellTrain != null) o[`sell${side}Train`] = patch.sellTrain;
     if (patch.customs != null) o[`customs${side}`] = patch.customs;
     if (patch.airFreight != null) o[`airFreight${side}`] = patch.airFreight;
     if (patch.trainFreight != null) o[`trainFreight${side}`] = patch.trainFreight;
@@ -950,7 +973,9 @@ export default function ProductFormButton({
                   <div style={{ fontSize: 13, color: "var(--color-gray-700)", marginBottom: 8 }}>
                     Zákazník začíná se stanem jen se střechou a přidává si stěny zvlášť. U každé části zadej náklad
                     stejně jako u nafukovacích stanů: nákup, clo, doprava letecky a vlakem. Clo za celý produkt
-                    nastavíš nahoře (ano/ne a %). Součet je v šedém pruhu, pod ním je prodejní cena.
+                    nastavíš nahoře (ano/ne a %). Součet je v šedém pruhu, pod ním prodejní cena letecky a vlakem.
+                    Dodání vlakem zákazník uvidí, jen když má základ vyplněnou cenu vlakem; u stěn a barvení rámu
+                    prázdná cena vlakem znamená stejnou cenu jako letecky.
                   </div>
 
                   <div className="variant-card">
@@ -1053,13 +1078,23 @@ export default function ProductFormButton({
                         : prefix === "stockBase"
                           ? tentWalls.stockBaseSell ?? 0
                           : tentWalls.frameColorSell ?? 2000;
+                    const sellTrain =
+                      (prefix === "base"
+                        ? tentWalls.baseSellTrain
+                        : prefix === "stockBase"
+                          ? tentWalls.stockBaseSellTrain
+                          : tentWalls.frameColorSellTrain) ?? 0;
                     return (
                       <div key={prefix} className="variant-card">
                         <div className="variant-card-summary-row">
                           <div className="variant-card-summary" style={{ cursor: "default" }}>
                             <span className="variant-card-summary-label">{title}</span>
                             <span className="variant-card-summary-price">
-                              {sell > 0 ? fmt(sell) : "cena nenastavena"}
+                              {sell > 0 || sellTrain > 0
+                                ? `letecky ${sell > 0 ? fmt(sell) : "—"} · vlakem ${
+                                    sellTrain > 0 ? fmt(sellTrain) : prefix === "frameColor" ? fmt(sell) : "—"
+                                  }`
+                                : "cena nenastavena"}
                             </span>
                           </div>
                         </div>
@@ -1073,6 +1108,10 @@ export default function ProductFormButton({
                             airFreight={air}
                             trainFreight={train}
                             sell={sell}
+                            sellTrain={sellTrain}
+                            trainEmptyHint={
+                              prefix === "frameColor" ? "stejně jako letecky" : "vlakem se nenabízí"
+                            }
                             customsRate={rate}
                             onChange={(patch) => patchTentBase(prefix, patch)}
                           />
@@ -1091,7 +1130,9 @@ export default function ProductFormButton({
                   ).map(([key, title]) => {
                     const o = tentWalls[key];
                     const rate = tentCustomsRate(tentWalls);
-                    const sellPrices = [o.sellSingle, o.sellDouble].filter((n) => n > 0);
+                    const sellPrices = [o.sellSingle, o.sellDouble, o.sellSingleTrain ?? 0, o.sellDoubleTrain ?? 0].filter(
+                      (n) => n > 0
+                    );
                     const from = sellPrices.length > 0 ? Math.min(...sellPrices) : null;
                     return (
                       <div key={key} className="variant-card">
@@ -1111,6 +1152,8 @@ export default function ProductFormButton({
                             airFreight={o.airFreightSingle ?? 0}
                             trainFreight={o.trainFreightSingle ?? 0}
                             sell={o.sellSingle}
+                            sellTrain={o.sellSingleTrain ?? 0}
+                            trainEmptyHint="stejně jako letecky"
                             customsRate={rate}
                             onChange={(patch) => patchTentSide(key, "Single", patch)}
                           />
@@ -1123,6 +1166,8 @@ export default function ProductFormButton({
                             airFreight={o.airFreightDouble ?? 0}
                             trainFreight={o.trainFreightDouble ?? 0}
                             sell={o.sellDouble}
+                            sellTrain={o.sellDoubleTrain ?? 0}
+                            trainEmptyHint="stejně jako letecky"
                             customsRate={rate}
                             onChange={(patch) => patchTentSide(key, "Double", patch)}
                           />

@@ -104,7 +104,7 @@ export default function AddItemButton({
       // cenu přepsat v poli "Cena/ks" níž, tenhle formulář zvlášť stěny neřeší.
       const tw = product.config.tentWalls;
       if (!tw) return 0;
-      if (!internal) return tw.baseSell;
+      if (!internal) return delivery === "air" ? tw.baseSell : tw.baseSellTrain || tw.baseSell;
       const freight = delivery === "air" ? tw.baseAirFreight ?? 0 : tw.baseTrainFreight ?? 0;
       return tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms, tentCustomsRate(tw)) + freight;
     }
@@ -126,7 +126,10 @@ export default function AddItemButton({
       const o = product.config.options?.find((x) => x.id === optionId);
       return o ? `${product.name} — ${o.label}` : product.name;
     }
-    if (product.kind === "tent_walls") return `${product.name} — jen střecha (stěny doplň do popisu ručně)`;
+    if (product.kind === "tent_walls") {
+      const speed = delivery === "train" ? "Economy doručení" : "Expresní doručení";
+      return `${product.name} — jen střecha · ${speed} (stěny doplň do popisu ručně)`;
+    }
     if (product.kind === "custom_flag") {
       const mat = product.config.customFlag?.materials?.find((x) => x.id === flagMaterialId);
       return `${product.name} — ${mat?.label ?? ""} ${widthCm}×${heightCm} cm`.trim();
@@ -267,7 +270,7 @@ export default function AddItemButton({
 
               {product?.kind === "tent_walls" && (
                 <label>
-                  Doprava (do interního nákladu základu)
+                  Doprava (cena i náklad základu)
                   <select value={delivery} onChange={(e) => setDelivery(e.target.value as "air" | "train")}>
                     <option value="air">letecky (14 dní)</option>
                     <option value="train">vlakem (2 měsíce)</option>
