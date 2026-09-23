@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/platby", icon: "💸", label: "Platby" },
   { href: "/faktury", icon: "🧾", label: "Faktury" },
   { href: "/uzivatele", icon: "👥", label: "Uživatelé" },
+  { href: "/newsletter", icon: "✉️", label: "Newsletter" },
   { href: "/settings", icon: "⚙️", label: "Nastavení" },
   { href: "/statistika", icon: "📊", label: "Statistika" },
   { href: "/products", icon: "🏳️", label: "Produkty" },

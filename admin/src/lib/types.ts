@@ -237,7 +237,25 @@ export type Settings = {
   updated_at: string;
 };
 
-export type EmailKind = "invoice" | "visual" | "accountant" | "supplier" | "order_confirmation" | "review_request" | "other";
+export type EmailKind =
+  | "invoice"
+  | "visual"
+  | "accountant"
+  | "supplier"
+  | "order_confirmation"
+  | "review_request"
+  | "newsletter"
+  | "other";
+
+// Re-export newsletter domain types for convenience.
+export type {
+  ColdcallCompany,
+  ColdcallStatus,
+  NewsletterCampaign,
+  NewsletterRider,
+  PromoCode,
+  PromoCodeRules,
+} from "@/lib/newsletter/types";
 
 // Recenze zákazníka (2026-09-reviews.sql). status 'invited' = odkaz odeslán,
 // zákazník zatím nevyplnil; 'submitted' = vyplněno.
