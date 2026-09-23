@@ -434,6 +434,47 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 .variant-card { border: 1px solid var(--color-gray-200); border-radius: 10px; background: #fff; margin-bottom: 10px; overflow: hidden; }
 .variant-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 8px; }
 .variant-row > label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--color-gray-700); min-width: 110px; }
+/* Nůžkový stan — stejné sloupce jako náklad u variant (AIR), bez zalamování do rozházených řádků. */
+.tent-cost-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 8px;
+}
+.tent-cost-row > label,
+.tent-sell-row > label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--color-gray-700);
+}
+.tent-sell-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 0;
+}
+.tent-cost-row input,
+.tent-sell-row input {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 7px;
+  font-size: 13px;
+}
+.tent-part-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 2px 0 6px;
+}
+@media (max-width: 720px) {
+  .tent-cost-row,
+  .tent-sell-row { grid-template-columns: 1fr 1fr; }
+}
 .variant-row input { width: 100%; padding: 7px 8px; border: 1px solid var(--color-gray-300); border-radius: 7px; font-size: 13px; }
 .variant-row small { font-size: 11px; margin-top: 2px; }
 .variant-sum { font-size: 13px; color: var(--color-gray-700); background: #f3f4f6; border-radius: 7px; padding: 6px 10px; margin: 4px 0 10px; }

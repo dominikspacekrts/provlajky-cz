@@ -161,6 +161,18 @@ function parseTentWallsFromLineName(wcLineName: string | null | undefined) {
   }
   return result;
 }
+/** Clo u dovážených stanů je 12 % z nákupní ceny, zaokrouhlené na koruny. */
+export const TENT_CUSTOMS_RATE = 0.12;
+
+export function customsFromBuy(buy: number): number {
+  return Math.round((Number(buy) || 0) * TENT_CUSTOMS_RATE);
+}
+
+/** Uložené clo, nebo 12 % z nákupu, když v datech produktu ještě není. */
+export function resolveCustoms(buy: number, customs: number | undefined | null): number {
+  return customs == null ? customsFromBuy(buy) : customs;
+}
+
 function tentWallOptionFor(cfg: NonNullable<Product["config"]>["tentWalls"], key: "front" | "back" | "left" | "right") {
   if (!cfg) return null;
   return key === "left" || key === "right" ? { full: cfg.fullWallSide, half: cfg.halfWallSide } : { full: cfg.fullWallBack, half: cfg.halfWallBack };
@@ -220,14 +232,16 @@ export function itemCost(item: CostItem, productById: Map<string, ProductLookup>
       const tw = cfg.tentWalls;
       if (!tw) return null;
       const walls = parseTentWallsFromLineName(item.wc_line_name);
-      let cost = tw.baseBuy;
+      let cost = tw.baseBuy + resolveCustoms(tw.baseBuy, tw.baseCustoms);
       for (const key of ["front", "back", "left", "right"] as const) {
         const w = walls[key];
         if (!w) continue;
         const opts = tentWallOptionFor(tw, key);
         if (!opts) continue;
         const o = w.full ? opts.full : opts.half;
-        cost += w.double ? o.buyDouble : o.buySingle;
+        const buy = w.double ? o.buyDouble : o.buySingle;
+        const customs = w.double ? o.customsDouble : o.customsSingle;
+        cost += buy + resolveCustoms(buy, customs);
       }
       return cost;
     }
