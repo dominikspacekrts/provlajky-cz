@@ -11,21 +11,27 @@ import {
 } from "@/lib/actions/settings";
 import { setOrderCounter, type OrderCounter } from "@/lib/actions/order-counter";
 import type { AllowedUser, Partner, Settings, ShippingMethod, PaymentMethod } from "@/lib/types";
+import type { ResendSettingsStatus } from "@/lib/actions/resend-settings";
+import ResendTab from "./resend-tab";
 
-const TABS = ["Partneři", "Maily", "Marketing", "Doprava a platby", "Číslování", "Uživatelé"] as const;
+const TABS = ["Partneři", "Maily", "Newsletter", "Marketing", "Doprava a platby", "Číslování", "Uživatelé"] as const;
 
 export default function SettingsForm({
   settings,
   partners,
   allowedUsers,
   orderCounter,
+  resendStatus,
+  initialTab,
 }: {
   settings: Settings;
   partners: Partner[];
   allowedUsers: AllowedUser[];
   orderCounter: OrderCounter | null;
+  resendStatus: ResendSettingsStatus | null;
+  initialTab?: (typeof TABS)[number];
 }) {
-  const [tab, setTab] = useState<(typeof TABS)[number]>("Partneři");
+  const [tab, setTab] = useState<(typeof TABS)[number]>(initialTab ?? "Partneři");
 
   return (
     <div>
@@ -40,6 +46,7 @@ export default function SettingsForm({
       <div className="set-panel">
         {tab === "Partneři" && <PartnersTab partners={partners} />}
         {tab === "Maily" && <MailTab initial={settings.mail} />}
+        {tab === "Newsletter" && <ResendTab initial={resendStatus} />}
         {tab === "Marketing" && <MarketingTab initial={settings.marketing} />}
         {tab === "Doprava a platby" && <ShippingPaymentTab shipping={settings.shipping} payment={settings.payment} />}
         {tab === "Číslování" && <OrderNumberingTab initial={orderCounter} />}

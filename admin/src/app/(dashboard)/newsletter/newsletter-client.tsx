@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { CampaignStats } from "@/lib/actions/newsletter";
 import type {
@@ -52,9 +53,8 @@ export default function NewsletterClient(props: Props) {
 
       {!props.resendReady && (
         <div className="nl-alert" role="status">
-          Maily zatím nejde odeslat — na Vercelu (projekt <code>provlajky-cz</code>) chybí proměnné{" "}
-          <code>RESEND_API_KEY</code> a <code>RESEND_FROM_EMAIL</code>. Po jejich doplnění je potřeba udělat redeploy.
-          Náhled mailu funguje i bez nich.
+          Maily zatím nejde odeslat — chybí Resend API klíč.{" "}
+          <Link href="/settings?tab=newsletter">Zadej ho v Nastavení → Newsletter</Link>. Náhled mailu funguje i bez něj.
         </div>
       )}
 

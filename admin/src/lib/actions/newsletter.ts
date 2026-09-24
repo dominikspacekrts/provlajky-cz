@@ -14,7 +14,7 @@ import {
   normalizeCodeRules,
   validUntilFromRules,
 } from "@/lib/newsletter/promo-code";
-import { resendConfigured, sendViaResend, sleep } from "@/lib/newsletter/resend";
+import { loadResendConfig, resendConfigError, sendViaResend, sleep } from "@/lib/newsletter/resend";
 import { buildColdcallBodyHtml, buildNewsletterBodyHtml } from "@/lib/newsletter/template";
 import type {
   ColdcallCompany,
@@ -114,8 +114,9 @@ export async function getNewsletterBootstrap(): Promise<{
     }
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "newsletter@provlajky.cz";
-  const fromName = process.env.RESEND_FROM_NAME?.trim() || "PROVLAJKY";
+  const resendCfg = await loadResendConfig();
+  const fromEmail = resendCfg.fromEmail || "newsletter@provlajky.cz";
+  const fromName = resendCfg.fromName || "PROVLAJKY";
 
   return {
     riders: (ridersRes.data || []) as NewsletterRider[],
@@ -123,7 +124,7 @@ export async function getNewsletterBootstrap(): Promise<{
     products,
     campaigns,
     campaignStats,
-    resendReady: resendConfigured(),
+    resendReady: !resendConfigError(resendCfg),
     fromAddress: `${fromName} <${fromEmail}>`,
   };
 }
@@ -413,12 +414,9 @@ export async function sendNewsletterCampaign(
   const rules = normalizeCodeRules(input.codeRules);
   if (rules.discountValue <= 0) return { ok: false, error: "Sleva musí být větší než 0." };
 
-  if (!resendConfigured()) {
-    return {
-      ok: false,
-      error: "Resend není nastavený. Doplň RESEND_API_KEY a RESEND_FROM_EMAIL (viz .env.local).",
-    };
-  }
+  const resendCfg = await loadResendConfig();
+  const resendErr = resendConfigError(resendCfg);
+  if (resendErr) return { ok: false, error: resendErr };
 
   const supabase = await createClient();
   const products = await loadProductCards(input.productIds.slice(0, 6));
@@ -598,7 +596,7 @@ export async function sendNewsletterCampaign(
       html,
       replyTo: settings.mail.from || undefined,
       attachments: logoAtt,
-    });
+    }, resendCfg);
 
     await supabase.from("newsletter_sends").insert({
       campaign_id: campaignId,
@@ -684,9 +682,9 @@ export async function sendColdcallManual(input: {
   codeRules?: Partial<PromoCodeRules>;
   flipStatusToJedname?: boolean;
 }): Promise<ActionResult<{ sendId: string }>> {
-  if (!resendConfigured()) {
-    return { ok: false, error: "Resend není nastavený (RESEND_API_KEY / RESEND_FROM_EMAIL)." };
-  }
+  const resendCfg = await loadResendConfig();
+  const resendErr = resendConfigError(resendCfg);
+  if (resendErr) return { ok: false, error: resendErr };
   const subject = input.subject.trim();
   if (!subject) return { ok: false, error: "Chybí předmět." };
 
@@ -752,7 +750,7 @@ export async function sendColdcallManual(input: {
           },
         ]
       : [],
-  });
+  }, resendCfg);
 
   const { data: sendRow, error: sendErr } = await supabase
     .from("newsletter_sends")
