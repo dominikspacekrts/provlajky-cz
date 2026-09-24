@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ADMIN_NAV } from "@/lib/admin-nav";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
@@ -18,62 +19,17 @@ export default async function HomePage() {
     supabase.from("customers").select("id", { count: "exact", head: true }),
   ]);
 
-  const tiles = [
-    {
-      href: "/orders",
-      icon: "📦",
-      title: "Objednávky",
-      sub: `${orderCount ?? 0} objednávek`,
-    },
-    {
-      href: "/platby",
-      icon: "💸",
-      title: "Platby",
-      sub: "Výdělky a výplaty partnerů",
-    },
-    {
-      href: "/faktury",
-      icon: "🧾",
-      title: "Faktury",
-      sub: `${unpaidCount ?? 0} nezaplacených`,
-    },
-    {
-      href: "/uzivatele",
-      icon: "👥",
-      title: "Uživatelé",
-      sub: `${customerCount ?? 0} registrovaných`,
-    },
-    {
-      href: "/settings",
-      icon: "⚙️",
-      title: "Nastavení",
-      sub: "Firma, SMTP, partneři, šablony",
-    },
-    {
-      href: "/statistika",
-      icon: "📊",
-      title: "Statistika",
-      sub: "Tržby, náklady, zisk",
-    },
-    {
-      href: "/products",
-      icon: "🏳️",
-      title: "Produkty",
-      sub: `${productCount ?? 0} produktů, ${activeProductCount ?? 0} aktivních na eshopu`,
-    },
-    {
-      href: "/email-history",
-      icon: "✉️",
-      title: "Historie mailů",
-      sub: "Odeslané e-maily s náhledem",
-    },
-    {
-      href: "/migrate",
-      icon: "📥",
-      title: "Migrace",
-      sub: "Import dat ze staré appky",
-    },
-  ];
+  const subOverrides: Record<string, string> = {
+    "/orders": `${orderCount ?? 0} objednávek`,
+    "/faktury": `${unpaidCount ?? 0} nezaplacených`,
+    "/uzivatele": `${customerCount ?? 0} registrovaných`,
+    "/products": `${productCount ?? 0} produktů, ${activeProductCount ?? 0} aktivních na eshopu`,
+  };
+
+  const tiles = ADMIN_NAV.map((item) => ({
+    ...item,
+    sub: subOverrides[item.href] ?? item.sub,
+  }));
 
   return (
     <div>
@@ -82,7 +38,7 @@ export default async function HomePage() {
         {tiles.map((t) => (
           <Link key={t.href} href={t.href} className="home-tile">
             <span className="tile-icon">{t.icon}</span>
-            <span className="tile-title">{t.title}</span>
+            <span className="tile-title">{t.label}</span>
             <span className="tile-sub">{t.sub}</span>
           </Link>
         ))}
