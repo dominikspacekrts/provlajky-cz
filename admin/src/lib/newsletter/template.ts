@@ -40,29 +40,34 @@ export function introToHtml(intro: string, vars: IntroVars): string {
 
 function productCardsHtml(products: NewsletterProductCard[], heading: string): string {
   if (!products.length) return "";
+  // Obrázek se vejde celý do stejně velkého rámečku (nic se neořízne) a název má pevnou
+  // výšku na 2 řádky — díky tomu jsou všechny dlaždice stejně velké.
   const cells = products.map((p) => {
     const img = p.imageUrl
-      ? `<img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.name)}" width="150" style="display:block;width:150px;max-width:100%;height:auto;border-radius:6px;margin:0 auto 10px">`
-      : `<div style="width:150px;height:100px;background:#f3f4f6;border-radius:6px;margin:0 auto 10px"></div>`;
-    return `<td width="33%" style="width:33%;padding:6px;vertical-align:top">
+      ? `<img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.name)}" style="display:inline-block;max-width:130px;max-height:100px;width:auto;height:auto;border:0">`
+      : "";
+    const price = `od <strong>${fmtPrice(p.fromPrice)}${p.perM2 ? "/m²" : ""}</strong>`;
+    return `<td width="33%" valign="top" style="width:33%;padding:6px;vertical-align:top">
   <a href="${escapeHtml(p.url)}" style="display:block;text-decoration:none;color:#1f2329;border:1px solid #e5e7eb;border-radius:8px;padding:12px 10px 14px;text-align:center">
-    ${img}
-    <div style="font-size:13px;font-weight:bold;line-height:1.35;margin-bottom:6px">${escapeHtml(p.name)}</div>
-    <div style="font-size:13px;color:#1f2329">od <strong>${fmtPrice(p.fromPrice)}</strong></div>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation"><tr>
+      <td height="104" align="center" valign="middle" style="height:104px;text-align:center;vertical-align:middle;background:#f7f8f9;border-radius:6px">${img}</td>
+    </tr></table>
+    <div style="font-size:13px;font-weight:bold;line-height:18px;height:36px;overflow:hidden;margin:10px 0 6px">${escapeHtml(p.name)}</div>
+    <div style="font-size:13px;color:#1f2329">${p.fromPrice > 0 ? price : "&nbsp;"}</div>
     <div style="font-size:11px;color:#9ca3af">bez DPH</div>
   </a>
 </td>`;
   });
 
-  // Po 3 produktech zalomit řádek; neúplný řádek doplnit prázdnými buňkami, ať karty drží šířku.
+  // Po 3 produktech zalomit řádek; neúplný řádek doplnit prázdnými buňkami, ať mají všechny dlaždice stejnou šířku.
   const rows: string[] = [];
   for (let i = 0; i < cells.length; i += 3) {
     const row = cells.slice(i, i + 3);
-    while (row.length < 3 && cells.length > 3) row.push(`<td width="33%" style="width:33%;padding:6px"></td>`);
+    while (row.length < 3) row.push(`<td width="33%" style="width:33%;padding:6px"></td>`);
     rows.push(`<tr>${row.join("")}</tr>`);
   }
   return `<p style="margin:26px 0 4px;font-size:15px;font-weight:bold">${escapeHtml(heading)}</p>
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:4px -6px 8px">${rows.join("")}</table>`;
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="table-layout:fixed;margin:4px 0 8px">${rows.join("")}</table>`;
 }
 
 export type NewsletterBodyInput = {

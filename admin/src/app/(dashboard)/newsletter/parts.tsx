@@ -344,7 +344,9 @@ export function ProductPicker({
                   ) : null}
                 </span>
                 <span className="nl-product-name">{p.name}</span>
-                <span className="nl-product-price">{p.fromPrice > 0 ? `od ${fmtKc(p.fromPrice)}` : "bez ceny"}</span>
+                <span className="nl-product-price">
+                  {p.fromPrice > 0 ? `od ${fmtKc(p.fromPrice)}${p.perM2 ? "/m²" : ""}` : "bez ceny"}
+                </span>
               </button>
             );
           })}
@@ -439,17 +441,51 @@ type PreviewData = { html: string; subject: string; to: string };
  * Živý náhled: po každé změně obsahu (s krátkou prodlevou) si nechá
  * vyrenderovat přesně to HTML, které by odešlo — jen s ukázkovým kódem.
  */
-export function EmailPreview({
-  input,
-  fromAddress,
-  recipientPicker,
-  note,
-}: {
+type EmailPreviewProps = {
   input: PreviewCampaignInput;
   fromAddress: string;
   recipientPicker?: ReactNode;
   note?: ReactNode;
-}) {
+};
+
+/** Náhled mailu ve vyskakovacím okně — zavírá se křížkem, klávesou Esc nebo kliknutím mimo okno. */
+export function EmailPreviewDialog({ open, onClose, ...props }: EmailPreviewProps & { open: boolean; onClose: () => void }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return (
+    <div
+      className="nl-modal-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="nl-modal" role="dialog" aria-modal="true" aria-label="Náhled mailu">
+        <EmailPreview {...props} onClose={onClose} />
+      </div>
+    </div>
+  );
+}
+
+function EmailPreview({
+  input,
+  fromAddress,
+  recipientPicker,
+  note,
+  onClose,
+}: EmailPreviewProps & { onClose: () => void }) {
   const key = JSON.stringify(input);
   const [result, setResult] = useState<{ key: string; data: PreviewData | null; error: string | null } | null>(null);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -492,15 +528,22 @@ export function EmailPreview({
             {updating ? "Aktualizuji…" : ""}
           </span>
         </div>
-        <Segmented
-          label="Šířka náhledu"
-          value={device}
-          options={[
-            { value: "desktop", label: "Počítač" },
-            { value: "mobile", label: "Mobil" },
-          ]}
-          onChange={setDevice}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Segmented
+            label="Šířka náhledu"
+            value={device}
+            options={[
+              { value: "desktop", label: "Počítač" },
+              { value: "mobile", label: "Mobil" },
+            ]}
+            onChange={setDevice}
+          />
+          <button type="button" className="nl-close" onClick={onClose} aria-label="Zavřít náhled" autoFocus>
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </div>
       {recipientPicker && <div className="nl-preview-who">{recipientPicker}</div>}
       <dl className="nl-inbox">

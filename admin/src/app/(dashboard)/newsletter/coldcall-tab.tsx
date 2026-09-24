@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteColdcallCompany,
@@ -26,7 +26,7 @@ import {
   CampaignHistory,
   CodeRulesEditor,
   DEFAULT_RULES,
-  EmailPreview,
+  EmailPreviewDialog,
   Panel,
   ProductPicker,
   Segmented,
@@ -191,6 +191,8 @@ export default function ColdcallTab({
   const [rules, setRules] = useState<PromoCodeRules>(DEFAULT_RULES);
   const [productIds, setProductIds] = useState<string[]>([]);
   const [testTo, setTestTo] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const closePreview = useCallback(() => setPreviewOpen(false), []);
   const [busy, setBusy] = useState<null | "save" | "top" | "test" | "send" | `retry:${string}` | `row:${string}`>(null);
 
   const countByStatus = useMemo(() => {
@@ -753,7 +755,7 @@ export default function ColdcallTab({
         )}
       </Panel>
 
-      <div className="nl-layout" id="nl-composer">
+      <div className="nl-compose" id="nl-composer">
         <div className="nl-stack">
           <Panel
             title="Komu poslat"
@@ -830,7 +832,15 @@ export default function ColdcallTab({
             )}
           </Panel>
 
-          <Panel title="Obsah mailu" sub="Mail začíná oslovením „Dobrý den,“ a vykání.">
+          <Panel
+            title="Obsah mailu"
+            sub="Mail začíná oslovením „Dobrý den,“ a vykání."
+            actions={
+              <button type="button" className="btn" onClick={() => setPreviewOpen(true)}>
+                Náhled mailu
+              </button>
+            }
+          >
             <div className="nl-grid">
               <label className="nl-field">
                 Předmět
@@ -908,6 +918,9 @@ export default function ColdcallTab({
               <span className="muted" style={{ fontSize: 13 }}>
                 {busy === "send" ? "Odesílám… nezavírej stránku." : "Po odeslání se firmě zapíše datum posledního mailu."}
               </span>
+              <button type="button" className="btn lg" onClick={() => setPreviewOpen(true)}>
+                Náhled mailu
+              </button>
               <button type="button" className="btn primary lg" disabled={!!busy || missing.length > 0} onClick={send}>
                 {busy === "send" && <Spinner />}
                 {busy === "send" ? "Odesílám…" : sendLabel}
@@ -916,7 +929,9 @@ export default function ColdcallTab({
           </Panel>
         </div>
 
-        <EmailPreview
+        <EmailPreviewDialog
+          open={previewOpen}
+          onClose={closePreview}
           input={{
             kind: "coldcall",
             subject,
@@ -928,7 +943,7 @@ export default function ColdcallTab({
           fromAddress={fromAddress}
           note={
             mode === "single" && !target
-              ? "Náhled pro ukázkovou firmu — vyber firmu vlevo a uvidíš mail přesně pro ni."
+              ? "Náhled pro ukázkovou firmu — v části „Komu poslat“ vyber firmu a uvidíš mail přesně pro ni."
               : undefined
           }
         />

@@ -126,5 +126,7 @@ export type NewsletterProductCard = {
   imageUrl: string | null;
   /** Výchozí / nejnižší prodejní cena bez DPH. */
   fromPrice: number;
+  /** Cena je za m² (bannery, mesh, vlajky na zakázku). */
+  perM2?: boolean;
   url: string;
 };
