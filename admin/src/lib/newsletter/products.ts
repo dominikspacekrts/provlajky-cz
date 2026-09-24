@@ -6,29 +6,37 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SHOP_URL || process.env.NEXT_PUBLIC_SI
   ""
 );
 
-/** Nejnižší smysluplná výchozí cena produktu bez DPH. */
+const minPositive = (values: (number | undefined | null)[]): number => {
+  const ok = values.filter((v): v is number => typeof v === "number" && v > 0);
+  return ok.length ? Math.min(...ok) : 0;
+};
+
+/** Produkty prodávané za m² — cena na kartě je „od X Kč/m²“. */
+export function productPricedPerM2(p: Product): boolean {
+  return p.kind === "banner_m2" || p.kind === "custom_flag";
+}
+
+/** Nejnižší výchozí cena bez DPH — stejná logika jako „od …“ v eshopu. */
 export function productFromPrice(p: Product): number {
-  const candidates: number[] = [];
-  if (p.price > 0) candidates.push(p.price);
-  for (const v of Object.values(p.price_by_size || {})) {
-    if (typeof v === "number" && v > 0) candidates.push(v);
+  const cfg = p.config;
+  switch (p.kind) {
+    case "banner_m2":
+      return minPositive([cfg?.banner?.pvc?.sellPerM2, cfg?.banner?.mesh?.sellPerM2]);
+    case "custom_flag":
+      return minPositive((cfg?.customFlag?.materials || []).map((m) => m.sellPerM2));
+    case "variant":
+      return minPositive((cfg?.variants || []).flatMap((v) => [v.sellAir, v.sellTrain]));
+    case "options":
+      return minPositive((cfg?.options || []).map((o) => o.sellPrice));
+    case "configurable":
+      return minPositive(Object.values(p.price_by_size || {}));
+    case "tent_walls": {
+      const tw = cfg?.tentWalls;
+      return minPositive([tw?.baseSell, tw?.baseSellTrain, tw?.stockBaseSell, tw?.stockBaseSellTrain]);
+    }
+    default:
+      return minPositive([p.price]);
   }
-  const variants = p.config?.variants || [];
-  for (const v of variants) {
-    if (v.sellTrain > 0) candidates.push(v.sellTrain);
-    if (v.sellAir > 0) candidates.push(v.sellAir);
-  }
-  const options = p.config?.options || [];
-  for (const o of options) {
-    if (o.sellPrice > 0) candidates.push(o.sellPrice);
-  }
-  const tw = p.config?.tentWalls;
-  if (tw?.baseSell) candidates.push(tw.baseSell);
-  if (tw?.baseSellTrain) candidates.push(tw.baseSellTrain);
-  if (tw?.stockBaseSell) candidates.push(tw.stockBaseSell);
-  if (tw?.stockBaseSellTrain) candidates.push(tw.stockBaseSellTrain);
-  if (!candidates.length) return 0;
-  return Math.min(...candidates);
 }
 
 function absoluteImage(src: string | undefined): string | null {
@@ -44,6 +52,7 @@ export function toProductCard(p: Product): NewsletterProductCard {
     slug: p.slug,
     imageUrl: absoluteImage(p.images?.[0]),
     fromPrice: productFromPrice(p),
+    perM2: productPricedPerM2(p),
     url: `${SITE_URL}/produkt/${encodeURIComponent(p.slug)}`,
   };
 }

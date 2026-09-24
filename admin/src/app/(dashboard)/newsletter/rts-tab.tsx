@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteRider,
@@ -14,7 +14,7 @@ import {
   CampaignHistory,
   CodeRulesEditor,
   DEFAULT_RULES,
-  EmailPreview,
+  EmailPreviewDialog,
   Panel,
   ProductPicker,
   Spinner,
@@ -69,6 +69,8 @@ export default function RtsTab({
   const [productIds, setProductIds] = useState<string[]>([]);
   const [previewRiderId, setPreviewRiderId] = useState("");
   const [testTo, setTestTo] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const closePreview = useCallback(() => setPreviewOpen(false), []);
   const [busy, setBusy] = useState<null | "import" | "top" | "test" | "send" | `retry:${string}` | `del:${string}`>(null);
 
   const recipients = riders.filter((r) => r.country === "CZ" || r.country === "SK");
@@ -184,7 +186,7 @@ export default function RtsTab({
   const estSeconds = Math.max(5, Math.ceil(recipients.length * 0.4));
 
   return (
-    <div className="nl-layout">
+    <div className="nl-compose">
       <div className="nl-stack">
         <Panel
           title="Příjemci"
@@ -301,7 +303,15 @@ export default function RtsTab({
           )}
         </Panel>
 
-        <Panel title="Obsah mailu" sub="Oslovení (Ahoj Petře, / Ahoj Peter,) se doplní samo podle jména a země.">
+        <Panel
+          title="Obsah mailu"
+          sub="Oslovení (Ahoj Petře, / Ahoj Peter,) se doplní samo podle jména a země."
+          actions={
+            <button type="button" className="btn" onClick={() => setPreviewOpen(true)}>
+              Náhled mailu
+            </button>
+          }
+        >
           <div className="nl-grid">
             <label className="nl-field">
               Předmět
@@ -374,6 +384,9 @@ export default function RtsTab({
                 ? `Odesílám… nezavírej stránku (cca ${estSeconds} s).`
                 : "Maily se posílají postupně, každý s vlastním kódem."}
             </span>
+            <button type="button" className="btn lg" onClick={() => setPreviewOpen(true)}>
+              Náhled mailu
+            </button>
             <button type="button" className="btn primary lg" disabled={!!busy || missing.length > 0} onClick={sendAll}>
               {busy === "send" && <Spinner />}
               {busy === "send" ? "Odesílám…" : `Odeslat ${recipients.length} jezdcům`}
@@ -392,7 +405,9 @@ export default function RtsTab({
         />
       </div>
 
-      <EmailPreview
+      <EmailPreviewDialog
+        open={previewOpen}
+        onClose={closePreview}
         input={{ ...campaignInput, recipientRiderId: previewRiderId || undefined }}
         fromAddress={fromAddress}
         recipientPicker={
