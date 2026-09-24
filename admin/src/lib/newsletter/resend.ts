@@ -1,3 +1,5 @@
+import { readSecret, SecretsTableMissingError } from "@/lib/secrets";
+
 export type ResendAttachment = {
   filename: string;
   contentBase64: string;
@@ -15,31 +17,72 @@ export type ResendSendInput = {
 
 export type ResendSendResult = { ok: true; id: string } | { ok: false; error: string };
 
-function resendConfig() {
+export const RESEND_SECRET_NAME = "resend";
+
+export type StoredResendSettings = { apiKey: string; fromEmail: string; fromName: string };
+
+export type ResendConfig = {
+  apiKey: string;
+  fromEmail: string;
+  fromName: string;
+  /** Odkud konfigurace je: admin → Nastavení, proměnné prostředí na Vercelu, nebo nikde. */
+  source: "settings" | "env" | "none";
+  /** Maskovaný klíč pro zobrazení (re_…ab12). */
+  hint: string | null;
+  updatedAt: string | null;
+  tableMissing: boolean;
+};
+
+export function maskApiKey(key: string): string {
+  const k = key.trim();
+  if (k.length <= 8) return "••••";
+  return `${k.slice(0, 3)}…${k.slice(-4)}`;
+}
+
+/** Klíč zadaný v adminu má přednost; bez něj se použijí RESEND_* proměnné prostředí. */
+export async function loadResendConfig(): Promise<ResendConfig> {
+  let tableMissing = false;
+  try {
+    const stored = await readSecret<StoredResendSettings>(RESEND_SECRET_NAME);
+    if (stored?.value.apiKey) {
+      return {
+        apiKey: stored.value.apiKey,
+        fromEmail: stored.value.fromEmail || process.env.RESEND_FROM_EMAIL?.trim() || "",
+        fromName: stored.value.fromName || process.env.RESEND_FROM_NAME?.trim() || "PROVLAJKY",
+        source: "settings",
+        hint: stored.meta.hint,
+        updatedAt: stored.meta.updatedAt,
+        tableMissing: false,
+      };
+    }
+  } catch (e) {
+    if (e instanceof SecretsTableMissingError) tableMissing = true;
+    else console.error("loadResendConfig: čtení uloženého klíče selhalo", e);
+  }
   const apiKey = process.env.RESEND_API_KEY?.trim() || "";
-  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "";
-  const fromName = process.env.RESEND_FROM_NAME?.trim() || "PROVLAJKY";
-  return { apiKey, fromEmail, fromName };
+  return {
+    apiKey,
+    fromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "",
+    fromName: process.env.RESEND_FROM_NAME?.trim() || "PROVLAJKY",
+    source: apiKey ? "env" : "none",
+    hint: apiKey ? maskApiKey(apiKey) : null,
+    updatedAt: null,
+    tableMissing,
+  };
 }
 
-export function resendConfigured(): boolean {
-  const { apiKey, fromEmail } = resendConfig();
-  return Boolean(apiKey && fromEmail);
-}
-
-export function resendConfigError(): string | null {
-  const { apiKey, fromEmail } = resendConfig();
-  if (!apiKey) return "Chybí RESEND_API_KEY v prostředí adminu.";
-  if (!fromEmail) return "Chybí RESEND_FROM_EMAIL (ověřená adresa v Resend).";
+export function resendConfigError(cfg: ResendConfig): string | null {
+  if (!cfg.apiKey) return "Chybí Resend API klíč — zadej ho v Nastavení → Newsletter.";
+  if (!cfg.fromEmail) return "Chybí e-mail odesílatele pro Resend — doplň ho v Nastavení → Newsletter.";
   return null;
 }
 
 /** Pošle jeden HTML mail přes Resend API. Bez SDK — stačí fetch. */
-export async function sendViaResend(input: ResendSendInput): Promise<ResendSendResult> {
-  const cfgErr = resendConfigError();
+export async function sendViaResend(input: ResendSendInput, cfg: ResendConfig): Promise<ResendSendResult> {
+  const cfgErr = resendConfigError(cfg);
   if (cfgErr) return { ok: false, error: cfgErr };
 
-  const { apiKey, fromEmail, fromName } = resendConfig();
+  const { apiKey, fromEmail, fromName } = cfg;
   const from = `${fromName} <${fromEmail}>`;
 
   try {
