@@ -688,6 +688,13 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 }
 .nl-ready li.is-missing { color: #92400e; }
 .nl-ready li.is-missing::before { background: #fff4d6; box-shadow: inset 0 0 0 1.5px #f0b64a; }
+.nl-ready li.is-warn { color: #9a3412; font-weight: 600; }
+.nl-ready li.is-warn::before { background: #ffedd5; box-shadow: inset 0 0 0 1.5px #f97316; }
+.nl-live { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--color-gray-500); white-space: nowrap; }
+.nl-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--color-gray-300, #d1d5db); }
+.nl-live.is-on { color: #15803d; }
+.nl-live.is-on::before { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18); }
+.nl-select.nl-owner { min-width: 110px; padding-top: 5px; padding-bottom: 5px; font-size: 13px; }
 .nl-divider { border: none; border-top: 1px solid var(--color-border); margin: 18px 0; }
 .nl-send { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .btn.lg { padding: 11px 20px; font-size: 15px; border-radius: 8px; }

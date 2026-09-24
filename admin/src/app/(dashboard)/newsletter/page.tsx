@@ -42,6 +42,9 @@ export default async function NewsletterPage() {
       campaignStats={data.campaignStats}
       resendReady={data.resendReady}
       fromAddress={data.fromAddress}
+      team={data.team}
+      me={data.me}
+      teamReady={data.teamReady}
     />
   );
 }

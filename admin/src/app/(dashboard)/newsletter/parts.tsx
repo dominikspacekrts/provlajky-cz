@@ -41,6 +41,16 @@ export function fmtDateTime(iso: string | null | undefined) {
   });
 }
 
+/** „právě teď“, „před 5 min“, „před 3 h“, jinak datum a čas. */
+export function fmtAgo(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "právě teď";
+  if (min < 60) return `před ${min} min`;
+  if (min < 24 * 60) return `před ${Math.round(min / 60)} h`;
+  return fmtDateTime(iso);
+}
+
 export const CAMPAIGN_STATUS_LABEL: Record<NewsletterCampaignStatus, string> = {
   draft: "Koncept",
   sending: "Odesílá se",

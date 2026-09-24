@@ -8,6 +8,7 @@ import type {
   NewsletterCampaign,
   NewsletterProductCard,
   NewsletterRider,
+  TeamMember,
 } from "@/lib/newsletter/types";
 import ColdcallTab from "./coldcall-tab";
 import RtsTab from "./rts-tab";
@@ -23,6 +24,9 @@ type Props = {
   campaignStats: Record<string, CampaignStats>;
   resendReady: boolean;
   fromAddress: string;
+  team: TeamMember[];
+  me: string | null;
+  teamReady: boolean;
 };
 
 export default function NewsletterClient(props: Props) {
@@ -97,6 +101,9 @@ export default function NewsletterClient(props: Props) {
           campaignStats={props.campaignStats}
           resendReady={props.resendReady}
           fromAddress={props.fromAddress}
+          team={props.team}
+          me={props.me}
+          teamReady={props.teamReady}
           notify={notify}
         />
       )}
