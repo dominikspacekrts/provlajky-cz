@@ -1,4 +1,11 @@
-import type { BannerMaterialPricing, FlagMaterial, Product, ProductVariant } from "./types";
+import type {
+  BannerMaterialPricing,
+  FlagMaterial,
+  Product,
+  ProductVariant,
+  TentWallOption,
+  TentWallsConfig,
+} from "./types";
 
 export function fmtMoney(value: number) {
   return new Intl.NumberFormat("cs-CZ", { style: "currency", currency: "CZK", maximumFractionDigits: 0 }).format(
@@ -111,6 +118,46 @@ export function minOptionSell(product: Product): number | null {
   return prices.length ? Math.min(...prices) : null;
 }
 
+// ── Nůžkový stan (tent_walls) ────────────────────────────────────────────────
+// Ceny bez přípony jsou pro dodání letecky, *Train pro dodání vlakem —
+// stejně jako sellAir/sellTrain u variant. Část bez ceny vlakem stojí vlakem
+// stejně jako letecky.
+export function tentPartSell(air: number | undefined, train: number | undefined, speed: DeliverySpeed): number {
+  if (speed === "slow" && (train ?? 0) > 0) return train!;
+  return air || 0;
+}
+
+/** Základ stanu: bez potisku má vlastní cenu, pokud je nastavená, jinak platí základ s potiskem. */
+export function tentBaseSell(cfg: TentWallsConfig, stock: boolean, speed: DeliverySpeed): number {
+  if (stock && (cfg.stockBaseSell ?? 0) > 0) return tentPartSell(cfg.stockBaseSell, cfg.stockBaseSellTrain, speed);
+  return tentPartSell(cfg.baseSell, cfg.baseSellTrain, speed);
+}
+
+/** Vlakem se nabízí jen tehdy, když má základ v daném provedení vlastní cenu vlakem. */
+export function tentSpeeds(cfg: TentWallsConfig, stock: boolean): DeliverySpeed[] {
+  const useStock = stock && (cfg.stockBaseSell ?? 0) > 0;
+  const air = useStock ? cfg.stockBaseSell : cfg.baseSell;
+  const train = useStock ? cfg.stockBaseSellTrain : cfg.baseSellTrain;
+  const out: DeliverySpeed[] = [];
+  if ((air ?? 0) > 0) out.push("fast");
+  if ((train ?? 0) > 0) out.push("slow");
+  return out;
+}
+
+export function tentWallSell(o: TentWallOption, double: boolean, speed: DeliverySpeed): number {
+  return double ? tentPartSell(o.sellDouble, o.sellDoubleTrain, speed) : tentPartSell(o.sellSingle, o.sellSingleTrain, speed);
+}
+
+// Nůžkový stan jde koupit bez potisku i vlakem — „od …" musí vycházet
+// z nejlevnější kombinace, ne jen ze základu s potiskem letecky.
+export function minTentWallsSell(product: Product): number | null {
+  const cfg = product.config?.tentWalls;
+  const prices = [cfg?.baseSell, cfg?.baseSellTrain, cfg?.stockBaseSell, cfg?.stockBaseSellTrain].filter(
+    (p): p is number => typeof p === "number" && p > 0
+  );
+  return prices.length ? Math.min(...prices) : null;
+}
+
 // Sjednocené „od …" na kartě kategorie podle typu produktu.
 export function fromPrice(product: Product): number | null {
   if (product.kind === "simple") return product.price || null;
@@ -119,6 +166,6 @@ export function fromPrice(product: Product): number | null {
   if (product.kind === "banner_m2") return minBannerSell(product);
   if (product.kind === "options") return minOptionSell(product);
   if (product.kind === "custom_flag") return minCustomFlagSell(product);
-  if (product.kind === "tent_walls") return product.config?.tentWalls?.baseSell || null;
+  if (product.kind === "tent_walls") return minTentWallsSell(product);
   return null;
 }

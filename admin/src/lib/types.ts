@@ -363,6 +363,9 @@ export type TentWallOption = {
   buyDouble: number;
   sellSingle: number;
   sellDouble: number;
+  /** Prodej při dodání vlakem; 0/chybí = stejná jako letecky (sellSingle/sellDouble). */
+  sellSingleTrain?: number;
+  sellDoubleTrain?: number;
   customsSingle?: number;
   customsDouble?: number;
   airFreightSingle?: number;
@@ -378,7 +381,9 @@ export type TentWallOption = {
 // Poloviční stěna v sobě má zahrnutou i boční tyč, co ji drží.
 export type TentWallsConfig = {
   baseBuy: number;
+  /** Prodejní ceny bez přípony = dodání letecky; *SellTrain = vlakem (0/chybí = vlakem se nenabízí u základu, u ostatních částí stejná cena jako letecky). */
   baseSell: number;
+  baseSellTrain?: number;
   /** Clo ze základu s potiskem. Chybí-li a clo je zapnuté, % z baseBuy. */
   baseCustoms?: number;
   baseAirFreight?: number;
@@ -386,12 +391,14 @@ export type TentWallsConfig = {
   /** Základ bez potisku střechy (frame + canopy). 0 = použít baseBuy/baseSell. */
   stockBaseBuy?: number;
   stockBaseSell?: number;
+  stockBaseSellTrain?: number;
   stockBaseCustoms?: number;
   stockBaseAirFreight?: number;
   stockBaseTrainFreight?: number;
   /** Příplatek za barvení rámu (výchozí 1000 / 2000). */
   frameColorBuy?: number;
   frameColorSell?: number;
+  frameColorSellTrain?: number;
   frameColorCustoms?: number;
   frameColorAirFreight?: number;
   frameColorTrainFreight?: number;

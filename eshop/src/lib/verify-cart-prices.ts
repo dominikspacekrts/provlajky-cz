@@ -1,11 +1,14 @@
 import {
   bannerPrice,
   customFlagPrice,
+  tentBaseSell,
+  tentPartSell,
+  tentWallSell,
   variantSellPrice,
   type BannerMaterial,
   type DeliverySpeed,
 } from "@/lib/money";
-import type { CartLine, Product } from "@/lib/types";
+import type { CartLine, Product, TentWallOption } from "@/lib/types";
 
 const PRICE_TOLERANCE = 1; // Kč — zaokrouhlení
 const MAX_LINES = 40;
@@ -74,14 +77,23 @@ export function catalogUnitPrice(product: Product, line: CartLine): number | nul
     case "tent_walls": {
       const cfg = product.config?.tentWalls;
       if (!cfg) return null;
-      const stock = (cfg.stockBaseSell ?? 0) > 0 ? cfg.stockBaseSell! : cfg.baseSell || 0;
-      const minBase = Math.min(cfg.baseSell || 0, stock);
-      const frame = cfg.frameColorSell ?? 2000;
-      const maxAll =
-        (cfg.baseSell || 0) +
-        (cfg.fullWallBack?.sellDouble || 0) * 2 +
-        (cfg.fullWallSide?.sellDouble || 0) * 2 +
-        frame;
+      const speeds: DeliverySpeed[] = ["fast", "slow"];
+      const bases = speeds
+        .flatMap((s) => [tentBaseSell(cfg, false, s), tentBaseSell(cfg, true, s)])
+        .filter((p) => p > 0);
+      if (!bases.length) return null;
+      const minBase = Math.min(...bases);
+      const wallMax = (full: TentWallOption | undefined, half: TentWallOption | undefined, s: DeliverySpeed) =>
+        Math.max(full ? tentWallSell(full, true, s) : 0, half ? tentWallSell(half, true, s) : 0);
+      const maxAll = Math.max(
+        ...speeds.map(
+          (s) =>
+            Math.max(tentBaseSell(cfg, false, s), tentBaseSell(cfg, true, s)) +
+            wallMax(cfg.fullWallBack, cfg.halfWallBack, s) * 2 +
+            wallMax(cfg.fullWallSide, cfg.halfWallSide, s) * 2 +
+            tentPartSell(cfg.frameColorSell ?? 2000, cfg.frameColorSellTrain, s)
+        )
+      );
       if (line.unitPrice + PRICE_TOLERANCE < minBase) return null;
       if (line.unitPrice - PRICE_TOLERANCE > maxAll) return null;
       return line.unitPrice;

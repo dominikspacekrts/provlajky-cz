@@ -18,41 +18,30 @@ export default async function NewsletterPage() {
 
   if (!data) {
     return (
-      <div>
-        <h2>Newsletter</h2>
-        <p style={{ background: "#fef2f2", borderLeft: "3px solid #ef4444", padding: "12px 14px" }}>
+      <div className="nl">
+        <header className="nl-head">
+          <div>
+            <h2>Newsletter</h2>
+          </div>
+        </header>
+        <div className="nl-alert" role="alert">
           {bootError || "Chybí tabulky newsletteru."}
           <br />
-          <span className="muted">
-            V Supabase SQL Editoru spusť soubor <code>admin/supabase/2026-09-newsletter.sql</code>.
-          </span>
-        </p>
+          V Supabase SQL Editoru spusť soubor <code>admin/supabase/2026-09-newsletter.sql</code>.
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <h2>Newsletter</h2>
-      <p className="muted" style={{ marginBottom: 16 }}>
-        Jezdci RTS (CSV import CZ/SK) a coldcall firmy. Odesílání přes Resend
-        {data.resendReady ? (
-          <span className="status-badge status-completed" style={{ marginLeft: 8 }}>
-            Resend OK
-          </span>
-        ) : (
-          <span className="status-badge status-pending" style={{ marginLeft: 8 }}>
-            Chybí RESEND_API_KEY / RESEND_FROM_EMAIL
-          </span>
-        )}
-      </p>
-      <NewsletterClient
-        initialRiders={data.riders}
-        initialCompanies={data.companies}
-        products={data.products}
-        campaigns={data.campaigns}
-        resendReady={data.resendReady}
-      />
-    </div>
+    <NewsletterClient
+      riders={data.riders}
+      companies={data.companies}
+      products={data.products}
+      campaigns={data.campaigns}
+      campaignStats={data.campaignStats}
+      resendReady={data.resendReady}
+      fromAddress={data.fromAddress}
+    />
   );
 }

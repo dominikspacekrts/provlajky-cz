@@ -33,8 +33,11 @@ function priceLabel(p: Product): string {
       : `${fmtMoney(min, "CZK")} – ${fmtMoney(max, "CZK")} bez DPH`;
   }
   if (p.kind === "tent_walls") {
-    const base = p.config?.tentWalls?.baseSell ?? 0;
-    return base > 0 ? `od ${fmtMoney(base, "CZK")} bez DPH` : "cena nenastavena";
+    const tw = p.config?.tentWalls;
+    const sells = [tw?.baseSell, tw?.baseSellTrain, tw?.stockBaseSell, tw?.stockBaseSellTrain].filter(
+      (v): v is number => !!v && v > 0
+    );
+    return sells.length ? `od ${fmtMoney(Math.min(...sells), "CZK")} bez DPH` : "cena nenastavena";
   }
   const bySize = ["S", "M", "L", "XL"].map((s) => p.price_by_size?.[s as "S"]).filter((v): v is number => v != null);
   return bySize.length > 0 ? `od ${fmtMoney(Math.min(...bySize), "CZK")} bez DPH` : "cena nenastavena";

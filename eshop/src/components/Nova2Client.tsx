@@ -12,7 +12,7 @@
 import Link from "next/link";
 import HomeReferences from "@/components/HomeReferences";
 import type { PublicReview } from "@/lib/reviews";
-import NovaFields from "@/components/NovaFields";
+import NovaFields, { type TilePriceHints } from "@/components/NovaFields";
 import { NovaArrow, useInView } from "@/components/NovaReveal";
 import { useDiscountPopup } from "@/components/DiscountPopup";
 import type { ProductCategory } from "@/lib/types";
@@ -73,9 +73,11 @@ const STEPS = [
 
 export default function Nova2Client({
   salePctByCategory,
+  priceHints,
   reviews,
 }: {
   salePctByCategory: Partial<Record<ProductCategory, number>>;
+  priceHints: TilePriceHints;
   reviews: PublicReview[];
 }) {
   const { openDiscountPopup } = useDiscountPopup();
@@ -135,7 +137,7 @@ export default function Nova2Client({
 
       <HomeReferences reviews={reviews} />
 
-      <NovaFields salePctByCategory={salePctByCategory} />
+      <NovaFields salePctByCategory={salePctByCategory} priceHints={priceHints} />
 
       <section ref={how.ref} className={`nv-how${how.inView ? " nv-in" : ""}`}>
         <h2 className="nv-how-title" data-reveal>

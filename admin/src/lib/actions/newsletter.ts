@@ -7,7 +7,7 @@ import { getSettings } from "@/lib/actions/settings";
 import { createClient } from "@/lib/supabase/server";
 import type { Product } from "@/lib/types";
 import { parseRidersCsv } from "@/lib/newsletter/csv";
-import { newsletterGreeting } from "@/lib/newsletter/greeting";
+import { czechVocativeFirst, firstName, newsletterGreeting } from "@/lib/newsletter/greeting";
 import { shopHomeUrl, toProductCard } from "@/lib/newsletter/products";
 import {
   generatePromoCode,
@@ -25,6 +25,10 @@ import type {
   PromoCodeRules,
 } from "@/lib/newsletter/types";
 import { COLDCALL_STATUSES } from "@/lib/newsletter/types";
+
+function defaultCodePrefix(kind: "rts" | "coldcall") {
+  return kind === "rts" ? "RACE10" : "B2B";
+}
 
 export type ActionResult<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -47,12 +51,16 @@ async function loadProductCards(ids: string[]): Promise<NewsletterProductCard[]>
   return ids.map((id) => byId.get(id)).filter(Boolean).map((p) => toProductCard(p!));
 }
 
+export type CampaignStats = { sent: number; failed: number; codesUsed: number };
+
 export async function getNewsletterBootstrap(): Promise<{
   riders: NewsletterRider[];
   companies: ColdcallCompany[];
   products: NewsletterProductCard[];
   campaigns: NewsletterCampaign[];
+  campaignStats: Record<string, CampaignStats>;
   resendReady: boolean;
+  fromAddress: string;
 }> {
   const supabase = await createClient();
   const [ridersRes, companiesRes, productsRes, campaignsRes] = await Promise.all([
@@ -76,13 +84,47 @@ export async function getNewsletterBootstrap(): Promise<{
   if (campaignsRes.error) throw new Error(campaignsRes.error.message);
 
   const products = ((productsRes.data || []) as Product[]).map(toProductCard);
+  const campaigns = (campaignsRes.data || []) as NewsletterCampaign[];
+
+  const campaignStats: Record<string, CampaignStats> = {};
+  const campaignIds = campaigns.map((c) => c.id);
+  if (campaignIds.length) {
+    for (const id of campaignIds) campaignStats[id] = { sent: 0, failed: 0, codesUsed: 0 };
+    const [sendsRes, codesRes] = await Promise.all([
+      supabase
+        .from("newsletter_sends")
+        .select("campaign_id, recipient_email, status")
+        .in("campaign_id", campaignIds)
+        .limit(10000),
+      supabase.from("promo_codes").select("campaign_id, used_count").in("campaign_id", campaignIds).limit(10000),
+    ]);
+    const byCampaign = new Map<string, { recipient_email: string; status: string }[]>();
+    for (const s of (sendsRes.data || []) as { campaign_id: string; recipient_email: string; status: string }[]) {
+      const list = byCampaign.get(s.campaign_id) || [];
+      list.push(s);
+      byCampaign.set(s.campaign_id, list);
+    }
+    for (const [id, rows] of byCampaign) {
+      const st = campaignStats[id];
+      if (st) Object.assign(st, summarizeSends(rows));
+    }
+    for (const c of (codesRes.data || []) as { campaign_id: string; used_count: number }[]) {
+      const st = campaignStats[c.campaign_id];
+      if (st && c.used_count > 0) st.codesUsed++;
+    }
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "newsletter@provlajky.cz";
+  const fromName = process.env.RESEND_FROM_NAME?.trim() || "PROVLAJKY";
 
   return {
     riders: (ridersRes.data || []) as NewsletterRider[],
     companies: (companiesRes.data || []) as ColdcallCompany[],
     products,
-    campaigns: (campaignsRes.data || []) as NewsletterCampaign[],
+    campaigns,
+    campaignStats,
     resendReady: resendConfigured(),
+    fromAddress: `${fromName} <${fromEmail}>`,
   };
 }
 
@@ -185,7 +227,7 @@ export async function upsertColdcallCompany(input: {
   status?: ColdcallStatus;
   default_discount_type?: "percent" | "fixed";
   default_discount_value?: number;
-}): Promise<ActionResult<{ id: string }>> {
+}): Promise<ActionResult<ColdcallCompany>> {
   const name = input.name.trim();
   if (!name) return { ok: false, error: "Zadej název firmy." };
   const status = input.status && COLDCALL_STATUSES.includes(input.status) ? input.status : "nova";
@@ -201,16 +243,13 @@ export async function upsertColdcallCompany(input: {
   };
 
   const supabase = await createClient();
-  if (input.id) {
-    const { error } = await supabase.from("coldcall_companies").update(row).eq("id", input.id);
-    if (error) return { ok: false, error: error.message };
-    revalidateNewsletter();
-    return { ok: true, data: { id: input.id } };
-  }
-  const { data, error } = await supabase.from("coldcall_companies").insert(row).select("id").single();
+  const query = input.id
+    ? supabase.from("coldcall_companies").update(row).eq("id", input.id).select("*").single()
+    : supabase.from("coldcall_companies").insert(row).select("*").single();
+  const { data, error } = await query;
   if (error || !data) return { ok: false, error: error?.message || "Uložení selhalo." };
   revalidateNewsletter();
-  return { ok: true, data: { id: data.id } };
+  return { ok: true, data: data as ColdcallCompany };
 }
 
 export async function updateColdcallStatus(id: string, status: ColdcallStatus): Promise<ActionResult> {
@@ -246,28 +285,32 @@ export type PreviewCampaignInput = {
 
 export async function previewNewsletterHtml(
   input: PreviewCampaignInput
-): Promise<ActionResult<{ html: string; subject: string }>> {
+): Promise<ActionResult<{ html: string; subject: string; to: string }>> {
   const rules = normalizeCodeRules(input.codeRules);
   const products = await loadProductCards(input.productIds.slice(0, 6));
   const supabase = await createClient();
-  const sampleCode = "PV-NAHLED01";
+  const sampleCode = `${rules.prefix || defaultCodePrefix(input.kind)}-7KQ2MX`;
   const validUntil = validUntilFromRules(rules);
 
   let body: string;
-  let subject = input.subject.trim() || "Nabídka od PROVLAJKY";
+  const subject = input.subject.trim() || "(bez předmětu)";
+  let to = "";
 
   if (input.kind === "rts") {
     let name = "Jan Novák";
     let country = "CZ";
+    to = "jan.novak@example.cz";
     if (input.recipientRiderId) {
       const { data } = await supabase.from("newsletter_riders").select("*").eq("id", input.recipientRiderId).maybeSingle();
       if (data) {
         name = data.name;
         country = data.country;
+        to = data.email;
       }
     }
     body = buildNewsletterBodyHtml({
       greeting: newsletterGreeting(name, country),
+      firstName: country === "SK" ? firstName(name) : czechVocativeFirst(name),
       introHtml: input.introHtml,
       products,
       code: sampleCode,
@@ -278,9 +321,13 @@ export async function previewNewsletterHtml(
     });
   } else {
     let companyName = "Ukázková firma s.r.o.";
+    to = "info@firma.cz";
     if (input.recipientCompanyId) {
       const { data } = await supabase.from("coldcall_companies").select("*").eq("id", input.recipientCompanyId).maybeSingle();
-      if (data) companyName = data.name;
+      if (data) {
+        companyName = data.name;
+        to = data.email || "(firma nemá e-mail)";
+      }
     }
     body = buildColdcallBodyHtml({
       greeting: "Dobrý den,",
@@ -295,8 +342,12 @@ export async function previewNewsletterHtml(
     });
   }
 
-  const { html } = await brandedHtml(body);
-  return { ok: true, data: { html, subject } };
+  const { html, logo } = await brandedHtml(body);
+  // V mailu je logo inline příloha (cid:), v náhledu v prohlížeči ho musí nahradit data URI.
+  const previewHtml = logo
+    ? html.replace(/cid:provlajkylogo/g, `data:${logo.contentType};base64,${logo.contentBase64}`)
+    : html;
+  return { ok: true, data: { html: previewHtml, subject, to } };
 }
 
 async function insertPromoForRecipient(opts: {
@@ -355,17 +406,13 @@ export type SendCampaignInput = {
 export async function sendNewsletterCampaign(
   input: SendCampaignInput
 ): Promise<
-  ActionResult<{ campaignId: string; sent: number; failed: number; skipped: number }>
+  ActionResult<{ campaignId: string | null; sent: number; failed: number; skipped: number }>
 > {
   const subject = input.subject.trim();
   if (!subject) return { ok: false, error: "Chybí předmět mailu." };
   const rules = normalizeCodeRules(input.codeRules);
   if (rules.discountValue <= 0) return { ok: false, error: "Sleva musí být větší než 0." };
-  if (!input.productIds.length) return { ok: false, error: "Vyber aspoň jeden produkt do mailu." };
 
-  if (!resendConfigured() && !input.testTo) {
-    // i test potřebuje Resend — stejně
-  }
   if (!resendConfigured()) {
     return {
       ok: false,
@@ -388,8 +435,11 @@ export async function sendNewsletterCampaign(
       ]
     : [];
 
-  let campaignId = input.retryCampaignId || "";
-  if (!campaignId) {
+  // Test se do historie kampaní nezapisuje — jen do newsletter_sends (kind "test").
+  let campaignId: string | null = input.retryCampaignId || null;
+  if (input.testTo) {
+    campaignId = null;
+  } else if (!campaignId) {
     const { data: camp, error: campErr } = await supabase
       .from("newsletter_campaigns")
       .insert({
@@ -477,7 +527,7 @@ export async function sendNewsletterCampaign(
       const { data: already } = await supabase
         .from("newsletter_sends")
         .select("id")
-        .eq("campaign_id", campaignId)
+        .eq("campaign_id", input.retryCampaignId)
         .eq("recipient_email", recip.email)
         .eq("status", "sent")
         .maybeSingle();
@@ -493,7 +543,7 @@ export async function sendNewsletterCampaign(
       riderId: recip.riderId,
       companyId: recip.companyId,
       campaignId,
-      prefix: input.kind === "rts" ? "RTS" : "B2B",
+      prefix: rules.prefix || defaultCodePrefix(input.kind),
     });
     if ("error" in promo) {
       failed++;
@@ -515,6 +565,7 @@ export async function sendNewsletterCampaign(
       input.kind === "rts"
         ? buildNewsletterBodyHtml({
             greeting: newsletterGreeting(recip.name, recip.country || "CZ"),
+            firstName: recip.country === "SK" ? firstName(recip.name) : czechVocativeFirst(recip.name),
             introHtml: input.introHtml,
             products,
             code: promo.code,
@@ -593,14 +644,36 @@ export async function sendNewsletterCampaign(
     await sleep(120);
   }
 
-  const status = failed === 0 && sent > 0 ? "sent" : sent > 0 && failed > 0 ? "partial" : sent === 0 ? "failed" : "sent";
-  await supabase
-    .from("newsletter_campaigns")
-    .update({ status, sent_at: new Date().toISOString() })
-    .eq("id", campaignId);
+  if (campaignId) {
+    // Stav celé kampaně (i po opakovaném pokusu) z toho, kolik adres nakonec mail dostalo.
+    const { data: rows } = await supabase
+      .from("newsletter_sends")
+      .select("recipient_email, status")
+      .eq("campaign_id", campaignId)
+      .limit(10000);
+    const totals = summarizeSends((rows || []) as { recipient_email: string; status: string }[]);
+    const status = totals.failed === 0 ? (totals.sent > 0 ? "sent" : "failed") : totals.sent > 0 ? "partial" : "failed";
+    const patch: Record<string, unknown> = { status };
+    if (!input.retryCampaignId) patch.sent_at = new Date().toISOString();
+    await supabase.from("newsletter_campaigns").update(patch).eq("id", campaignId);
+  }
 
   revalidateNewsletter();
   return { ok: true, data: { campaignId, sent, failed, skipped } };
+}
+
+/** Adresa, které mail aspoň jednou odešel, se nepočítá jako chyba, i když dřívější pokus selhal. */
+function summarizeSends(rows: { recipient_email: string; status: string }[]): { sent: number; failed: number } {
+  const sentTo = new Set<string>();
+  const failedTo = new Set<string>();
+  for (const r of rows) {
+    const email = (r.recipient_email || "").toLowerCase();
+    if (r.status === "sent") sentTo.add(email);
+    else if (r.status === "failed") failedTo.add(email);
+  }
+  let failed = 0;
+  for (const e of failedTo) if (!sentTo.has(e)) failed++;
+  return { sent: sentTo.size, failed };
 }
 
 export async function sendColdcallManual(input: {
@@ -641,7 +714,7 @@ export async function sendColdcallManual(input: {
     rules,
     source: "coldcall",
     companyId: company.id,
-    prefix: "B2B",
+    prefix: rules.prefix || defaultCodePrefix("coldcall"),
   });
   if ("error" in promo) return { ok: false, error: promo.error };
 
