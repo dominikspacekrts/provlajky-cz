@@ -23,8 +23,9 @@ import type {
   NewsletterProductCard,
   NewsletterRider,
   PromoCodeRules,
+  TeamMember,
 } from "@/lib/newsletter/types";
-import { COLDCALL_STATUSES } from "@/lib/newsletter/types";
+import { COLDCALL_STATUSES, CONTACT_COOLDOWN_DAYS } from "@/lib/newsletter/types";
 
 function defaultCodePrefix(kind: "rts" | "coldcall") {
   return kind === "rts" ? "RACE10" : "B2B";
@@ -34,6 +35,61 @@ export type ActionResult<T = void> = { ok: true; data?: T } | { ok: false; error
 
 function revalidateNewsletter() {
   revalidatePath("/newsletter");
+}
+
+type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
+
+async function currentUserEmail(supabase: SupabaseServer): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data.user?.email?.toLowerCase() || null;
+}
+
+const TEAM_MIGRATION_HINT =
+  "Chybí sloupce pro práci ve více lidech — spusť v Supabase SQL Editoru soubor admin/supabase/2026-09-coldcall-team.sql.";
+
+function isMissingTeamColumn(message: string | undefined): boolean {
+  return /assigned_to|updated_by|last_contacted_by/.test(message || "") && /column|schema cache/i.test(message || "");
+}
+
+function friendlyDbError(message: string | undefined, fallback: string): string {
+  if (isMissingTeamColumn(message)) return TEAM_MIGRATION_HINT;
+  return message || fallback;
+}
+
+function cooldownCutoff(): string {
+  return new Date(Date.now() - CONTACT_COOLDOWN_DAYS * 864e5).toISOString();
+}
+
+/**
+ * Zamluví firmu pro odeslání: zapíše last_contacted_* jen když jí nikdo nepsal
+ * v posledních CONTACT_COOLDOWN_DAYS dnech. Jde o jeden UPDATE s podmínkou, takže
+ * když dva lidé odesílají zároveň, projde jen jeden z nich.
+ */
+async function claimCompanyContact(
+  supabase: SupabaseServer,
+  companyId: string,
+  me: string | null,
+  enforceCooldown: boolean
+): Promise<boolean> {
+  let q = supabase
+    .from("coldcall_companies")
+    .update({ last_contacted_at: new Date().toISOString(), last_contacted_by: me })
+    .eq("id", companyId);
+  if (enforceCooldown) q = q.or(`last_contacted_at.is.null,last_contacted_at.lt.${cooldownCutoff()}`);
+  const { data, error } = await q.select("id");
+  if (error) throw new Error(friendlyDbError(error.message, "Firmu se nepodařilo zamluvit."));
+  return (data || []).length > 0;
+}
+
+async function releaseCompanyContact(
+  supabase: SupabaseServer,
+  companyId: string,
+  previous: { at: string | null; by: string | null }
+) {
+  await supabase
+    .from("coldcall_companies")
+    .update({ last_contacted_at: previous.at, last_contacted_by: previous.by })
+    .eq("id", companyId);
 }
 
 async function brandedHtml(body: string): Promise<{ html: string; logo: Awaited<ReturnType<typeof getLogoAttachment>> }> {
@@ -61,13 +117,19 @@ export async function getNewsletterBootstrap(): Promise<{
   campaignStats: Record<string, CampaignStats>;
   resendReady: boolean;
   fromAddress: string;
+  team: TeamMember[];
+  me: string | null;
+  teamReady: boolean;
 }> {
   const supabase = await createClient();
-  const [ridersRes, companiesRes, productsRes, campaignsRes] = await Promise.all([
+  const [ridersRes, companiesRes, productsRes, campaignsRes, teamRes, teamColsRes, me] = await Promise.all([
     supabase.from("newsletter_riders").select("*").order("name"),
     supabase.from("coldcall_companies").select("*").order("updated_at", { ascending: false }),
     supabase.from("products").select("*").eq("active", true).order("sort_order"),
     supabase.from("newsletter_campaigns").select("*").order("created_at", { ascending: false }).limit(20),
+    supabase.from("allowed_users").select("email, display_name").order("display_name"),
+    supabase.from("coldcall_companies").select("assigned_to, updated_by, last_contacted_by").limit(1),
+    currentUserEmail(supabase),
   ]);
 
   const missing =
@@ -126,6 +188,9 @@ export async function getNewsletterBootstrap(): Promise<{
     campaignStats,
     resendReady: !resendConfigError(resendCfg),
     fromAddress: `${fromName} <${fromEmail}>`,
+    team: (teamRes.data || []) as TeamMember[],
+    me,
+    teamReady: !teamColsRes.error,
   };
 }
 
@@ -228,7 +293,11 @@ export async function upsertColdcallCompany(input: {
   status?: ColdcallStatus;
   default_discount_type?: "percent" | "fixed";
   default_discount_value?: number;
-}): Promise<ActionResult<ColdcallCompany>> {
+  /** undefined = nechat beze změny (u nové firmy se přiřadí tomu, kdo ji zakládá). */
+  assigned_to?: string | null;
+  /** updated_at, ze kterého úprava vycházela — když se mezitím změnil, nic se nepřepíše. */
+  expectedUpdatedAt?: string;
+}): Promise<ActionResult<ColdcallCompany> | { ok: false; error: string; conflict: ColdcallCompany }> {
   const name = input.name.trim();
   if (!name) return { ok: false, error: "Zadej název firmy." };
   const status = input.status && COLDCALL_STATUSES.includes(input.status) ? input.status : "nova";
@@ -244,25 +313,82 @@ export async function upsertColdcallCompany(input: {
   };
 
   const supabase = await createClient();
-  const query = input.id
-    ? supabase.from("coldcall_companies").update(row).eq("id", input.id).select("*").single()
-    : supabase.from("coldcall_companies").insert(row).select("*").single();
-  const { data, error } = await query;
-  if (error || !data) return { ok: false, error: error?.message || "Uložení selhalo." };
+  const me = await currentUserEmail(supabase);
+  const teamFields: Record<string, unknown> = { updated_by: me };
+  if (input.assigned_to !== undefined) teamFields.assigned_to = input.assigned_to || null;
+
+  if (!input.id) {
+    let res = await supabase
+      .from("coldcall_companies")
+      .insert({ ...row, ...teamFields, assigned_to: input.assigned_to === undefined ? me : input.assigned_to || null })
+      .select("*")
+      .single();
+    if (res.error && isMissingTeamColumn(res.error.message)) {
+      res = await supabase.from("coldcall_companies").insert(row).select("*").single();
+    }
+    const { data, error } = res;
+    if (error || !data) return { ok: false, error: friendlyDbError(error?.message, "Uložení selhalo.") };
+    revalidateNewsletter();
+    return { ok: true, data: data as ColdcallCompany };
+  }
+
+  const updateRow = async (patch: Record<string, unknown>) => {
+    let q = supabase.from("coldcall_companies").update(patch).eq("id", input.id!);
+    if (input.expectedUpdatedAt) q = q.eq("updated_at", input.expectedUpdatedAt);
+    return q.select("*");
+  };
+  let updated = await updateRow({ ...row, ...teamFields });
+  if (updated.error && isMissingTeamColumn(updated.error.message)) updated = await updateRow(row);
+  const { data, error } = updated;
+  if (error) return { ok: false, error: friendlyDbError(error.message, "Uložení selhalo.") };
+  if (!data?.length) {
+    const { data: current } = await supabase.from("coldcall_companies").select("*").eq("id", input.id).maybeSingle();
+    if (!current) return { ok: false, error: "Firmu mezitím někdo smazal." };
+    return {
+      ok: false,
+      error: "Firmu mezitím upravil někdo jiný. Zkontroluj jeho změny a ulož znovu.",
+      conflict: current as ColdcallCompany,
+    };
+  }
+  revalidateNewsletter();
+  return { ok: true, data: data[0] as ColdcallCompany };
+}
+
+export async function updateColdcallAssignee(id: string, assignedTo: string | null): Promise<ActionResult<ColdcallCompany>> {
+  const supabase = await createClient();
+  const me = await currentUserEmail(supabase);
+  const { data, error } = await supabase
+    .from("coldcall_companies")
+    .update({ assigned_to: assignedTo || null, updated_by: me, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error || !data) return { ok: false, error: friendlyDbError(error?.message, "Uložení selhalo.") };
   revalidateNewsletter();
   return { ok: true, data: data as ColdcallCompany };
 }
 
-export async function updateColdcallStatus(id: string, status: ColdcallStatus): Promise<ActionResult> {
+export async function updateColdcallStatus(id: string, status: ColdcallStatus): Promise<ActionResult<ColdcallCompany>> {
   if (!COLDCALL_STATUSES.includes(status)) return { ok: false, error: "Neplatný stav." };
   const supabase = await createClient();
-  const { error } = await supabase
+  const me = await currentUserEmail(supabase);
+  let res = await supabase
     .from("coldcall_companies")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", id);
-  if (error) return { ok: false, error: error.message };
+    .update({ status, updated_by: me, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (res.error && isMissingTeamColumn(res.error.message)) {
+    res = await supabase
+      .from("coldcall_companies")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("*")
+      .single();
+  }
+  if (res.error || !res.data) return { ok: false, error: res.error?.message || "Uložení selhalo." };
   revalidateNewsletter();
-  return { ok: true };
+  return { ok: true, data: res.data as ColdcallCompany };
 }
 
 export async function deleteColdcallCompany(id: string): Promise<ActionResult> {
@@ -402,6 +528,10 @@ export type SendCampaignInput = {
   retryCampaignId?: string;
   /** Test: pošli jen na tuhle adresu (1 mail, 1 kód). */
   testTo?: string;
+  /** Coldcall: přeskočit firmy, kterým někdo psal za posledních CONTACT_COOLDOWN_DAYS dní. */
+  skipRecentlyContacted?: boolean;
+  /** Coldcall: jen firmy přiřazené tomuhle uživateli. */
+  onlyAssignedTo?: string;
 };
 
 export async function sendNewsletterCampaign(
@@ -419,6 +549,10 @@ export async function sendNewsletterCampaign(
   if (resendErr) return { ok: false, error: resendErr };
 
   const supabase = await createClient();
+  if (input.kind === "coldcall" && !input.testTo) {
+    const { error: colsErr } = await supabase.from("coldcall_companies").select("last_contacted_by").limit(1);
+    if (colsErr) return { ok: false, error: friendlyDbError(colsErr.message, "Firmy se nepodařilo načíst.") };
+  }
   const products = await loadProductCards(input.productIds.slice(0, 6));
   const { logo } = await brandedHtml("<p></p>");
   const settings = await getSettings();
@@ -463,6 +597,7 @@ export async function sendNewsletterCampaign(
     riderId?: string;
     companyId?: string;
     companyName?: string;
+    previousContact?: { at: string | null; by: string | null };
   };
 
   const recipients: Recip[] = [];
@@ -498,7 +633,9 @@ export async function sendNewsletterCampaign(
     if (input.coldcallStatuses?.length) {
       q = q.in("status", input.coldcallStatuses);
     }
-    const { data } = await q;
+    if (input.onlyAssignedTo) q = q.eq("assigned_to", input.onlyAssignedTo);
+    const { data, error: companiesErr } = await q;
+    if (companiesErr) return { ok: false, error: friendlyDbError(companiesErr.message, "Firmy se nepodařilo načíst.") };
     for (const c of (data || []) as ColdcallCompany[]) {
       if (!c.email?.trim()) continue;
       recipients.push({
@@ -506,6 +643,7 @@ export async function sendNewsletterCampaign(
         name: c.name,
         companyId: c.id,
         companyName: c.name,
+        previousContact: { at: c.last_contacted_at, by: c.last_contacted_by ?? null },
       });
     }
   }
@@ -513,11 +651,25 @@ export async function sendNewsletterCampaign(
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  const me = await currentUserEmail(supabase);
 
   for (const recip of recipients) {
     if (!recip.email.includes("@")) {
       skipped++;
       continue;
+    }
+
+    if (recip.companyId && !input.testTo) {
+      const claimed = await claimCompanyContact(
+        supabase,
+        recip.companyId,
+        me,
+        !!input.skipRecentlyContacted && !input.retryCampaignId
+      );
+      if (!claimed) {
+        skipped++;
+        continue;
+      }
     }
 
     // Při retry přeskoč, pokud mezitím už sent
@@ -545,6 +697,7 @@ export async function sendNewsletterCampaign(
     });
     if ("error" in promo) {
       failed++;
+      if (recip.companyId && recip.previousContact) await releaseCompanyContact(supabase, recip.companyId, recip.previousContact);
       await supabase.from("newsletter_sends").insert({
         campaign_id: campaignId,
         kind: input.testTo ? "test" : "campaign",
@@ -628,14 +781,9 @@ export async function sendNewsletterCampaign(
 
     if (result.ok) {
       sent++;
-      if (recip.companyId) {
-        await supabase
-          .from("coldcall_companies")
-          .update({ last_contacted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .eq("id", recip.companyId);
-      }
     } else {
       failed++;
+      if (recip.companyId && recip.previousContact) await releaseCompanyContact(supabase, recip.companyId, recip.previousContact);
     }
 
     // ~8 mailů / s — šetrné k Resend free tieru
@@ -681,7 +829,12 @@ export async function sendColdcallManual(input: {
   productIds: string[];
   codeRules?: Partial<PromoCodeRules>;
   flipStatusToJedname?: boolean;
-}): Promise<ActionResult<{ sendId: string }>> {
+  /** Poslat i když firmě někdo psal před méně než CONTACT_COOLDOWN_DAYS dny (admin to potvrdil). */
+  force?: boolean;
+}): Promise<
+  | ActionResult<{ sendId: string }>
+  | { ok: false; error: string; recentContact: { at: string; by: string | null } }
+> {
   const resendCfg = await loadResendConfig();
   const resendErr = resendConfigError(resendCfg);
   if (resendErr) return { ok: false, error: resendErr };
@@ -696,6 +849,27 @@ export async function sendColdcallManual(input: {
     .maybeSingle();
   if (error || !company) return { ok: false, error: error?.message || "Firma nenalezena." };
   if (!company.email?.trim()) return { ok: false, error: "Firma nemá e-mail." };
+
+  const me = await currentUserEmail(supabase);
+  const previousContact = { at: company.last_contacted_at as string | null, by: (company.last_contacted_by as string | null) ?? null };
+  let claimed: boolean;
+  try {
+    claimed = await claimCompanyContact(supabase, company.id, me, !input.force);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Firmu se nepodařilo zamluvit." };
+  }
+  if (!claimed) {
+    const { data: fresh } = await supabase
+      .from("coldcall_companies")
+      .select("last_contacted_at, last_contacted_by")
+      .eq("id", company.id)
+      .maybeSingle();
+    return {
+      ok: false,
+      error: "Téhle firmě už někdo nedávno psal.",
+      recentContact: { at: fresh?.last_contacted_at || new Date().toISOString(), by: fresh?.last_contacted_by ?? null },
+    };
+  }
 
   const rules = normalizeCodeRules(
     input.codeRules || {
@@ -714,7 +888,10 @@ export async function sendColdcallManual(input: {
     companyId: company.id,
     prefix: rules.prefix || defaultCodePrefix("coldcall"),
   });
-  if ("error" in promo) return { ok: false, error: promo.error };
+  if ("error" in promo) {
+    await releaseCompanyContact(supabase, company.id, previousContact);
+    return { ok: false, error: promo.error };
+  }
 
   const settings = await getSettings();
   const body = buildColdcallBodyHtml({
@@ -783,15 +960,18 @@ export async function sendColdcallManual(input: {
     error_message: result.ok ? null : result.error,
   });
 
-  if (!result.ok) return { ok: false, error: result.error };
+  if (!result.ok) {
+    await releaseCompanyContact(supabase, company.id, previousContact);
+    return { ok: false, error: result.error };
+  }
   if (sendErr || !sendRow) return { ok: false, error: sendErr?.message || "Log se neuložil." };
 
-  const patch: Record<string, unknown> = {
-    last_contacted_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  if (input.flipStatusToJedname) patch.status = "jedname";
-  await supabase.from("coldcall_companies").update(patch).eq("id", company.id);
+  if (input.flipStatusToJedname && company.status !== "jedname") {
+    await supabase
+      .from("coldcall_companies")
+      .update({ status: "jedname", updated_by: me, updated_at: new Date().toISOString() })
+      .eq("id", company.id);
+  }
 
   revalidateNewsletter();
   return { ok: true, data: { sendId: sendRow.id } };

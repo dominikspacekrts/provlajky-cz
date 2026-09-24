@@ -44,7 +44,16 @@ export type ColdcallCompany = {
   created_at: string;
   updated_at: string;
   last_contacted_at: string | null;
+  /** Sloupce z 2026-09-coldcall-team.sql — před migrací chybí. */
+  assigned_to?: string | null;
+  updated_by?: string | null;
+  last_contacted_by?: string | null;
 };
+
+export type TeamMember = { email: string; display_name: string };
+
+/** Firmě, které někdo psal za posledních N dní, se mail znovu nepošle bez potvrzení. */
+export const CONTACT_COOLDOWN_DAYS = 7;
 
 export type PromoDiscountType = "percent" | "fixed";
 
