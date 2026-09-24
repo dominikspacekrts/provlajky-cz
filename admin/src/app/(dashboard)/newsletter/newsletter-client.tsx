@@ -10,11 +10,12 @@ import type {
   NewsletterRider,
   TeamMember,
 } from "@/lib/newsletter/types";
+import CodesTab from "./codes-tab";
 import ColdcallTab from "./coldcall-tab";
 import RtsTab from "./rts-tab";
 import type { Notify } from "./parts";
 
-type Tab = "rts" | "coldcall";
+type Tab = "rts" | "coldcall" | "codes";
 
 type Props = {
   riders: NewsletterRider[];
@@ -81,9 +82,20 @@ export default function NewsletterClient(props: Props) {
         >
           Coldcall firmy <span className="nl-count">{props.companies.length}</span>
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "codes"}
+          className={`nl-tab${tab === "codes" ? " is-active" : ""}`}
+          onClick={() => setTab("codes")}
+        >
+          Slevové kódy
+        </button>
       </div>
 
-      {tab === "rts" ? (
+      {tab === "codes" ? (
+        <CodesTab notify={notify} />
+      ) : tab === "rts" ? (
         <RtsTab
           riders={props.riders}
           products={props.products}

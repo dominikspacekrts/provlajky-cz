@@ -52,6 +52,33 @@ export type ColdcallCompany = {
 
 export type TeamMember = { email: string; display_name: string };
 
+/** Nepoužitý a platný / už uplatněný / propadlý bez použití. */
+export type PromoCodeState = "active" | "used" | "expired";
+
+export const PROMO_STATE_LABELS: Record<PromoCodeState, string> = {
+  active: "Nepoužité",
+  used: "Použité",
+  expired: "Propadlé",
+};
+
+/** Jeden řádek výpisu kódů — komu patří, kolik dává a jak na tom je. */
+export type PromoCodeListRow = {
+  id: string;
+  code: string;
+  discountType: PromoDiscountType;
+  discountValue: number;
+  oneShot: boolean;
+  maxUses: number | null;
+  usedCount: number;
+  validUntil: string | null;
+  createdAt: string;
+  source: "rts" | "coldcall" | "manual";
+  /** Komu se kód připsal; null u kódu bez příjemce (např. test). */
+  recipient: { kind: "company" | "rider"; name: string; email: string | null } | null;
+  campaignSubject: string | null;
+  orderNumber: string | null;
+};
+
 /** Firmě, které někdo psal za posledních N dní, se mail znovu nepošle bez potvrzení. */
 export const CONTACT_COOLDOWN_DAYS = 7;
 

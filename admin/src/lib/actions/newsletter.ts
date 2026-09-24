@@ -22,7 +22,10 @@ import type {
   NewsletterCampaign,
   NewsletterProductCard,
   NewsletterRider,
+  PromoCodeListRow,
   PromoCodeRules,
+  PromoCodeState,
+  PromoDiscountType,
   TeamMember,
 } from "@/lib/newsletter/types";
 import { COLDCALL_STATUSES, CONTACT_COOLDOWN_DAYS } from "@/lib/newsletter/types";
@@ -514,6 +517,113 @@ async function insertPromoForRecipient(opts: {
     }
   }
   return { error: "Nepodařilo se vygenerovat unikátní kód." };
+}
+
+const PROMO_LIST_LIMIT = 300;
+
+type PromoJoinRow = {
+  id: string;
+  code: string;
+  discount_type: PromoDiscountType;
+  discount_value: number | string;
+  one_shot: boolean;
+  max_uses: number | null;
+  used_count: number;
+  valid_until: string | null;
+  created_at: string;
+  source: "rts" | "coldcall" | "manual";
+  coldcall_companies: { name: string; email: string | null } | null;
+  newsletter_riders: { name: string; email: string | null } | null;
+  newsletter_campaigns: { subject: string } | null;
+  orders: { order_number: string | null } | null;
+};
+
+/**
+ * Výpis vygenerovaných kódů pro sekci Slevové kódy. Stav se počítá z used_count
+ * a platnosti, takže uplatněný kód ze seznamu nepoužitých sám zmizí.
+ */
+export async function listPromoCodes(
+  state: PromoCodeState
+): Promise<
+  ActionResult<{
+    rows: PromoCodeListRow[];
+    counts: Record<PromoCodeState, number>;
+    truncated: boolean;
+  }>
+> {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const select = `id, code, discount_type, discount_value, one_shot, max_uses, used_count, valid_until, created_at, source,
+    coldcall_companies ( name, email ),
+    newsletter_riders ( name, email ),
+    newsletter_campaigns ( subject ),
+    orders ( order_number )`;
+
+  const base = () => supabase.from("promo_codes").select(select).in("source", ["rts", "coldcall"]);
+  let query = base();
+  if (state === "active") query = query.eq("used_count", 0).or(`valid_until.is.null,valid_until.gte.${now}`);
+  else if (state === "used") query = query.gt("used_count", 0);
+  else query = query.eq("used_count", 0).lt("valid_until", now);
+
+  const countFor = (s: PromoCodeState) => {
+    let q = supabase.from("promo_codes").select("id", { count: "exact", head: true }).in("source", ["rts", "coldcall"]);
+    if (s === "active") q = q.eq("used_count", 0).or(`valid_until.is.null,valid_until.gte.${now}`);
+    else if (s === "used") q = q.gt("used_count", 0);
+    else q = q.eq("used_count", 0).lt("valid_until", now);
+    return q;
+  };
+
+  const [listRes, activeRes, usedRes, expiredRes] = await Promise.all([
+    query.order("created_at", { ascending: false }).limit(PROMO_LIST_LIMIT),
+    countFor("active"),
+    countFor("used"),
+    countFor("expired"),
+  ]);
+
+  if (listRes.error) {
+    const msg = listRes.error.message;
+    if (/does not exist|schema cache|Could not find/i.test(msg)) {
+      return { ok: false, error: "Tabulka promo_codes chybí. Spusť v Supabase SQL Editoru admin/supabase/2026-09-newsletter.sql." };
+    }
+    return { ok: false, error: msg };
+  }
+
+  const rows: PromoCodeListRow[] = ((listRes.data || []) as unknown as PromoJoinRow[]).map((r) => {
+    const company = r.coldcall_companies;
+    const rider = r.newsletter_riders;
+    return {
+      id: r.id,
+      code: r.code,
+      discountType: r.discount_type,
+      discountValue: Number(r.discount_value) || 0,
+      oneShot: r.one_shot,
+      maxUses: r.max_uses,
+      usedCount: r.used_count,
+      validUntil: r.valid_until,
+      createdAt: r.created_at,
+      source: r.source,
+      recipient: company
+        ? { kind: "company", name: company.name, email: company.email }
+        : rider
+          ? { kind: "rider", name: rider.name, email: rider.email }
+          : null,
+      campaignSubject: r.newsletter_campaigns?.subject ?? null,
+      orderNumber: r.orders?.order_number ?? null,
+    };
+  });
+
+  return {
+    ok: true,
+    data: {
+      rows,
+      counts: {
+        active: activeRes.count ?? 0,
+        used: usedRes.count ?? 0,
+        expired: expiredRes.count ?? 0,
+      },
+      truncated: rows.length >= PROMO_LIST_LIMIT,
+    },
+  };
 }
 
 export type SendCampaignInput = {
