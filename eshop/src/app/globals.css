@@ -1241,15 +1241,8 @@ label:has(input[type="checkbox"]), .cb-line {
   position: relative; display: flex; flex-direction: column; overflow: hidden;
   background: #fff; text-decoration: none; color: inherit;
 }
-.group-tile-photo { position: relative; aspect-ratio: 4 / 3; overflow: hidden; background: var(--ink); }
+.group-tile-photo { aspect-ratio: 4 / 3; overflow: hidden; background: var(--ink); }
 .group-tile-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform 1s var(--nv-ease); }
-.group-tile-price {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
-  padding: 8px 14px;
-  background: rgba(8, 8, 10, 0.82); color: #fff;
-  font-size: 13px; letter-spacing: 0.04em; text-transform: lowercase;
-  font-variation-settings: "wght" 620, "wdth" 100;
-}
 .group-tile:hover .group-tile-photo img { transform: scale(1.06); }
 .group-tile-body { padding: 22px 24px 26px; border-top: 1px solid var(--border); }
 .group-tile-title {
@@ -1257,6 +1250,13 @@ label:has(input[type="checkbox"]), .cb-line {
   font-variation-settings: "wght" 680, "wdth" 112;
 }
 .group-tile-note { margin-top: 8px; color: var(--gray); font-size: 14px; line-height: 1.55; }
+.group-tile-price {
+  margin-top: 10px; font-size: 13.5px; line-height: 1.4; letter-spacing: 0.01em;
+  color: var(--gray); font-variation-settings: "wght" 480;
+}
+.group-tile-price b {
+  color: var(--ink); font-variation-settings: "wght" 700; font-weight: normal;
+}
 .group-tile-cta {
   display: inline-block; margin-top: 14px; font-size: 12px; letter-spacing: 0.08em;
   text-transform: uppercase; font-variation-settings: "wght" 620, "wdth" 100;
