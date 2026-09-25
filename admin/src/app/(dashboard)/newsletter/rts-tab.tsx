@@ -22,17 +22,17 @@ import {
 } from "./parts";
 
 const DEFAULT_SUBJECT = "10% sleva pro jezdce Race the Streets | Provlajky.cz";
-const DEFAULT_INTRO = `v rámci našeho partnerství s Race the Streets jsme pro tebe připravili **{sleva} slevu na celý nákup na Provlajky.cz**.
+const DEFAULT_INTRO = `jako jezdec Race the Streets od nás získáváš **{sleva} slevu** na celý nákup na Provlajky.cz.
 
-Chceš, aby byl tvůj tým, logo nebo partner na závodech opravdu vidět? Vyber si z naší nabídky **vlajek, bannerů, nůžkových a nafukovacích stanů** a dalších reklamních prvků a vytvoř si vlastní design.
+Připrav se na příští sezónu a posuň vizuální úroveň svého týmu zase o kus dál. Zviditelni sebe, svůj tým i partnery nejen na trati, ale také v paddocku.
+
+Vyber si z nabídky plážových vlajek, bannerů, nůžkových i nafukovacích stanů a dalších reklamních prvků s vlastním designem. Ať už chceš vytvořit kompletní týmové zázemí, nebo jen výrazněji prezentovat své partnery, vše si můžeš nechat vyrobit v barvách svého týmu.
+
+Pokud budeš potřebovat pomoct s návrhem nebo budeš mít zájem o individuální nabídku kompletního brandingu svého týmu, ozvi se nám na čísle +420 605 981 155.
 
 {kod}
 
-Slevu můžeš využít na celý nákup.
-
-**Buď vidět na trati i v paddocku.**
-
-Provlajky.cz × Race the Streets`;
+Sleva 10 % platí na celý nákup na Provlajky.cz.`;
 
 export default function RtsTab({
   riders: ridersProp,
