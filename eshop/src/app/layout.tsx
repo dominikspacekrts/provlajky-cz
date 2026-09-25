@@ -5,6 +5,7 @@ import { CartProvider } from "@/lib/cart";
 import { CustomerAuthProvider } from "@/lib/customer-auth-client";
 import SiteChrome from "@/components/SiteChrome";
 import CookieBanner from "@/components/CookieBanner";
+import VisitTracker from "@/components/VisitTracker";
 import { SITE_URL, isProduction } from "@/lib/site";
 import { getMarketingHeadSnippet } from "@/lib/marketing";
 import { buildHeadHtml, gtmNoscriptHtml } from "@/lib/head-scripts";
@@ -70,6 +71,7 @@ export default async function RootLayout({
           </CustomerAuthProvider>
         </CartProvider>
         <CookieBanner />
+        <VisitTracker />
       </body>
     </html>
   );

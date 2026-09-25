@@ -45,6 +45,19 @@ function absoluteImage(src: string | undefined): string | null {
   return `${SITE_URL}${src.startsWith("/") ? "" : "/"}${src}`;
 }
 
+/** UTM pro měření prokliků z newsletteru v admin → Návštěvnost. */
+export function withNewsletterUtm(url: string, campaign = "newsletter"): string {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.searchParams.has("utm_source")) parsed.searchParams.set("utm_source", "newsletter");
+    if (!parsed.searchParams.has("utm_medium")) parsed.searchParams.set("utm_medium", "email");
+    if (!parsed.searchParams.has("utm_campaign")) parsed.searchParams.set("utm_campaign", campaign);
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 export function toProductCard(p: Product): NewsletterProductCard {
   return {
     id: p.id,
@@ -53,10 +66,10 @@ export function toProductCard(p: Product): NewsletterProductCard {
     imageUrl: absoluteImage(p.images?.[0]),
     fromPrice: productFromPrice(p),
     perM2: productPricedPerM2(p),
-    url: `${SITE_URL}/produkt/${encodeURIComponent(p.slug)}`,
+    url: withNewsletterUtm(`${SITE_URL}/produkt/${encodeURIComponent(p.slug)}`),
   };
 }
 
 export function shopHomeUrl() {
-  return SITE_URL;
+  return withNewsletterUtm(SITE_URL);
 }

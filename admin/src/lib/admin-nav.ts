@@ -15,6 +15,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/email-history", icon: "📬", label: "Historie mailů", sub: "Odeslané e-maily s náhledem" },
   { href: "/settings", icon: "⚙️", label: "Nastavení", sub: "Firma, SMTP, partneři, šablony" },
   { href: "/statistika", icon: "📊", label: "Statistika", sub: "Tržby, náklady, zisk" },
+  { href: "/navstevnost", icon: "📈", label: "Návštěvnost", sub: "Zdroje, stránky, čas na webu" },
   { href: "/products", icon: "🏳️", label: "Produkty", sub: "Produkty na eshopu" },
   { href: "/recenze", icon: "⭐", label: "Recenze", sub: "Hodnocení od zákazníků" },
   { href: "/konfigurace-webu", icon: "🖼️", label: "Konfigurace webu", sub: "Fotky v konfigurátoru" },
