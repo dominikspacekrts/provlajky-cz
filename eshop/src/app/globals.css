@@ -1269,12 +1269,15 @@ label:has(input[type="checkbox"]), .cb-line {
 /* Dlaždice na homepage jedou stejným vzorem jako produktová mřížka níž:
    všechno na střed a patička (CTA + cena od) přišpendlená ke spodní hraně,
    aby tři různě dlouhé popisy neházely CTA každé do jiné výšky. */
+/* Fotka se stahuje podle výšky okna ze stejného důvodu jako hero výš —
+   na nízkém displeji nesmí sežrat místo, kde má být cena. */
+.nv-groups-grid .group-tile-photo { aspect-ratio: 16 / 10; max-height: min(32vh, 320px); }
 .nv-groups-grid .group-tile-body {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  text-align: center; padding: 24px 24px 28px;
+  text-align: center; padding: 18px 24px 22px;
 }
 .nv-groups-grid .group-tile-title { text-wrap: balance; }
-.nv-groups-grid .group-tile-note { max-width: 34ch; margin-bottom: 20px; text-wrap: balance; }
+.nv-groups-grid .group-tile-note { max-width: 34ch; margin-bottom: 16px; text-wrap: balance; }
 .nv-groups-grid .group-tile-cta {
   position: relative; margin-top: auto; padding-bottom: 6px;
   font-size: 11.5px; letter-spacing: 0.14em;
@@ -1293,6 +1296,18 @@ label:has(input[type="checkbox"]), .cb-line {
 .nv-groups-grid .group-tile:hover .group-tile-cta::after,
 .nv-groups-grid .group-tile:focus-within .group-tile-cta::after { transform: scaleX(1); }
 .nv-groups-grid .group-tile:hover .group-tile-cta .nv-arrow { transform: translateX(5px); }
+
+/* Nízké okno (malý notebook, rozdělená obrazovka): samotné vh clampy výš
+   nestačí, protože nadpis i popisky se lámou na víc řádků. Tady se ještě
+   stáhne hero i fotka, ať zákazník vidí ceny bez scrollování. */
+@media (max-height: 680px) and (min-width: 641px) {
+  .nv-lead { padding: 20px var(--nv-pad) 16px; }
+  .nv-lead-title { font-size: clamp(26px, min(4vw, 6.4vh), 44px); }
+  .nv-lead-body { line-height: 1.6; }
+  .nv-groups-grid .group-tile-photo { max-height: 22vh; }
+  .nv-groups-grid .group-tile-body { padding: 14px 20px 18px; }
+  .nv-groups-grid .group-tile-note { margin-bottom: 12px; }
+}
 .tentgraphic { max-width: 100%; height: auto; }
 .category-card .thumb .tentgraphic { width: 82%; height: auto; }
 .config-preview .tentgraphic { width: 88%; height: auto; }
@@ -1887,14 +1902,17 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-in [data-reveal] { animation: nv-rise 1s var(--nv-ease) var(--rd, 0ms) both; }
 
 /* --- jedna věta mezi herem a produkty ----------------------------- */
+/* Hero se měří i na výšku okna, ne jen na šířku — na nízkém notebooku se
+   musí pod něj vejít první řada dlaždic i s cenou, jinak zákazník uvidí
+   jen nadpis a musí scrollovat pro to hlavní. */
 .nv-lead {
   background: var(--nv-paper);
-  padding: clamp(44px, 7vh, 96px) var(--nv-pad) clamp(32px, 5vh, 64px);
+  padding: clamp(28px, 5.5vh, 88px) var(--nv-pad) clamp(20px, 3.6vh, 56px);
   display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: clamp(30px, 6vw, 110px); align-items: end;
 }
 .nv-lead-title {
-  font-size: clamp(29px, 4.6vw, 64px); line-height: 1;
+  font-size: clamp(29px, min(4.6vw, 7.4vh), 64px); line-height: 1;
   font-variation-settings: "wght" 680, "wdth" 116; letter-spacing: -0.036em;
 }
 .nv-lead-body {
@@ -2384,7 +2402,9 @@ html:has(.nv) { scroll-behavior: smooth; }
   .nv-entry { grid-template-columns: repeat(3, 1fr); }
   .nv-entry a:nth-child(3n + 1) { border-left: 0; }
   .nv-entry a:nth-child(n + 4) { border-top: 1px solid rgba(255, 255, 255, 0.12); }
-  .nv-lead { grid-template-columns: 1fr; align-items: start; }
+  /* Ve sloupci pod sebou je gap svislá mezera — počítat ji ze šířky (6vw)
+     tu dělá díru přes půl obrazovky a odsune produkty pod okraj okna. */
+  .nv-lead { grid-template-columns: 1fr; align-items: start; gap: clamp(12px, 2vh, 22px); }
 }
 @media (max-width: 1240px) {
   .nv-grid { grid-template-columns: repeat(2, 1fr); }
