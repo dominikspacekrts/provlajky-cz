@@ -99,7 +99,7 @@ function DiscountSignupForm({ onDone }: { onDone?: () => void }) {
       </label>
       {message && status === "error" && <p className="nv-register-error">{message}</p>}
       <button type="submit" className="nv-btn nv-btn-yellow" disabled={status === "loading"}>
-        <span className="nv-btn-l">{status === "loading" ? "Odesílám…" : "Získat 10% slevu"}</span>
+        <span className="nv-btn-l">{status === "loading" ? "Odesílám…" : "Získat 5% slevu"}</span>
       </button>
     </form>
   );
@@ -136,7 +136,7 @@ function DiscountPopupModal({ open, onClose }: { open: boolean; onClose: () => v
           ×
         </button>
         <h2 id="discount-popup-title" className="discount-popup-title">
-          Sleva 10 % na první objednávku
+          Sleva 5 % na první objednávku
         </h2>
         <p className="discount-popup-body">
           Zadejte e-mail — pošleme vám jednorázový slevový kód. Účet s heslem nepotřebujete.

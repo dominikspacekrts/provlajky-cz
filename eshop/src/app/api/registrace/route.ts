@@ -11,7 +11,7 @@ import { clientIp, rateLimit, rateLimitResponse } from "@/lib/security";
 type Body = { name?: string; email?: string; phone?: string };
 
 /**
- * Sleva 10 % e-mailem — jen e-mail (bez hesla). Účet s heslem je /api/auth/register.
+ * Sleva 5 % e-mailem — jen e-mail (bez hesla). Účet s heslem je /api/auth/register.
  * Existující e-mail: znovu pošleme stejný kód jen když ještě nebyl použitý (+ rate limit).
  */
 export async function POST(req: NextRequest) {
@@ -107,6 +107,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     emailed: true,
-    message: "Kód s 10% slevou jsme poslali na e-mail.",
+    message: `Kód s ${discountPct}% slevou jsme poslali na e-mail.`,
   });
 }

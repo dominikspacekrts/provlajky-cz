@@ -16,18 +16,28 @@ import NovaFields, { type TilePriceHints } from "@/components/NovaFields";
 import { NovaArrow, useInView } from "@/components/NovaReveal";
 import { useDiscountPopup } from "@/components/DiscountPopup";
 import type { ProductCategory } from "@/lib/types";
+import { fmtMoney } from "@/lib/money";
+import type { TilePrice } from "@/components/NovaFields";
 
 // Tři hlavní produktové rodiny — ostré vstupní dlaždice hned pod herem.
 // Všechny tři používají studiové produktové snímky na světlém pozadí, aby
 // řada držela jednotný vzhled. Dlaždice "stany" je šikmá kombinace nůžkového
 // a nafukovacího stanu (skládá se lokálně, viz public/stany).
-const HOME_GROUPS = [
+const HOME_GROUPS: {
+  id: string;
+  title: string;
+  href: string;
+  note: string;
+  img: string;
+  categories: ProductCategory[];
+}[] = [
   {
     id: "vlajky",
     title: "Plážové vlajky",
     href: "/plazove-vlajky",
     note: "Šest tvarů, potisk na míru, cenu vidíte hned v konfigurátoru.",
     img: "/produkty/plazova-vlajka-sirka.jpg",
+    categories: ["plazove-vlajky"],
   },
   {
     id: "bannery",
@@ -35,6 +45,7 @@ const HOME_GROUPS = [
     href: "/pvc-bannery",
     note: "PVC i mesh, cena za m², oka po obvodu.",
     img: "/produkty/mesh-banner.jpg",
+    categories: ["pvc-bannery"],
   },
   {
     id: "stany",
@@ -42,8 +53,18 @@ const HOME_GROUPS = [
     href: "/stany",
     note: "Hliníková hexagonová i nafukovací konstrukce s potiskem na míru.",
     img: "/stany/nuzkovy-nafukovaci.jpg",
+    categories: ["nuzkove-stany", "nafukovaci-stany"],
   },
-] as const;
+];
+
+function groupFromPrice(categories: ProductCategory[], hints: TilePriceHints): TilePrice | null {
+  let best: TilePrice | null = null;
+  for (const c of categories) {
+    const hint = hints.byCategory[c];
+    if (hint && (!best || hint.price < best.price)) best = hint;
+  }
+  return best;
+}
 
 // Čísla jsou orientační odhad (skutečná produkce se v adminu nesleduje) —
 // až budou přesná čísla, stačí je tu přepsat.
@@ -100,7 +121,9 @@ export default function Nova2Client({
 
       <section className="nv-groups">
         <div className="nv-groups-grid reveal-stagger">
-          {HOME_GROUPS.map((g) => (
+          {HOME_GROUPS.map((g) => {
+            const from = groupFromPrice(g.categories, priceHints);
+            return (
             <Link key={g.id} href={g.href} className="group-tile">
               <div className="group-tile-photo">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -110,6 +133,12 @@ export default function Nova2Client({
                   loading="lazy"
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
+                {from && (
+                  <span className="group-tile-price">
+                    cena od {fmtMoney(from.price)}
+                    {from.perM2 ? "/m²" : ""}
+                  </span>
+                )}
               </div>
               <div className="group-tile-body">
                 <div className="group-tile-title">{g.title}</div>
@@ -120,7 +149,8 @@ export default function Nova2Client({
                 </span>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -162,7 +192,7 @@ export default function Nova2Client({
       <section id="sleva" ref={register.ref} className={`nv-register${register.inView ? " nv-in" : ""}`}>
         <div className="nv-register-copy">
           <h2 className="nv-register-title" data-reveal>
-            Získejte 10 % na první objednávku.
+            Získejte 5 % na první objednávku.
           </h2>
           <p className="nv-register-body" data-reveal style={{ "--rd": "110ms" } as React.CSSProperties}>
             Stačí e-mail — pošleme jednorázový slevový kód. Účet s heslem nepotřebujete.
@@ -171,7 +201,7 @@ export default function Nova2Client({
         <div className="nv-register-cta" data-reveal style={{ "--rd": "180ms" } as React.CSSProperties}>
           <button type="button" className="nv-btn nv-btn-ink nv-btn-lg" onClick={openDiscountPopup}>
             <span className="nv-btn-l">
-              Chci slevu 10 %
+              Chci slevu 5 %
               <NovaArrow />
             </span>
           </button>

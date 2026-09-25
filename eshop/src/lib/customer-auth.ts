@@ -181,7 +181,7 @@ export function generateRawToken(): string {
 
 export const DISCOUNT_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 export const DISCOUNT_CODE_LENGTH = 8;
-export const DEFAULT_DISCOUNT_PCT = 10;
+export const DEFAULT_DISCOUNT_PCT = 5;
 
 export function generateDiscountCode(): string {
   let code = "";

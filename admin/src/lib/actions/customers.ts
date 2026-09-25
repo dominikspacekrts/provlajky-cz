@@ -131,7 +131,7 @@ export async function resendCustomerDiscount(customerId: string): Promise<Custom
     return { ok: false, error: "Slevový kód už byl uplatněn — znovu poslat nejde." };
   }
 
-  const pct = Number(customer.discount_pct) || 10;
+  const pct = Number(customer.discount_pct) || 5;
   const greeting = customer.name ? `Ahoj ${escapeHtml(customer.name)},` : "Ahoj,";
   const mail = await sendEmailAction({
     kind: "other",
