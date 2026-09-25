@@ -35,7 +35,7 @@ const HOME_GROUPS: {
     id: "vlajky",
     title: "Plážové vlajky",
     href: "/plazove-vlajky",
-    note: "Šest tvarů, potisk na míru. V ceně je základna nebo zápich a podle velikosti vlajky i přepravní taška.",
+    note: "Šest tvarů, potisk na míru. V ceně základna nebo zápich, u větších i taška.",
     img: "/produkty/plazova-vlajka-sirka.jpg",
     categories: ["plazove-vlajky"],
   },
