@@ -35,7 +35,7 @@ const HOME_GROUPS: {
     id: "vlajky",
     title: "Plážové vlajky",
     href: "/plazove-vlajky",
-    note: "Šest tvarů, potisk na míru, cenu vidíte hned v konfigurátoru.",
+    note: "Šest tvarů, potisk na míru. V ceně je základna nebo zápich a podle velikosti vlajky i přepravní taška.",
     img: "/produkty/plazova-vlajka-sirka.jpg",
     categories: ["plazove-vlajky"],
   },
@@ -133,16 +133,16 @@ export default function Nova2Client({
                   loading="lazy"
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
-                {from && (
-                  <span className="group-tile-price">
-                    cena od {fmtMoney(from.price)}
-                    {from.perM2 ? "/m²" : ""}
-                  </span>
-                )}
               </div>
               <div className="group-tile-body">
                 <div className="group-tile-title">{g.title}</div>
                 <p className="group-tile-note">{g.note}</p>
+                {from && (
+                  <p className="group-tile-price">
+                    od <b>{fmtMoney(from.price)}</b>
+                    {from.perM2 ? "/m²" : ""} bez DPH
+                  </p>
+                )}
                 <span className="group-tile-cta">
                   Zobrazit
                   <NovaArrow className="nv-arrow" />
