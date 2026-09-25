@@ -1251,7 +1251,8 @@ label:has(input[type="checkbox"]), .cb-line {
 }
 .group-tile-note { margin-top: 8px; color: var(--gray); font-size: 14px; line-height: 1.55; }
 .group-tile-price {
-  margin-top: 10px; font-size: 13.5px; line-height: 1.4; letter-spacing: 0.01em;
+  margin-top: 16px; text-align: center;
+  font-size: 13.5px; line-height: 1.4; letter-spacing: 0.01em;
   color: var(--gray); font-variation-settings: "wght" 480;
 }
 .group-tile-price b {

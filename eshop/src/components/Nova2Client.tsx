@@ -137,16 +137,16 @@ export default function Nova2Client({
               <div className="group-tile-body">
                 <div className="group-tile-title">{g.title}</div>
                 <p className="group-tile-note">{g.note}</p>
+                <span className="group-tile-cta">
+                  Zobrazit
+                  <NovaArrow className="nv-arrow" />
+                </span>
                 {from && (
                   <p className="group-tile-price">
                     od <b>{fmtMoney(from.price)}</b>
                     {from.perM2 ? "/m²" : ""} bez DPH
                   </p>
                 )}
-                <span className="group-tile-cta">
-                  Zobrazit
-                  <NovaArrow className="nv-arrow" />
-                </span>
               </div>
             </Link>
             );
