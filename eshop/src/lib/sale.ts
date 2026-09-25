@@ -6,7 +6,7 @@
 // prázdný řetězec = sleva je už započítaná v cenách v adminu.
 
 export const SALE = {
-  active: true,
+  active: false,
   percent: 10,
   /** Nadpis na homepage — první řádek. */
   title: "Plážové vlajky",

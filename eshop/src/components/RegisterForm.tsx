@@ -1,6 +1,6 @@
 "use client";
 
-// Registrace zákazníka s heslem → účet (+ volitelně 10% kód přes /api/auth/register).
+// Registrace zákazníka s heslem → účet (+ volitelně 5% kód přes /api/auth/register).
 // Sleva samotná bez hesla je popup → POST /api/registrace.
 
 import { useState } from "react";
@@ -148,7 +148,7 @@ export default function RegisterForm({ redirectTo }: { redirectTo?: string }) {
         {" · "}
         Jen slevu bez účtu?{" "}
         <button type="button" className="nv-link-btn" onClick={openDiscountPopup}>
-          Získat 10 %
+          Získat 5 %
         </button>
         {" · "}
         Dřívější registrace bez hesla? <Link href="/nastavit-heslo-zadost">Nastavit heslo</Link>
