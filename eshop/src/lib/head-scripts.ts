@@ -1,5 +1,5 @@
 import { CONSENT_COOKIE, CONSENT_VERSION } from "./consent";
-import { metaPixelHeadScript } from "./meta-pixel";
+import { metaPixelHeadHtml } from "./meta-pixel";
 import { GTM_ID, SITE_ENV } from "./site";
 
 // Skripty do <head> v přesně daném pořadí. Pořadí je celé jádro Consent Mode v2:
@@ -8,7 +8,9 @@ import { GTM_ID, SITE_ENV } from "./site";
 //      stihne odpálit tagy bez souhlasu,
 //   2) consent update z cookie, pokud už návštěvník dřív rozhodl,
 //   3) site_env — agentura podle něj v GTM odfiltruje testovací provoz,
-//   4) samotný GTM.
+//   4) samotný GTM,
+//   5) Meta Pixel (oficiální snippet),
+//   6) volitelný marketingový snippet z adminu.
 //
 // Proto se vrací jako hotový HTML řetězec do jednoho <head> a ne přes
 // next/script: u `afterInteractive` by GTM mohl naběhnout dřív než default.
@@ -64,8 +66,8 @@ function gtmTag(gtmId: string) {
 export function buildHeadHtml(marketingSnippet: string | null) {
   const parts = [`<script>${consentBootScript(!!GTM_ID)}</script>`];
   if (GTM_ID) parts.push(gtmTag(GTM_ID));
-  const pixel = metaPixelHeadScript();
-  if (pixel) parts.push(`<script>${pixel}</script>`);
+  const pixel = metaPixelHeadHtml();
+  if (pixel) parts.push(pixel);
   if (marketingSnippet) parts.push(marketingSnippet);
   return parts.join("\n");
 }

@@ -1,9 +1,10 @@
 # Měření na provlajky.cz — podklad pro GTM
 
 Google Tag Manager `GTM-PH243T36` vozí GA4, Google Ads a Sklik. Meta Pixel
-(`1647906236926274`) načítá web sám, jen po marketingovém souhlasu a jen na
-produkci — do GTM ani do pole v administraci (Nastavení → Marketing) se
-vkládat nemá, jinak se konverze zdvojí. Úkolem webu je dodat souhlas,
+(`1647906236926274`) je v `<head>` na každé stránce podle oficiálního snippetu
+Meta (včetně `<noscript>`). Události jdou ven až po marketingovém souhlasu
+(`fbq('consent', …)`). Do GTM ani do pole v administraci (Nastavení → Marketing)
+se znovu nevkládá, jinak se konverze zdvojí. Úkolem webu je dodat souhlas,
 `site_env` a e-commerce data v `dataLayer` i do pixelu.
 
 - Produkce: `https://provlajky.cz`
@@ -24,7 +25,8 @@ nesmí vkládat, jinak přestane platit Consent Mode.
 2. **Consent update z cookie** — jen pokud návštěvník už dřív rozhodl.
 3. **`site_env`** — `production` nebo `development`.
 4. **GTM** — `<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PH243T36">`.
-5. **Meta Pixel** — jen na produkci a jen když cookie už obsahuje marketingový souhlas.
+5. **Meta Pixel** — oficiální snippet v `<head>` (jen produkce); bez marketingového
+   souhlasu zůstane `fbq('consent','revoke')`, eventy neodejdou.
 6. Volitelný marketingový snippet z administrace (Nastavení → Marketing).
 
 `<noscript>` iframe GTM je prvním prvkem hned za otevíracím `<body>`.
@@ -197,10 +199,10 @@ dataLayer.push({ event: 'generate_lead', form_name: 'kontaktni-formular', curren
 
 ## 5. Meta Pixel a Conversions API
 
-Pixel ID `1647906236926274`. Načte se výhradně při `NEXT_PUBLIC_SITE_ENV=production`
-a jen když má návštěvník v cookie `provlajky_consent` zapnuté `marketing`.
-Bez souhlasu se knihovna `fbevents.js` nestáhne. `<noscript>` obrázek ze
-šablony agentury na webu není — neumí souhlas zkontrolovat.
+Pixel ID `1647906236926274`. Oficiální kód Meta (script + `<noscript>`) je
+v `<head>` na každé stránce při `NEXT_PUBLIC_SITE_ENV=production`. Události
+odejdou teprve když má návštěvník v cookie `provlajky_consent` zapnuté
+`marketing` — řídí to `fbq('consent', 'grant'|'revoke')`.
 
 Při přechodu mezi stránkami (web je SPA) se `PageView` posílá znovu.
 Z e-commerce událostí v `dataLayer` se do pixelu zrcadlí:
