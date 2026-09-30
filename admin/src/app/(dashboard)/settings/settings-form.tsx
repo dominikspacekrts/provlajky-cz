@@ -334,6 +334,9 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 fbq('init', '${META_PIXEL_ID}');
 fbq('track', 'PageView');
 </script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1"
+/></noscript>
 <!-- End Meta Pixel Code -->`;
 
 function MarketingTab({ initial }: { initial: Settings["marketing"] }) {
@@ -346,9 +349,9 @@ function MarketingTab({ initial }: { initial: Settings["marketing"] }) {
       <section style={{ marginBottom: 28 }}>
         <h3 style={{ margin: "0 0 8px", fontSize: 15 }}>Meta Pixel</h3>
         <p className="muted" style={{ marginBottom: 10 }}>
-          E-shop pixel načítá sám (ID <code>{META_PIXEL_ID}</code>) — jen na produkci a jen po souhlasu
-          s marketingovými cookies. Sem se znovu nevkládá, jinak by se konverze počítaly dvakrát. Stejný
-          kód nepatří ani do GTM.
+          E-shop má oficiální Meta Pixel v <code>&lt;head&gt;</code> na každé stránce (ID{" "}
+          <code>{META_PIXEL_ID}</code>). Sem se znovu nevkládá. Události jdou ven až po souhlasu
+          s marketingovými cookies.
         </p>
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           Aktivní kód na webu
