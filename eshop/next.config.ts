@@ -13,7 +13,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://api.mapy.com",
+      "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://api.mapy.com https://www.facebook.com https://connect.facebook.net",
       "frame-src https://www.googletagmanager.com https://www.facebook.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",

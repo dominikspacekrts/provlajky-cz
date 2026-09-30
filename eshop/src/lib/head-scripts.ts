@@ -1,4 +1,5 @@
 import { CONSENT_COOKIE, CONSENT_VERSION } from "./consent";
+import { metaPixelHeadScript } from "./meta-pixel";
 import { GTM_ID, SITE_ENV } from "./site";
 
 // Skripty do <head> v přesně daném pořadí. Pořadí je celé jádro Consent Mode v2:
@@ -63,6 +64,8 @@ function gtmTag(gtmId: string) {
 export function buildHeadHtml(marketingSnippet: string | null) {
   const parts = [`<script>${consentBootScript(!!GTM_ID)}</script>`];
   if (GTM_ID) parts.push(gtmTag(GTM_ID));
+  const pixel = metaPixelHeadScript();
+  if (pixel) parts.push(`<script>${pixel}</script>`);
   if (marketingSnippet) parts.push(marketingSnippet);
   return parts.join("\n");
 }

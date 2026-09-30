@@ -317,6 +317,25 @@ function MailTab({ initial }: { initial: Settings["mail"] }) {
   );
 }
 
+// Stejné ID jako v eshop/src/lib/meta-pixel.ts — tady jen pro náhled v adminu,
+// e-shop pixel načítá z kódu, ne z tohoto pole.
+const META_PIXEL_ID = "1647906236926274";
+
+const META_PIXEL_SNIPPET = `<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${META_PIXEL_ID}');
+fbq('track', 'PageView');
+</script>
+<!-- End Meta Pixel Code -->`;
+
 function MarketingTab({ initial }: { initial: Settings["marketing"] }) {
   const [snippet, setSnippet] = useState(initial.headSnippet);
   const [isPending, startTransition] = useTransition();
@@ -324,36 +343,58 @@ function MarketingTab({ initial }: { initial: Settings["marketing"] }) {
 
   return (
     <div>
-      <p className="muted" style={{ marginBottom: 14 }}>
-        Sem vlož konverzní/sledovací kódy, které pošle marketingová agentura (Google Ads, Meta Pixel, GA4, ověřovací
-        meta tagy apod.) — přesně tak, jak je dostaneš (celý <code>&lt;script&gt;</code>/<code>&lt;meta&gt;</code>{" "}
-        úryvek). Vloží se do <code>&lt;head&gt;</code> na každé stránce eshopu. XML feed produktů pro Google Merchant
-        Center je na adrese <code>https://provlajky.cz/feed/products.xml</code>.
-      </p>
-      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        Kód do &lt;head&gt;
-        <textarea
-          className="tpl-area"
-          rows={12}
-          value={snippet}
-          onChange={(e) => setSnippet(e.target.value)}
-          placeholder={`<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=..."></script>\n<script>...</script>`}
-        />
-      </label>
-      <button
-        className="btn primary"
-        style={{ marginTop: 14 }}
-        disabled={isPending}
-        onClick={() =>
-          startTransition(async () => {
-            await updateMarketingSettings({ headSnippet: snippet });
-            setSaved(true);
-            setTimeout(() => setSaved(false), 1500);
-          })
-        }
-      >
-        {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
-      </button>
+      <section style={{ marginBottom: 28 }}>
+        <h3 style={{ margin: "0 0 8px", fontSize: 15 }}>Meta Pixel</h3>
+        <p className="muted" style={{ marginBottom: 10 }}>
+          E-shop pixel načítá sám (ID <code>{META_PIXEL_ID}</code>) — jen na produkci a jen po souhlasu
+          s marketingovými cookies. Sem se znovu nevkládá, jinak by se konverze počítaly dvakrát. Stejný
+          kód nepatří ani do GTM.
+        </p>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          Aktivní kód na webu
+          <textarea className="tpl-area" rows={14} value={META_PIXEL_SNIPPET} readOnly />
+        </label>
+        <p className="muted" style={{ marginTop: 10 }}>
+          <strong>Conversions API</strong> běží ze serveru e-shopu (nákup na děkovací stránce). Kód už je
+          nasazený; aby se eventy opravdu odesílaly, musí být ve Vercelu u e-shopu proměnná{" "}
+          <code>META_CAPI_ACCESS_TOKEN</code> (Events Manager → Nastavení → Conversions API → vygenerovat
+          token). Bez tokenu pixel v prohlížeči funguje a serverové konverze se tiše neposílají.
+        </p>
+      </section>
+
+      <section>
+        <h3 style={{ margin: "0 0 8px", fontSize: 15 }}>Další kódy do &lt;head&gt;</h3>
+        <p className="muted" style={{ marginBottom: 14 }}>
+          Sem vlož konverzní/sledovací kódy, které pošle marketingová agentura (Google Ads, GA4, ověřovací
+          meta tagy apod.) — přesně tak, jak je dostaneš (celý <code>&lt;script&gt;</code>/
+          <code>&lt;meta&gt;</code> úryvek). Vloží se do <code>&lt;head&gt;</code> na každé stránce eshopu.
+          XML feed produktů pro Google Merchant Center: <code>https://provlajky.cz/feed/products.xml</code>.
+        </p>
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          Kód do &lt;head&gt;
+          <textarea
+            className="tpl-area"
+            rows={12}
+            value={snippet}
+            onChange={(e) => setSnippet(e.target.value)}
+            placeholder={`<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=..."></script>\n<script>...</script>`}
+          />
+        </label>
+        <button
+          className="btn primary"
+          style={{ marginTop: 14 }}
+          disabled={isPending}
+          onClick={() =>
+            startTransition(async () => {
+              await updateMarketingSettings({ headSnippet: snippet });
+              setSaved(true);
+              setTimeout(() => setSaved(false), 1500);
+            })
+          }
+        >
+          {isPending ? "Ukládám…" : saved ? "Uloženo ✓" : "Uložit"}
+        </button>
+      </section>
     </div>
   );
 }

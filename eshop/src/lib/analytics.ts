@@ -11,6 +11,7 @@
 //  2) ceny jsou **s DPH** a jako číslo. V DB i v košíku jsou bez DPH
 //     (products.price, CartLine.unitPrice), takže se všude přepočítávají.
 
+import { setMetaAdvancedMatching, trackMeta } from "./meta-pixel";
 import { PRODUCT_CATEGORIES, type CartLine, type Product, type ProductCategory } from "./types";
 import { fromPrice, round2, withVat } from "./money";
 
@@ -77,6 +78,30 @@ function pushEcommerce(event: string, ecommerce: EcommercePayload, extra?: Recor
   window.dataLayer.push({ event, ...extra, ecommerce: { currency: CURRENCY, ...ecommerce } });
 }
 
+function metaProductParams(items: AnalyticsItem[], value: number) {
+  const params: Record<string, unknown> = {
+    content_type: "product",
+    content_ids: items.map((item) => item.item_id).filter(Boolean),
+    contents: items.map((item) => ({ id: item.item_id, quantity: item.quantity, item_price: item.price })),
+    value,
+    currency: CURRENCY,
+    num_items: items.reduce((sum, item) => sum + (item.quantity || 0), 0),
+  };
+  if (items.length === 1) {
+    params.content_name = items[0].item_name;
+    if (items[0].item_category) params.content_category = items[0].item_category;
+  }
+  return params;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function asString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
 export function trackViewItemList(items: AnalyticsItem[], listName: string) {
   pushEcommerce("view_item_list", { item_list_name: listName, items });
 }
@@ -86,11 +111,15 @@ export function trackSelectItem(item: AnalyticsItem, listName: string) {
 }
 
 export function trackViewItem(item: AnalyticsItem) {
-  pushEcommerce("view_item", { value: itemsValue([item]), items: [item] });
+  const value = itemsValue([item]);
+  pushEcommerce("view_item", { value, items: [item] });
+  trackMeta("ViewContent", metaProductParams([item], value));
 }
 
 export function trackAddToCart(item: AnalyticsItem) {
-  pushEcommerce("add_to_cart", { value: itemsValue([item]), items: [item] });
+  const value = itemsValue([item]);
+  pushEcommerce("add_to_cart", { value, items: [item] });
+  trackMeta("AddToCart", metaProductParams([item], value));
 }
 
 export function trackRemoveFromCart(item: AnalyticsItem) {
@@ -102,7 +131,9 @@ export function trackViewCart(items: AnalyticsItem[]) {
 }
 
 export function trackBeginCheckout(items: AnalyticsItem[]) {
-  pushEcommerce("begin_checkout", { value: itemsValue(items), items });
+  const value = itemsValue(items);
+  pushEcommerce("begin_checkout", { value, items });
+  trackMeta("InitiateCheckout", metaProductParams(items, value));
 }
 
 export function trackAddShippingInfo(items: AnalyticsItem[], shippingTier: string) {
@@ -110,7 +141,9 @@ export function trackAddShippingInfo(items: AnalyticsItem[], shippingTier: strin
 }
 
 export function trackAddPaymentInfo(items: AnalyticsItem[], paymentType: string) {
-  pushEcommerce("add_payment_info", { value: itemsValue(items), payment_type: paymentType, items });
+  const value = itemsValue(items);
+  pushEcommerce("add_payment_info", { value, payment_type: paymentType, items });
+  trackMeta("AddPaymentInfo", metaProductParams(items, value));
 }
 
 export type PurchasePayload = {
@@ -125,19 +158,36 @@ export type PurchasePayload = {
 
 export function trackPurchase(payload: PurchasePayload) {
   const { user_data, ...ecommerce } = payload;
+  const eventId = `purchase_${payload.transaction_id}`;
   pushEcommerce(
     "purchase",
     { ...ecommerce },
     {
-      // Pro deduplikaci se serverovým měřením (Meta Conversions API).
-      event_id: `purchase_${payload.transaction_id}`,
+      // Stejné ID posílá i Conversions API, Meta oba hity sloučí.
+      event_id: eventId,
       ...(user_data ? { user_data } : {}),
     }
   );
+
+  const user = asRecord(user_data);
+  const address = asRecord(user?.address);
+  if (user) {
+    setMetaAdvancedMatching({
+      em: asString(user.email),
+      ph: asString(user.phone_number),
+      fn: asString(address?.first_name),
+      ln: asString(address?.last_name),
+      ct: asString(address?.city),
+      zp: asString(address?.postal_code),
+      country: asString(address?.country) || "cz",
+    });
+  }
+  trackMeta("Purchase", { ...metaProductParams(payload.items, payload.value), order_id: payload.transaction_id }, eventId);
 }
 
 export function trackGenerateLead(formName: string) {
   if (typeof window === "undefined") return;
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ event: "generate_lead", form_name: formName, currency: CURRENCY });
+  trackMeta("Lead");
 }

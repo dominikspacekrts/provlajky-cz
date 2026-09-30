@@ -1,4 +1,8 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
+import { sendMetaPurchase } from "@/lib/meta-capi";
+import { SITE_URL } from "@/lib/site";
 import { createServiceClient } from "@/lib/supabase";
 import { PRODUCT_CATEGORIES, type CustomerAddress, type ProductCategory } from "@/lib/types";
 import {
@@ -104,10 +108,42 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
 
   const billing = (order.customer as { billing?: CustomerAddress } | null)?.billing;
   const { first_name, last_name } = splitName(billing?.name || billing?.company);
+  const transactionId = order.order_number ? String(order.order_number) : order.id;
+
+  const jar = await cookies();
+  if (parseConsent(jar.get(CONSENT_COOKIE)?.value)?.marketing) {
+    const forwarded = _request.headers.get("x-forwarded-for");
+    try {
+      await sendMetaPurchase({
+        eventId: `purchase_${transactionId}`,
+        transactionId,
+        value: round2(afterDiscount(productEx + productVat)),
+        items: analyticsItems.map((item) => ({
+          item_id: item.item_id,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        email: billing?.email || "",
+        phone: billing?.phone || "",
+        firstName: first_name,
+        lastName: last_name,
+        city: billing?.city || "",
+        postalCode: billing?.psc || "",
+        country: "CZ",
+        clientIp: forwarded?.split(",")[0]?.trim() || _request.headers.get("x-real-ip") || "",
+        userAgent: _request.headers.get("user-agent") || "",
+        fbp: jar.get("_fbp")?.value,
+        fbc: jar.get("_fbc")?.value,
+        sourceUrl: `${SITE_URL}/objednavka/dekujeme?id=${id}`,
+      });
+    } catch (err) {
+      console.error("Meta CAPI:", err instanceof Error ? err.message : err);
+    }
+  }
 
   return NextResponse.json(
     {
-      transaction_id: order.order_number ? String(order.order_number) : order.id,
+      transaction_id: transactionId,
       value: round2(afterDiscount(productEx + productVat)),
       tax: round2(afterDiscount(productVat)),
       shipping: round2(shippingEx * (1 + shippingVatRate)),
