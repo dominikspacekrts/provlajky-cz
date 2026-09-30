@@ -5,6 +5,7 @@ import { CartProvider } from "@/lib/cart";
 import { CustomerAuthProvider } from "@/lib/customer-auth-client";
 import SiteChrome from "@/components/SiteChrome";
 import CookieBanner from "@/components/CookieBanner";
+import MetaPixel from "@/components/MetaPixel";
 import VisitTracker from "@/components/VisitTracker";
 import { SITE_URL, isProduction } from "@/lib/site";
 import { getMarketingHeadSnippet } from "@/lib/marketing";
@@ -72,6 +73,7 @@ export default async function RootLayout({
         </CartProvider>
         <CookieBanner />
         <VisitTracker />
+        <MetaPixel />
       </body>
     </html>
   );

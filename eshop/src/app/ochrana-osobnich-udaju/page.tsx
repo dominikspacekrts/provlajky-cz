@@ -83,7 +83,9 @@ export default function PrivacyPage() {
           <h3 style={{ fontSize: 16, marginTop: 20 }}>Měření návštěvnosti a reklama</h3>
           <p>
             Pokud k tomu dáte souhlas v cookie liště, zpracováváme údaje o vašem pohybu na webu (navštívené stránky,
-            zobrazené a objednané produkty, zdroj návštěvy) a identifikátory uložené v cookies.
+            zobrazené a objednané produkty, zdroj návštěvy) a identifikátory uložené v cookies. U dokončené
+            objednávky při zapnutých marketingových cookies posíláme společnosti Meta také zahashovaný e-mail a
+            telefon z objednávky, aby šla konverze spárovat i bez cookies v prohlížeči.
           </p>
           <ul>
             <li>

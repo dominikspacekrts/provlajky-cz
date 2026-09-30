@@ -1,8 +1,10 @@
 # Měření na provlajky.cz — podklad pro GTM
 
-Web **nenačítá žádné tagy napřímo**. Načte se jen Google Tag Manager
-`GTM-PH243T36`, všechno ostatní (GA4, Google Ads, Meta, Sklik) se konfiguruje
-v něm. Úkolem webu je dodat souhlas, `site_env` a e-commerce data v `dataLayer`.
+Google Tag Manager `GTM-PH243T36` vozí GA4, Google Ads a Sklik. Meta Pixel
+(`1647906236926274`) načítá web sám, jen po marketingovém souhlasu a jen na
+produkci — do GTM ani do pole v administraci (Nastavení → Marketing) se
+vkládat nemá, jinak se konverze zdvojí. Úkolem webu je dodat souhlas,
+`site_env` a e-commerce data v `dataLayer` i do pixelu.
 
 - Produkce: `https://provlajky.cz`
 - Testovací prostředí: `https://dev.provlajky.cz` (neindexované, za basic auth)
@@ -22,7 +24,8 @@ nesmí vkládat, jinak přestane platit Consent Mode.
 2. **Consent update z cookie** — jen pokud návštěvník už dřív rozhodl.
 3. **`site_env`** — `production` nebo `development`.
 4. **GTM** — `<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PH243T36">`.
-5. Volitelný marketingový snippet z administrace (Nastavení → Marketing).
+5. **Meta Pixel** — jen na produkci a jen když cookie už obsahuje marketingový souhlas.
+6. Volitelný marketingový snippet z administrace (Nastavení → Marketing).
 
 `<noscript>` iframe GTM je prvním prvkem hned za otevíracím `<body>`.
 
@@ -192,7 +195,39 @@ dataLayer.push({ event: 'generate_lead', form_name: 'kontaktni-formular', curren
 
 ---
 
-## 5. Jak to otestovat
+## 5. Meta Pixel a Conversions API
+
+Pixel ID `1647906236926274`. Načte se výhradně při `NEXT_PUBLIC_SITE_ENV=production`
+a jen když má návštěvník v cookie `provlajky_consent` zapnuté `marketing`.
+Bez souhlasu se knihovna `fbevents.js` nestáhne. `<noscript>` obrázek ze
+šablony agentury na webu není — neumí souhlas zkontrolovat.
+
+Při přechodu mezi stránkami (web je SPA) se `PageView` posílá znovu.
+Z e-commerce událostí v `dataLayer` se do pixelu zrcadlí:
+
+| dataLayer | Meta |
+|---|---|
+| `view_item` | `ViewContent` |
+| `add_to_cart` | `AddToCart` |
+| `begin_checkout` | `InitiateCheckout` |
+| `add_payment_info` | `AddPaymentInfo` |
+| `purchase` | `Purchase` |
+| `generate_lead` | `Lead` |
+
+`Purchase` má `eventID` `purchase_<číslo objednávky>`, stejné jako `event_id`
+v `dataLayer`.
+
+**Conversions API** posílá stejný `Purchase` ze serveru (`src/lib/meta-capi.ts`)
+při načtení dat děkovací stránky, opět jen s marketingovým souhlasem. Meta
+oba hity sloučí podle `event_id`. E-mail, telefon, jméno, město a PSČ jdou
+zahashované (SHA-256), IP, user agent a cookies `_fbp` / `_fbc` ne.
+
+Serverový token **není v kódu**. Ve Vercelu (Production) musí být
+`META_CAPI_ACCESS_TOKEN` z Events Manageru → Nastavení → Conversions API.
+Bez něj pixel v prohlížeči funguje a serverové eventy se tiše neposílají.
+Na neprodukci se CAPI odešle jen když je navíc `META_CAPI_TEST_EVENT_CODE`.
+
+## 6. Jak to otestovat
 
 **V konzoli prohlížeče**
 
@@ -226,7 +261,7 @@ nastavování výjimek u tagů.
 
 ---
 
-## 6. Produktové feedy
+## 7. Produktové feedy
 
 | Feed | URL | Pro koho |
 |---|---|---|
@@ -253,11 +288,13 @@ Obojí se generuje ze stejných dat jako web, cache 1 hodina. Původní
 Kontrola: `npm run feeds:validate` (proti běžícímu webu; pro produkci
 `FEED_BASE=https://provlajky.cz npm run feeds:validate`).
 
-## 7. Kde to v kódu žije
+## 8. Kde to v kódu žije
 
 | Co | Soubor |
 |---|---|
 | Pořadí skriptů v hlavičce | `src/lib/head-scripts.ts` |
+| Meta Pixel (prohlížeč) | `src/lib/meta-pixel.ts`, `src/components/MetaPixel.tsx` |
+| Meta Conversions API | `src/lib/meta-capi.ts` |
 | Souhlas, cookie, consent update | `src/lib/consent.ts` |
 | Cookie lišta | `src/components/CookieBanner.tsx` |
 | Všechny e-commerce události | `src/lib/analytics.ts` |
@@ -267,7 +304,7 @@ Kontrola: `npm run feeds:validate` (proti běžícímu webu; pro produkci
 | Oddělení dev/produkce | `src/proxy.ts`, `src/lib/site.ts` |
 | Podklad pro oba feedy | `src/lib/feed.ts` |
 
-## 8. Adresní našeptávač (Mapy.com)
+## 9. Adresní našeptávač (Mapy.com)
 
 Checkout (`/objednavka`) napovídá ulici, město a PSČ přes Mapy Suggest.
 Klíč `MAPY_API_KEY` patří jen na server (`.env.local` lokálně, ve Vercelu
