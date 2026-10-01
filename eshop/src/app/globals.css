@@ -45,7 +45,7 @@ h1, h2, h3, h4 {
   font-variation-settings: "wght" 680, "wdth" 112;
 }
 
-.container { max-width: clamp(1100px, 88vw, 1520px); margin: 0 auto; padding: 0 var(--nv-pad); }
+.container { width: 100%; margin: 0 auto; padding: 0 var(--nv-inset); box-sizing: border-box; }
 
 /* Obsah podstránky sedí na papírové desce, ne v plovoucí zaoblené kartě. */
 .page-panel {
@@ -1301,7 +1301,7 @@ label:has(input[type="checkbox"]), .cb-line {
    nestačí, protože nadpis i popisky se lámou na víc řádků. Tady se ještě
    stáhne hero i fotka, ať zákazník vidí ceny bez scrollování. */
 @media (max-height: 680px) and (min-width: 641px) {
-  .nv-lead { padding: 20px var(--nv-pad) 16px; }
+  .nv-lead { padding: 20px var(--nv-inset) 16px; }
   .nv-lead-title { font-size: clamp(26px, min(4vw, 6.4vh), 44px); }
   .nv-lead-body { line-height: 1.6; }
   .nv-groups-grid .group-tile-photo { max-height: 22vh; }
@@ -1438,7 +1438,11 @@ label:has(input[type="checkbox"]), .cb-line {
   --nv-line: rgba(8, 8, 10, 0.14);
   --nv-line-l: rgba(255, 255, 255, 0.14);
   --nv-seam: rgba(8, 8, 10, 0.18);
+  /* Na ultra-wide se nesmí layout roztáhnout — obsah drží --nv-max,
+     boční okraje (--nv-inset) na velkých monitorech jen rostou. */
+  --nv-max: 1440px;
   --nv-pad: clamp(20px, 5.5vw, 88px);
+  --nv-inset: max(var(--nv-pad), calc((100vw - var(--nv-max)) / 2));
   --nv-nav-h: 76px;
   --nv-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nv-ease-io: cubic-bezier(0.62, 0.02, 0.2, 1);
@@ -1469,7 +1473,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-promo {
   display: flex; align-items: center; gap: 10px;
   background: var(--nv-yellow); color: var(--nv-ink);
-  padding: 13px var(--nv-pad);
+  padding: 13px var(--nv-inset);
 }
 .nv-promo-l {
   flex: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
@@ -1602,7 +1606,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-nav {
   position: sticky; top: 0; z-index: 90; height: var(--nv-nav-h);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 clamp(16px, 3.4vw, 34px);
+  padding: 0 var(--nv-inset);
   background: var(--nv-ink); border-bottom: 1px solid transparent;
   /* Trvalý jemný stín pod lištou — dřív měla hranici jen ve "stuck" stavu,
      takže na první obrazovce ležela na fotce úplně plocho a bez hloubky. */
@@ -1828,8 +1832,9 @@ html:has(.nv) { scroll-behavior: smooth; }
 }
 .nv-hero-body {
   position: relative; z-index: 2; color: #fff;
-  padding: 0 var(--nv-pad) clamp(46px, 8vh, 86px);
-  max-width: 1240px;
+  padding: 0 var(--nv-inset) clamp(46px, 8vh, 86px);
+  max-width: calc(var(--nv-inset) + 1240px);
+  box-sizing: border-box;
 }
 .nv-hero-title {
   font-size: clamp(31px, 5.6vw, 80px); line-height: 0.98;
@@ -1907,9 +1912,9 @@ html:has(.nv) { scroll-behavior: smooth; }
    jen nadpis a musí scrollovat pro to hlavní. */
 .nv-lead {
   background: var(--nv-paper);
-  padding: clamp(28px, 5.5vh, 88px) var(--nv-pad) clamp(20px, 3.6vh, 56px);
+  padding: clamp(28px, 5.5vh, 88px) var(--nv-inset) clamp(20px, 3.6vh, 56px);
   display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  gap: clamp(30px, 6vw, 110px); align-items: end;
+  gap: clamp(30px, 4vw, 64px); align-items: end;
 }
 .nv-lead-title {
   font-size: clamp(29px, min(4.6vw, 7.4vh), 64px); line-height: 1;
@@ -1926,7 +1931,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-refs {
   position: relative;
   background: var(--nv-paper);
-  padding: 0 var(--nv-pad) clamp(70px, 11vh, 140px);
+  padding: 0 var(--nv-inset) clamp(70px, 11vh, 140px);
 }
 .nv-refs-head {
   display: flex; align-items: end; justify-content: space-between; gap: 28px;
@@ -2066,21 +2071,21 @@ html:has(.nv) { scroll-behavior: smooth; }
    --nv-pad odsazením místo .container. */
 .nv-groups {
   background: var(--nv-paper);
-  padding: 0 var(--nv-pad) clamp(36px, 5vh, 64px);
+  padding: 0 var(--nv-inset) clamp(36px, 5vh, 64px);
 }
 .nv-groups-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px; background: var(--border); border: 1px solid var(--border);
 }
 
 /* --- pruh s čísly (důvěra) hned pod hlavními dlaždicemi ------------- */
 .nv-stats {
   background: var(--nv-ink);
-  padding: clamp(32px, 5vh, 56px) var(--nv-pad);
+  padding: clamp(32px, 5vh, 56px) var(--nv-inset);
 }
 .nv-stats-grid {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(20px, 4vw, 48px);
+  gap: clamp(20px, 3vw, 48px);
   max-width: 980px; margin: 0 auto;
 }
 .nv-stats-item { text-align: center; }
@@ -2097,11 +2102,14 @@ html:has(.nv) { scroll-behavior: smooth; }
   .nv-stats-grid { grid-template-columns: 1fr; gap: 26px; max-width: 320px; }
 }
 
-/* --- produktová mřížka: dva sloupce velkých panelů ---------------- */
+/* --- produktová mřížka: tři sloupce velkých panelů ---------------- */
 .nv-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
   background: var(--nv-seam); border-block: 1px solid var(--nv-seam);
   scroll-margin-top: 62px;
+  /* Stejná šířka obsahu jako u sekcí s --nv-inset — na ultra-wide
+     se mřížka neprotáhne přes celý monitor. */
+  margin-inline: var(--nv-inset);
 }
 .nv-tile {
   position: relative; overflow: hidden;
@@ -2227,7 +2235,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-slot-note span { text-transform: none; letter-spacing: 0.03em; }
 
 /* --- objednání ve třech krocích: tabulka, ne karty ---------------- */
-.nv-how { background: var(--nv-paper); padding: clamp(80px, 13vh, 156px) var(--nv-pad) clamp(88px, 14vh, 168px); }
+.nv-how { background: var(--nv-paper); padding: clamp(80px, 13vh, 156px) var(--nv-inset) clamp(88px, 14vh, 168px); }
 .nv-how-title {
   font-size: clamp(22px, 2.6vw, 34px); font-variation-settings: "wght" 680, "wdth" 114;
   letter-spacing: -0.028em; margin-bottom: clamp(34px, 5vh, 58px);
@@ -2254,9 +2262,9 @@ html:has(.nv) { scroll-behavior: smooth; }
 /* --- registrace + sleva ------------------------------------------- */
 .nv-register {
   background: var(--nv-yellow); color: var(--nv-ink);
-  padding: clamp(56px, 9vh, 100px) var(--nv-pad);
+  padding: clamp(56px, 9vh, 100px) var(--nv-inset);
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(30px, 6vw, 90px); align-items: center;
+  gap: clamp(30px, 4vw, 64px); align-items: center;
 }
 .nv-register-title {
   font-size: clamp(26px, 3.4vw, 44px); line-height: 1.04;
@@ -2353,7 +2361,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 /* --- závěr -------------------------------------------------------- */
 .nv-close { position: relative; background: var(--nv-ink); color: #fff; overflow: hidden; }
 .nv-close > *:not(.nv-grain) { position: relative; z-index: 2; }
-.nv-call { padding: clamp(80px, 13vh, 152px) var(--nv-pad) clamp(68px, 11vh, 124px); }
+.nv-call { padding: clamp(80px, 13vh, 152px) var(--nv-inset) clamp(68px, 11vh, 124px); }
 .nv-call-title {
   font-size: clamp(34px, 5.2vw, 76px); line-height: 0.98;
   font-variation-settings: "wght" 680, "wdth" 118; letter-spacing: -0.042em;
@@ -2367,7 +2375,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-colophon {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: clamp(30px, 4.5vw, 76px);
-  padding: clamp(52px, 8vh, 84px) var(--nv-pad);
+  padding: clamp(52px, 8vh, 84px) var(--nv-inset);
   border-top: 1px solid var(--nv-line-l);
 }
 .nv-colophon h4 {
@@ -2389,7 +2397,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-colophon a:hover { color: #fff; }
 .nv-colophon a:hover::after { transform: scaleX(1); }
 .nv-bottom {
-  padding: 24px var(--nv-pad) 34px; border-top: 1px solid var(--nv-line-l);
+  padding: 24px var(--nv-inset) 34px; border-top: 1px solid var(--nv-line-l);
   font-size: 11.5px; letter-spacing: 0.1em; color: rgba(255, 255, 255, 0.45);
 }
 
@@ -2415,6 +2423,8 @@ html:has(.nv) { scroll-behavior: smooth; }
   .nv-how-row { grid-template-columns: 46px minmax(0, 1fr); }
   .nv-how-d { grid-column: 2; }
   .nv-colophon { grid-template-columns: 1fr; }
+  .nv-register { grid-template-columns: 1fr; }
+  .nv-groups-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   .nv { --nv-nav-h: 64px; }
