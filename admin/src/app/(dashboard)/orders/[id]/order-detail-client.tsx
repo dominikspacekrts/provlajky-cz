@@ -22,7 +22,9 @@ import {
   isBeachFlag,
   isServiceLine,
   isWallPart,
+  itemHasVisual,
   itemMargin,
+  itemVisualDesigns,
   joinLineName,
   parseLineName,
   orderLabel,
@@ -527,10 +529,21 @@ function ItemRow({
         )}
       </div>
       <div className="item-actions">
-        {isFlag && (
+        {(isFlag || banner) && (
           <Link href={`/orders/${orderId}/design/${item.id}`} className="btn">
-            {item.design ? "Upravit design" : "Přidat design"}
+            {banner
+              ? itemHasVisual(item)
+                ? "Upravit grafiku"
+                : "Přidat grafiku"
+              : item.design
+                ? "Upravit design"
+                : "Přidat design"}
           </Link>
+        )}
+        {banner && (item.qty || 1) > 1 && (
+          <span className="muted" style={{ fontSize: 12 }}>
+            {itemVisualDesigns(item).filter((d) => d.thumb || d.fullArtwork).length}/{item.qty} grafik
+          </span>
         )}
         {item.design?.artworkPath ? (
           <button className="btn" type="button" onClick={() => downloadArtwork(item.design!.artworkPath!)}>
