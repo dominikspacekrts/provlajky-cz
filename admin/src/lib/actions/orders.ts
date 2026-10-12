@@ -217,6 +217,18 @@ export async function saveItemDesign(itemId: string, orderId: string, design: De
   revalidatePath(`/orders/${orderId}/design/${itemId}`);
 }
 
+// Banner: jeden návrh na kus. První kus jde i do design, ať vizualizace
+// a starší čtení pořád něco uvidí. multi_artwork drží celou řadu.
+export async function saveBannerDesigns(itemId: string, orderId: string, pieces: Design[]) {
+  const supabase = await createClient();
+  const design = pieces.find((p) => p.thumb || p.fullArtwork) || pieces[0] || null;
+  const multi_artwork = pieces.length > 1 ? pieces : null;
+  const { error } = await supabase.from("order_items").update({ design, multi_artwork }).eq("id", itemId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/orders/${orderId}`);
+  revalidatePath(`/orders/${orderId}/design/${itemId}`);
+}
+
 // Smaže objednávku i její položky (order_items má on delete cascade).
 // Faktura, faktury dodavatele a historie mailů zůstávají (order_id se jim
 // jen nastaví na null, viz schema.sql) — jde o samostatné doklady, které

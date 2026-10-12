@@ -10,6 +10,12 @@ const DesignEditorCanvas = dynamic(() => import("./design-editor-canvas"), {
   loading: () => <p className="muted">Načítám editor…</p>,
 });
 
+const BannerDesignEditor = dynamic(() => import("./banner-design-editor"), {
+  ssr: false,
+  loading: () => <p className="muted">Načítám editor…</p>,
+});
+
 export default function DesignEditor({ orderId, item }: { orderId: string; item: OrderItem }) {
+  if (item.type === "banner") return <BannerDesignEditor orderId={orderId} item={item} />;
   return <DesignEditorCanvas orderId={orderId} item={item} />;
 }

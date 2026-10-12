@@ -9,7 +9,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFImage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { computeOrderTotals, customerLabel, fmtMoney, invoiceItemDesc, isBanner, isBeachFlag, sortOrderItems } from "@/lib/domain";
+import { computeOrderTotals, customerLabel, fmtMoney, invoiceItemDesc, isBanner, isBeachFlag, itemVisualDesigns, sortOrderItems } from "@/lib/domain";
 import { loadCzechFontBytes } from "./font";
 import type { Order, OrderItem } from "@/lib/types";
 
@@ -88,13 +88,16 @@ export async function generateVisualPdf(order: Order, items: OrderItem[]): Promi
   y -= 22;
 
   // ---- Obrázky návrhů pod sebou ----
-  type Visual = { img: PDFImage; item: OrderItem };
+  type Visual = { img: PDFImage; item: OrderItem; piece: number; total: number };
   const visuals: Visual[] = [];
-  for (const item of items) {
-    const decoded = item.design?.thumb ? dataUrlToBytes(item.design.thumb) : null;
-    if (!decoded) continue;
-    const img = decoded.isPng ? await pdfDoc.embedPng(decoded.bytes) : await pdfDoc.embedJpg(decoded.bytes);
-    visuals.push({ img, item });
+  for (const item of sortOrderItems(items)) {
+    const designs = itemVisualDesigns(item);
+    for (let i = 0; i < designs.length; i++) {
+      const decoded = designs[i].thumb ? dataUrlToBytes(designs[i].thumb!) : null;
+      if (!decoded) continue;
+      const img = decoded.isPng ? await pdfDoc.embedPng(decoded.bytes) : await pdfDoc.embedJpg(decoded.bytes);
+      visuals.push({ img, item, piece: designs.length > 1 ? i + 1 : 0, total: designs.length });
+    }
   }
 
   if (visuals.length > 0) {
@@ -115,7 +118,9 @@ export async function generateVisualPdf(order: Order, items: OrderItem[]): Promi
       const it = v.item;
       const cap = T(
         isBanner(it)
-          ? `PVC banner ${it.width_cm || 0}×${it.height_cm || 0} cm · ${it.qty} ks`
+          ? v.piece
+            ? `PVC banner ${it.width_cm || 0}×${it.height_cm || 0} cm · kus ${v.piece}/${v.total}`
+            : `PVC banner ${it.width_cm || 0}×${it.height_cm || 0} cm · ${it.qty} ks`
           : `${it.shape} · ${it.size} · ${it.qty} ks`
       );
       page.drawText(cap, { x: (A4w - font.widthOfTextAtSize(cap, 8.5)) / 2, y: y - h - capGap, size: 8.5, font, color: grey });

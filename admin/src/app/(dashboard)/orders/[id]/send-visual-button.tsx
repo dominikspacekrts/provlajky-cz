@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useEmailPreview } from "@/components/email/EmailPreviewProvider";
 import { getVisualPdfBase64 } from "@/lib/actions/orders";
 import { getMailTemplatesForClient } from "@/lib/actions/settings";
-import { computeOrderTotals, customerEmail, fmtMoney } from "@/lib/domain";
+import { computeOrderTotals, customerEmail, fmtMoney, itemHasVisual } from "@/lib/domain";
 import { DEFAULT_MAIL_TPL_VISUAL, fillTemplate, wrapEmailHtml } from "@/lib/email-templates";
 import type { Order, OrderItem } from "@/lib/types";
 
@@ -18,7 +18,7 @@ export default function SendVisualButton({ order, items }: { order: Order; items
       alert("Objednávka nemá e-mail zákazníka (fakturační adresa → E-mail).");
       return;
     }
-    const designed = items.filter((i) => i.design?.thumb);
+    const designed = items.filter((i) => itemHasVisual(i));
     if (!designed.length) {
       alert("Žádný uložený návrh k odeslání.");
       return;

@@ -1,6 +1,6 @@
 // Pure domain helpers, ported 1:1 from the old app's app.js so behaviour
 // (rounding, discount math, status labels) stays identical after the rebuild.
-import type { Order, OrderItem, OrderTotals, Product, Settings, SupplierInvoice } from "./types";
+import type { Design, Order, OrderItem, OrderTotals, Product, Settings, SupplierInvoice } from "./types";
 
 /**
  * Hlavní pipeline stavu objednávky (admin select).
@@ -459,6 +459,21 @@ export const SUPPLIER = {
 
 export function isBanner(it: Pick<OrderItem, "type">) {
   return it.type === "banner";
+}
+
+// U banneru s víc kusy má každý kus vlastní návrh v multi_artwork.
+// Jeden kus (nebo vlajka) zůstává v design.
+export function itemVisualDesigns(
+  item: Pick<OrderItem, "type" | "qty" | "design" | "multi_artwork">
+): Design[] {
+  if (isBanner(item) && (item.qty || 1) > 1 && item.multi_artwork?.length) {
+    return item.multi_artwork.filter((d): d is Design => Boolean(d));
+  }
+  return item.design ? [item.design] : [];
+}
+
+export function itemHasVisual(item: Pick<OrderItem, "type" | "qty" | "design" | "multi_artwork">) {
+  return itemVisualDesigns(item).some((d) => Boolean(d.thumb || d.fullArtwork?.src || d.fullArtwork?.origSrc));
 }
 
 // Skutečná plážová vlajka má vždycky nastavený tvar (viz addOrderItemFromProduct

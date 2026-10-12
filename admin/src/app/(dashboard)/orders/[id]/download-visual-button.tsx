@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getVisualPdfBase64 } from "@/lib/actions/orders";
+import { itemHasVisual } from "@/lib/domain";
 import type { Order, OrderItem } from "@/lib/types";
 
 function downloadBase64Pdf(base64: string, filename: string) {
@@ -22,7 +23,7 @@ export default function DownloadVisualButton({ order, items }: { order: Order; i
   const [busy, setBusy] = useState(false);
 
   async function handleClick() {
-    const designed = items.filter((i) => i.design?.thumb);
+    const designed = items.filter((i) => itemHasVisual(i));
     if (!designed.length) {
       alert("Žádný uložený návrh ke stažení.");
       return;

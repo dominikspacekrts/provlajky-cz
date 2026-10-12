@@ -4,13 +4,33 @@ import { useState } from "react";
 import { useEmailPreview } from "@/components/email/EmailPreviewProvider";
 import { getMailTemplatesForClient } from "@/lib/actions/settings";
 import { buildSupplierBodyText } from "@/lib/email-templates";
-import { customerLabel, isServiceLine } from "@/lib/domain";
+import { customerLabel, isBanner, isServiceLine, itemVisualDesigns } from "@/lib/domain";
 import type { Order, OrderItem, Product, ProductSupplier } from "@/lib/types";
 
 function dataUrlToAttachment(dataUrl: string, filename: string) {
   const m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
   if (!m) return null;
   return { filename, contentBase64: m[2], contentType: m[1] };
+}
+
+function extFromMime(mime: string) {
+  if (mime.includes("pdf")) return "pdf";
+  if (mime.includes("jpeg")) return "jpg";
+  if (mime.includes("webp")) return "webp";
+  if (mime.includes("svg")) return "svg";
+  return "png";
+}
+
+function bannerSupplierAttachments(it: OrderItem) {
+  const designs = itemVisualDesigns(it);
+  return designs.flatMap((d, i) => {
+    const src = d.fullArtwork?.origSrc || d.fullArtwork?.src || d.thumb || "";
+    const piece = designs.length > 1 ? `_kus${i + 1}` : "";
+    const att = dataUrlToAttachment(src, `banner_${it.width_cm || 0}x${it.height_cm || 0}${piece}.png`);
+    if (!att) return [];
+    att.filename = `banner_${it.width_cm || 0}x${it.height_cm || 0}${piece}.${extFromMime(att.contentType)}`;
+    return [att];
+  });
 }
 
 // Stany, nafukovací reklamu a brány vyrábí jiný dodavatel než plážové vlajky,
@@ -80,11 +100,13 @@ export default function SendSupplierButton({
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")}</pre>`;
 
-      const attachments = group.items
-        .map((it, i) =>
-          it.design?.thumb ? dataUrlToAttachment(it.design.thumb, `navrh_${it.shape || i + 1}_${it.size || ""}.png`) : null
-        )
-        .filter((a): a is NonNullable<typeof a> => Boolean(a));
+      const attachments = group.items.flatMap((it, i) => {
+        if (isBanner(it)) return bannerSupplierAttachments(it);
+        const att = it.design?.thumb
+          ? dataUrlToAttachment(it.design.thumb, `navrh_${it.shape || i + 1}_${it.size || ""}.png`)
+          : null;
+        return att ? [att] : [];
+      });
 
       openEmailPreview({
         kind: "supplier",
