@@ -6,6 +6,7 @@ import {
   deleteOrderItem,
   getArtworkDownloadUrl,
   updateItemHsSleeve,
+  updateOrderCustomer,
   updateOrderItem,
   updateOrderItemPartners,
   updateOrderMoney,
@@ -19,6 +20,7 @@ import {
   hasActualCost,
   isBanner,
   isBeachFlag,
+  isServiceLine,
   isWallPart,
   itemMargin,
   joinLineName,
@@ -30,7 +32,7 @@ import {
   statusSelectEntries,
   type ProductLookup,
 } from "@/lib/domain";
-import type { Invoice, Order, OrderItem, Partner, Product, ProductSupplier, Review, Settings, SupplierInvoice } from "@/lib/types";
+import type { Customer, CustomerAddress, Invoice, Order, OrderItem, Partner, Product, ProductSupplier, Review, Settings, SupplierInvoice } from "@/lib/types";
 import SendInvoiceButton from "./send-invoice-button";
 import SendVisualButton from "./send-visual-button";
 import DownloadVisualButton from "./download-visual-button";
@@ -39,6 +41,7 @@ import SendReviewButton from "./send-review-button";
 import SupplierPaidToggle from "./supplier-paid-toggle";
 import SupplierInvoices from "./supplier-invoices";
 import AddItemButton from "./add-item-button";
+import AddServiceItemButtons from "./add-service-item-button";
 import DeleteOrderButton from "./delete-order-button";
 import DeleteInvoiceButton from "@/app/(dashboard)/faktury/delete-invoice-button";
 
@@ -77,14 +80,52 @@ export default function OrderDetailClient({
   const [isPending, startTransition] = useTransition();
   const [discountPct, setDiscountPct] = useState(order.discount_pct || 0);
   const [shipping, setShipping] = useState(order.shipping || 0);
+  const [pendingCustomer, setPendingCustomer] = useState<Customer | null>(null);
+  const [editingAddr, setEditingAddr] = useState<null | "billing" | "shipping">(null);
+  const [addrDraft, setAddrDraft] = useState<CustomerAddress>({});
+  const [addrError, setAddrError] = useState<string | null>(null);
+
+  const serverCustomer = order.customer || { billing: {}, shipping: {} };
+  const customer =
+    pendingCustomer && JSON.stringify(pendingCustomer) !== JSON.stringify(serverCustomer)
+      ? pendingCustomer
+      : serverCustomer;
 
   const productById = new Map<string, ProductLookup>(products.map((p) => [p.id, p]));
   const totals = computeOrderTotals({ ...order, discount_pct: discountPct, shipping }, items);
   const cost = computeOrderCost(items, supplierInvoices, productById, costPerSize);
   const profit = totals.totalEx - cost;
   const profitExact = hasActualCost(supplierInvoices);
-  const b = order.customer?.billing || {};
-  const s = order.customer?.shipping || {};
+  const b = customer.billing || {};
+  const s = customer.shipping || {};
+
+  function startEditAddress(which: "billing" | "shipping") {
+    setAddrDraft({ ...(which === "billing" ? b : s) });
+    setAddrError(null);
+    setEditingAddr(which);
+  }
+
+  function saveAddress() {
+    if (editingAddr === "billing" && addrDraft.isCompany && !addrDraft.ico?.trim()) {
+      setAddrError("Nákup je označen „na firmu“ – vyplň IČO ve fakturační adrese.");
+      return;
+    }
+    const next: Customer = {
+      ...customer,
+      billing: editingAddr === "billing" ? addrDraft : b,
+      shipping: editingAddr === "shipping" ? addrDraft : s,
+    };
+    setAddrError(null);
+    startTransition(async () => {
+      try {
+        await updateOrderCustomer(order.id, next);
+        setPendingCustomer(next);
+        setEditingAddr(null);
+      } catch (e) {
+        setAddrError(e instanceof Error ? e.message : "Adresu se nepodařilo uložit.");
+      }
+    });
+  }
 
   function setDiscount(pct: number) {
     setDiscountPct(pct);
@@ -142,25 +183,77 @@ export default function OrderDetailClient({
 
       <div className="two-col">
         <div className="addr-block">
-          <h4>Fakturační adresa</h4>
-          <div>{b.company || b.name || "—"}</div>
-          <div className="muted">{b.street}</div>
-          <div className="muted">
-            {b.psc} {b.city}
+          <div className="row-between" style={{ marginBottom: 10 }}>
+            <h4 style={{ margin: 0 }}>Fakturační adresa</h4>
+            {editingAddr !== "billing" && (
+              <button className="btn mini" type="button" onClick={() => startEditAddress("billing")}>
+                Upravit
+              </button>
+            )}
           </div>
-          {b.ico && <div className="muted">IČO: {b.ico}</div>}
-          {b.dic && <div className="muted">DIČ: {b.dic}</div>}
-          <div className="muted">{b.email}</div>
-          <div className="muted">{b.phone}</div>
+          {editingAddr === "billing" ? (
+            <AddressForm
+              value={addrDraft}
+              onChange={setAddrDraft}
+              withCompanyInfo
+              error={addrError}
+              pending={isPending}
+              onSave={saveAddress}
+              onCancel={() => setEditingAddr(null)}
+            />
+          ) : (
+            <>
+              <div>{b.company || b.name || "—"}</div>
+              <div className="muted">{b.street}</div>
+              <div className="muted">
+                {b.psc} {b.city}
+              </div>
+              {b.ico && <div className="muted">IČO: {b.ico}</div>}
+              {b.dic && <div className="muted">DIČ: {b.dic}</div>}
+              <div className="muted">{b.email}</div>
+              <div className="muted">{b.phone}</div>
+            </>
+          )}
         </div>
         <div className="addr-block">
-          <h4>Dodací adresa</h4>
-          <div>{s.company || s.name || customerLabel(order)}</div>
-          <div className="muted">{s.street || b.street}</div>
-          <div className="muted">
-            {s.psc || b.psc} {s.city || b.city}
+          <div className="row-between" style={{ marginBottom: 10 }}>
+            <h4 style={{ margin: 0 }}>Dodací adresa</h4>
+            {editingAddr !== "shipping" && (
+              <button className="btn mini" type="button" onClick={() => startEditAddress("shipping")}>
+                Upravit
+              </button>
+            )}
           </div>
-          <div className="muted">{s.phone || b.phone}</div>
+          {editingAddr === "shipping" ? (
+            <AddressForm
+              value={addrDraft}
+              onChange={setAddrDraft}
+              error={addrError}
+              pending={isPending}
+              onSave={saveAddress}
+              onCancel={() => setEditingAddr(null)}
+              onCopyBilling={() =>
+                setAddrDraft({
+                  company: b.company,
+                  name: b.name,
+                  street: b.street,
+                  psc: b.psc,
+                  city: b.city,
+                  phone: b.phone,
+                  email: b.email,
+                })
+              }
+            />
+          ) : (
+            <>
+              <div>{s.company || s.name || customerLabel(order)}</div>
+              <div className="muted">{s.street || b.street}</div>
+              <div className="muted">
+                {s.psc || b.psc} {s.city || b.city}
+              </div>
+              <div className="muted">{s.phone || b.phone}</div>
+            </>
+          )}
         </div>
       </div>
 
@@ -179,7 +272,13 @@ export default function OrderDetailClient({
         ))}
         {items.length === 0 && <p className="muted">Žádné položky.</p>}
       </div>
-      <AddItemButton orderId={order.id} products={products} defaultInternal={b.ico === OWN_ICO} />
+      <div className="header-actions" style={{ marginTop: 10 }}>
+        <AddItemButton orderId={order.id} products={products} defaultInternal={b.ico === OWN_ICO} />
+        <AddServiceItemButtons orderId={order.id} />
+      </div>
+      <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+        Doprava a grafický návrh jsou řádky s vlastní cenou. Pole Doprava dole je zvlášť — částka, která přišla z eshopu.
+      </p>
 
       <div className="order-totals">
         <div className="totals-row">
@@ -290,6 +389,7 @@ function ItemRow({
   const [, startTransition] = useTransition();
   const [partnerIds, setPartnerIds] = useState(item.partner_ids || []);
   const banner = isBanner(item);
+  const service = isServiceLine(item);
   // Skutečná vlajka má vždycky nastavený tvar (viz addOrderItemFromProduct) —
   // položky přidané z jiných produktů (stany, totemy…) shape nemají, takže
   // by tvar/velikost selecty pro ně nedávaly smysl.
@@ -419,9 +519,11 @@ function ItemRow({
       <div className="item-spacer" />
       <div className="item-linetotal">
         {fmtMoney(lineTotal, currency)}
-        <div className="item-margin muted" style={margin != null ? { color: margin >= 0 ? "#166534" : "#991b1b" } : undefined}>
-          {margin != null ? `marže ${fmtMoney(margin, currency)}` : "marže neznámá"}
-        </div>
+        {!service && (
+          <div className="item-margin muted" style={margin != null ? { color: margin >= 0 ? "#166534" : "#991b1b" } : undefined}>
+            {margin != null ? `marže ${fmtMoney(margin, currency)}` : "marže neznámá"}
+          </div>
+        )}
       </div>
       <div className="item-actions">
         {isFlag && (
@@ -468,7 +570,7 @@ function ItemRow({
           </ul>
         </div>
       )}
-      {partners.length > 0 && (
+      {partners.length > 0 && !service && (
         <div style={{ flexBasis: "100%", paddingTop: 4 }}>
           <span className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.03em", marginRight: 10 }}>
             Zisk se dělí:
@@ -486,6 +588,97 @@ function ItemRow({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function AddressForm({
+  value,
+  onChange,
+  withCompanyInfo,
+  error,
+  pending,
+  onSave,
+  onCancel,
+  onCopyBilling,
+}: {
+  value: CustomerAddress;
+  onChange: (v: CustomerAddress) => void;
+  withCompanyInfo?: boolean;
+  error: string | null;
+  pending: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+  onCopyBilling?: () => void;
+}) {
+  function set<K extends keyof CustomerAddress>(key: K, v: CustomerAddress[K]) {
+    onChange({ ...value, [key]: v });
+  }
+
+  return (
+    <div className="form-col">
+      {onCopyBilling && (
+        <button className="btn mini" type="button" onClick={onCopyBilling} style={{ alignSelf: "flex-start" }}>
+          Stejná jako fakturační
+        </button>
+      )}
+      <label>
+        Firma
+        <input value={value.company || ""} onChange={(e) => set("company", e.target.value)} />
+      </label>
+      <label>
+        Jméno a příjmení
+        <input value={value.name || ""} onChange={(e) => set("name", e.target.value)} />
+      </label>
+      <label>
+        Ulice a č.p.
+        <input value={value.street || ""} onChange={(e) => set("street", e.target.value)} />
+      </label>
+      <div className="psc-row">
+        <label>
+          PSČ
+          <input value={value.psc || ""} onChange={(e) => set("psc", e.target.value)} />
+        </label>
+        <label>
+          Město
+          <input value={value.city || ""} onChange={(e) => set("city", e.target.value)} />
+        </label>
+      </div>
+      {withCompanyInfo && (
+        <>
+          <label className="cb-line">
+            <input type="checkbox" checked={!!value.isCompany} onChange={(e) => set("isCompany", e.target.checked)} />
+            Nákup na firmu (vyplnit IČO)
+          </label>
+          <div className="psc-row">
+            <label>
+              IČO
+              <input value={value.ico || ""} onChange={(e) => set("ico", e.target.value)} />
+            </label>
+            <label>
+              DIČ
+              <input value={value.dic || ""} onChange={(e) => set("dic", e.target.value)} />
+            </label>
+          </div>
+        </>
+      )}
+      <label>
+        E-mail
+        <input type="email" value={value.email || ""} onChange={(e) => set("email", e.target.value)} />
+      </label>
+      <label>
+        Telefon
+        <input type="tel" value={value.phone || ""} onChange={(e) => set("phone", e.target.value)} />
+      </label>
+      {error && <div style={{ color: "#dc2626", fontSize: 13 }}>{error}</div>}
+      <div className="header-actions">
+        <button className="btn primary" type="button" disabled={pending} onClick={onSave}>
+          {pending ? "Ukládám…" : "Uložit"}
+        </button>
+        <button className="btn" type="button" disabled={pending} onClick={onCancel}>
+          Zrušit
+        </button>
+      </div>
     </div>
   );
 }

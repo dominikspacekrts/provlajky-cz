@@ -272,7 +272,7 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
 
   const rowH = 20,
     descX = M;
-  let sumVat = 0;
+  let discountableVat = 0;
   let zebra = false;
   // h > rowH = položka má pod názvem ještě řádky s konfigurací, pruh musí
   // sahat dolů až pod ně (y je baseline prvního řádku, další jdou níž).
@@ -322,7 +322,7 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     const lineEx = it.unitPrice * it.qty;
     const lineVat = lineEx * (it.vatRate || 0);
     const lineGross = lineEx + lineVat;
-    sumVat += lineVat;
+    if (!it.noDiscount) discountableVat += lineVat;
     // Konfigurace (stěny stanu, barva rámu…) jde pod název položky po
     // řádcích — jinak by se celý popis stanu do jednoho řádku nevešel.
     const specs = wrapSpecs(it.specs || []);
@@ -363,7 +363,7 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
   page.drawLine({ start: { x: M, y: y + 6 }, end: { x: contentR, y: y + 6 }, thickness: 0.6, color: ink });
   y -= 8;
   if (inv.discount_pct) {
-    const discVat = (sumVat * inv.discount_pct) / 100;
+    const discVat = (discountableVat * inv.discount_pct) / 100;
     page.drawText(T("Sleva " + inv.discount_pct + " %"), { x: M, y, size: 8.5, font, color: grey });
     rightText("- " + money(tt.discountEx), cX.ex, y, font, 8.5, grey);
     rightText("- " + money(discVat), cX.dph, y, font, 8.5, grey);
@@ -378,7 +378,8 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
   y -= 16;
 
   // Rozpis podle sazby DPH (základ a daň za každou sazbu) — jako v účetním
-  // softwaru. Sleva se týká jen produktů, ne dopravy — stejně jako
+  // softwaru. Sleva se týká jen produktů, ne dopravy v součtu objednávky
+  // ani řádků Doprava / Grafický návrh (noDiscount) — stejně jako
   // v computeOrderTotals/buildInvoiceRow.
   type VatGroup = { prodEx: number; prodVat: number; shipEx: number; shipVat: number };
   const vatGroups = new Map<number, VatGroup>();
@@ -393,8 +394,13 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
   for (const it of inv.items) {
     const lineEx = it.unitPrice * it.qty;
     const g = group(it.vatRate || 0);
-    g.prodEx += lineEx;
-    g.prodVat += lineEx * (it.vatRate || 0);
+    if (it.noDiscount) {
+      g.shipEx += lineEx;
+      g.shipVat += lineEx * (it.vatRate || 0);
+    } else {
+      g.prodEx += lineEx;
+      g.prodVat += lineEx * (it.vatRate || 0);
+    }
   }
   if (tt.shipEx > 0) {
     const shVat = inv.ship_vat_rate != null ? inv.ship_vat_rate : 0.21;

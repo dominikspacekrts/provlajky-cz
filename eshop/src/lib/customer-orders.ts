@@ -12,23 +12,35 @@ function orderEmail(customerJson: unknown): string {
   return (c?.billing?.email || "").trim().toLowerCase();
 }
 
+function isServiceLine(material: string | null | undefined) {
+  return material === "service:shipping" || material === "service:design";
+}
+
 function computeTotals(
   discountPct: number,
   shippingEx: number,
   shipVatRate: number,
-  items: { unit_price: number | null; qty: number | null; vat_rate: number | null }[],
+  items: { unit_price: number | null; qty: number | null; vat_rate: number | null; material?: string | null }[],
 ) {
   let prodEx = 0;
   let prodVat = 0;
+  let serviceEx = 0;
+  let serviceVat = 0;
   for (const it of items) {
     const lineEx = (it.unit_price || 0) * (it.qty || 0);
     const vatRate = it.vat_rate != null ? it.vat_rate : 0.21;
-    prodEx += lineEx;
-    prodVat += lineEx * vatRate;
+    const lineVat = lineEx * vatRate;
+    if (isServiceLine(it.material)) {
+      serviceEx += lineEx;
+      serviceVat += lineVat;
+    } else {
+      prodEx += lineEx;
+      prodVat += lineVat;
+    }
   }
   const discountEx = prodEx * ((discountPct || 0) / 100);
-  const netProdEx = prodEx - discountEx;
-  const netProdVat = discountPct ? prodVat * (1 - discountPct / 100) : prodVat;
+  const netProdEx = prodEx - discountEx + serviceEx;
+  const netProdVat = (discountPct ? prodVat * (1 - discountPct / 100) : prodVat) + serviceVat;
   const shipEx = shippingEx || 0;
   const shipVat = shipEx * (shipVatRate != null ? shipVatRate : 0.21);
   const totalEx = netProdEx + shipEx;
@@ -67,7 +79,7 @@ export async function listOrdersForSession(): Promise<CustomerOrderSummary[] | n
   const ids = rows.map((o) => o.id);
   const { data: itemRows } = await supabase
     .from("order_items")
-    .select("order_id, unit_price, qty, vat_rate")
+    .select("order_id, unit_price, qty, vat_rate, material")
     .in("order_id", ids);
 
   const itemsByOrder = new Map<string, typeof itemRows>();
@@ -115,7 +127,7 @@ export async function getOrderDetailForSession(orderId: string): Promise<Custome
 
   const { data: itemRows } = await supabase
     .from("order_items")
-    .select("wc_line_name, qty, unit_price, vat_rate, size, shape, width_cm, height_cm")
+    .select("wc_line_name, qty, unit_price, vat_rate, size, shape, width_cm, height_cm, material")
     .eq("order_id", orderId);
 
   const itemsRaw = itemRows || [];

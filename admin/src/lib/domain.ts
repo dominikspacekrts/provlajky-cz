@@ -92,22 +92,49 @@ export function statusClass(s: string) {
   return "status-local";
 }
 
+// Ručně přidané řádky Doprava / Grafický návrh (viz addServiceOrderItem).
+// Nejsou to katalogové produkty: sleva z produktů se na ně nevztahuje
+// a dodavateli se neposílají.
+export const SERVICE_LINE_MATERIAL = {
+  shipping: "service:shipping",
+  design: "service:design",
+} as const;
+
+export function isServiceLine(it: { material?: string | null }) {
+  return it.material === SERVICE_LINE_MATERIAL.shipping || it.material === SERVICE_LINE_MATERIAL.design;
+}
+
+export function serviceLineName(kind: keyof typeof SERVICE_LINE_MATERIAL) {
+  return kind === "shipping" ? "Doprava" : "Grafický návrh";
+}
+
 export function computeOrderTotals(
   o: Pick<Order, "discount_pct" | "shipping" | "ship_vat_rate">,
-  items: Pick<OrderItem, "unit_price" | "qty" | "vat_rate">[]
+  items: Pick<OrderItem, "unit_price" | "qty" | "vat_rate" | "material">[]
 ): OrderTotals {
   const discountPct = o.discount_pct || 0;
   const f = (x: number) => (discountPct ? x * (1 - discountPct / 100) : x);
   let prodEx = 0;
   let prodVat = 0;
+  let serviceEx = 0;
+  let serviceVat = 0;
   for (const it of items) {
     const lineEx = (it.unit_price || 0) * (it.qty || 0);
-    prodEx += lineEx;
-    prodVat += lineEx * (it.vat_rate != null ? it.vat_rate : 0.21);
+    const lineVat = lineEx * (it.vat_rate != null ? it.vat_rate : 0.21);
+    if (isServiceLine(it)) {
+      serviceEx += lineEx;
+      serviceVat += lineVat;
+    } else {
+      prodEx += lineEx;
+      prodVat += lineVat;
+    }
   }
-  const discountEx = prodEx * (discountPct / 100);
+  // Mezisoučet na detailu objednávky je součet všech řádků. Sleva se počítá
+  // jen ze zboží, službové řádky jdou do základu daně v plné ceně.
+  prodEx += serviceEx;
+  const discountEx = (prodEx - serviceEx) * (discountPct / 100);
   const netProdEx = prodEx - discountEx;
-  const netProdVat = f(prodVat);
+  const netProdVat = f(prodVat) + serviceVat;
   const shipEx = o.shipping || 0;
   const shipVat = shipEx * (o.ship_vat_rate != null ? o.ship_vat_rate : 0.21);
   const totalEx = netProdEx + shipEx;

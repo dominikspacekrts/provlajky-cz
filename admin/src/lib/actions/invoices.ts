@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { computeOrderTotals, invoiceItemDesc } from "@/lib/domain";
+import { computeOrderTotals, invoiceItemDesc, isServiceLine } from "@/lib/domain";
 import { generateInvoicePdf } from "@/lib/pdf/invoice";
 import type { Invoice, Order, OrderItem } from "@/lib/types";
 
@@ -42,6 +42,7 @@ function buildInvoiceRow(order: Order, items: OrderItem[], number: string) {
       vatRate: it.vat_rate != null ? it.vat_rate : 0.21,
       thumb: it.design?.thumb || null,
       thumbBounds: it.design?.flagBounds || null,
+      noDiscount: isServiceLine(it) || undefined,
     })),
     discount_pct: order.discount_pct || 0,
     shipping: order.shipping || 0,

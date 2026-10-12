@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { generateVisualPdf } from "@/lib/pdf/visual";
+import { SERVICE_LINE_MATERIAL, serviceLineName } from "@/lib/domain";
 import type { Customer, Design, Order, OrderItem } from "@/lib/types";
 
 // Base64 PDF bytes pro přílohu e-mailu "Odeslat vizualizaci" — generuje se
@@ -152,6 +153,27 @@ export async function addOrderItemFromProduct(
 export async function updateOrderItemPartners(itemId: string, orderId: string, partnerIds: string[]) {
   const supabase = await createClient();
   const { error } = await supabase.from("order_items").update({ partner_ids: partnerIds }).eq("id", itemId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/orders/${orderId}`);
+}
+
+// Doprava a grafický návrh jako řádek objednávky s cenou zadanou v adminu.
+// material nese značku, podle které se řádek vynechá ze slevy i z mailu dodavateli.
+export async function addServiceOrderItem(orderId: string, kind: keyof typeof SERVICE_LINE_MATERIAL, unitPrice: number) {
+  const price = Number(unitPrice);
+  if (!Number.isFinite(price) || price < 0) throw new Error("Zadej cenu 0 nebo vyšší.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("order_items").insert({
+    order_id: orderId,
+    type: "flag",
+    shape: null,
+    size: null,
+    qty: 1,
+    unit_price: price,
+    vat_rate: 0.21,
+    wc_line_name: serviceLineName(kind),
+    material: SERVICE_LINE_MATERIAL[kind],
+  });
   if (error) throw new Error(error.message);
   revalidatePath(`/orders/${orderId}`);
 }
