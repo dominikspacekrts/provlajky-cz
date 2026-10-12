@@ -100,8 +100,32 @@ export const SERVICE_LINE_MATERIAL = {
   design: "service:design",
 } as const;
 
-export function isServiceLine(it: { material?: string | null }) {
-  return it.material === SERVICE_LINE_MATERIAL.shipping || it.material === SERVICE_LINE_MATERIAL.design;
+function serviceLineKind(it: { material?: string | null; wc_line_name?: string | null }): "shipping" | "design" | null {
+  if (it.material === SERVICE_LINE_MATERIAL.shipping) return "shipping";
+  if (it.material === SERVICE_LINE_MATERIAL.design) return "design";
+  const name = (it.wc_line_name || "").trim().toLocaleLowerCase("cs");
+  if (name === "doprava") return "shipping";
+  if (name === "grafický návrh") return "design";
+  return null;
+}
+
+export function isServiceLine(it: { material?: string | null; wc_line_name?: string | null }) {
+  return serviceLineKind(it) != null;
+}
+
+// Věcné položky zůstanou ve svém pořadí. Doprava a grafický návrh jdou vždy
+// až za ně — id položky je náhodné UUID, takže řazení podle id je strká doprostřed.
+export function sortOrderItems<T extends { material?: string | null; wc_line_name?: string | null }>(items: T[]): T[] {
+  const rank = (it: T) => {
+    const kind = serviceLineKind(it);
+    if (kind === "shipping") return 1;
+    if (kind === "design") return 2;
+    return 0;
+  };
+  return items
+    .map((it, index) => ({ it, index }))
+    .sort((a, b) => rank(a.it) - rank(b.it) || a.index - b.index)
+    .map((row) => row.it);
 }
 
 export function serviceLineName(kind: keyof typeof SERVICE_LINE_MATERIAL) {

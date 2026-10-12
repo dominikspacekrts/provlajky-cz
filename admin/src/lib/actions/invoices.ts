@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { computeOrderTotals, invoiceItemDesc, isServiceLine } from "@/lib/domain";
+import { computeOrderTotals, invoiceItemDesc, isServiceLine, sortOrderItems } from "@/lib/domain";
 import { generateInvoicePdf } from "@/lib/pdf/invoice";
 import type { Invoice, Order, OrderItem } from "@/lib/types";
 
@@ -33,7 +33,7 @@ function buildInvoiceRow(order: Order, items: OrderItem[], number: string) {
       ship_city: s.city,
       ship_phone: s.phone,
     },
-    items: items.map((it) => ({
+    items: sortOrderItems(items).map((it) => ({
       // Popis se bere z typu položky, ne natvrdo — stan/totem/brána mají celý
       // popis ve wc_line_name (viz invoiceItemDesc).
       ...invoiceItemDesc(it),

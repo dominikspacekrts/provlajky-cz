@@ -27,6 +27,7 @@ import {
   parseLineName,
   orderLabel,
   orderSource,
+  sortOrderItems,
   statusClass,
   statusLabel,
   statusSelectEntries,
@@ -259,7 +260,7 @@ export default function OrderDetailClient({
 
       <h3>Položky</h3>
       <div className="items-list">
-        {items.map((it) => (
+        {sortOrderItems(items).map((it) => (
           <ItemRow
             key={it.id}
             item={it}

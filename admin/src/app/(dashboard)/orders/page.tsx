@@ -9,7 +9,7 @@ export default async function OrdersPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("*, order_items(id, unit_price, qty, vat_rate, material)")
+    .select("*, order_items(id, unit_price, qty, vat_rate, material, wc_line_name)")
     .order("created_at", { ascending: false });
 
   if (error) {
