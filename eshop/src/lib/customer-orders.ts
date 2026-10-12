@@ -12,15 +12,29 @@ function orderEmail(customerJson: unknown): string {
   return (c?.billing?.email || "").trim().toLowerCase();
 }
 
-function isServiceLine(material: string | null | undefined) {
-  return material === "service:shipping" || material === "service:design";
+function isServiceLine(it: { material?: string | null; wc_line_name?: string | null }) {
+  if (it.material === "service:shipping" || it.material === "service:design") return true;
+  const name = (it.wc_line_name || "").trim().toLocaleLowerCase("cs");
+  return name === "doprava" || name === "grafický návrh";
+}
+
+function sortLines<T extends { material?: string | null; wc_line_name?: string | null }>(items: T[]): T[] {
+  const rank = (it: T) => {
+    if (it.material === "service:shipping" || (it.wc_line_name || "").trim().toLocaleLowerCase("cs") === "doprava") return 1;
+    if (it.material === "service:design" || (it.wc_line_name || "").trim().toLocaleLowerCase("cs") === "grafický návrh") return 2;
+    return 0;
+  };
+  return items
+    .map((it, index) => ({ it, index }))
+    .sort((a, b) => rank(a.it) - rank(b.it) || a.index - b.index)
+    .map((row) => row.it);
 }
 
 function computeTotals(
   discountPct: number,
   shippingEx: number,
   shipVatRate: number,
-  items: { unit_price: number | null; qty: number | null; vat_rate: number | null; material?: string | null }[],
+  items: { unit_price: number | null; qty: number | null; vat_rate: number | null; material?: string | null; wc_line_name?: string | null }[],
 ) {
   let prodEx = 0;
   let prodVat = 0;
@@ -30,7 +44,7 @@ function computeTotals(
     const lineEx = (it.unit_price || 0) * (it.qty || 0);
     const vatRate = it.vat_rate != null ? it.vat_rate : 0.21;
     const lineVat = lineEx * vatRate;
-    if (isServiceLine(it.material)) {
+    if (isServiceLine(it)) {
       serviceEx += lineEx;
       serviceVat += lineVat;
     } else {
@@ -79,7 +93,7 @@ export async function listOrdersForSession(): Promise<CustomerOrderSummary[] | n
   const ids = rows.map((o) => o.id);
   const { data: itemRows } = await supabase
     .from("order_items")
-    .select("order_id, unit_price, qty, vat_rate, material")
+    .select("order_id, unit_price, qty, vat_rate, material, wc_line_name")
     .in("order_id", ids);
 
   const itemsByOrder = new Map<string, typeof itemRows>();
@@ -151,7 +165,7 @@ export async function getOrderDetailForSession(orderId: string): Promise<Custome
     discountPct: Number(order.discount_pct) || 0,
     discountEx: totals.discountEx,
     shippingEx: round2(Number(order.shipping) || 0),
-    items: itemsRaw.map((it) => {
+    items: sortLines(itemsRaw).map((it) => {
       const lineEx = (it.unit_price || 0) * (it.qty || 0);
       const size =
         it.width_cm && it.height_cm ? `${it.width_cm}×${it.height_cm} cm` : it.size || null;

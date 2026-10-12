@@ -9,7 +9,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFImage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { computeOrderTotals, customerLabel, fmtMoney, invoiceItemDesc, isBanner, isBeachFlag } from "@/lib/domain";
+import { computeOrderTotals, customerLabel, fmtMoney, invoiceItemDesc, isBanner, isBeachFlag, sortOrderItems } from "@/lib/domain";
 import { loadCzechFontBytes } from "./font";
 import type { Order, OrderItem } from "@/lib/types";
 
@@ -141,7 +141,7 @@ export async function generateVisualPdf(order: Order, items: OrderItem[]): Promi
   };
 
   const tt = computeOrderTotals(order, items);
-  for (const it of items) {
+  for (const it of sortOrderItems(items)) {
     const lineEx = (it.unit_price || 0) * (it.qty || 1);
     const label = isBanner(it)
       ? `PVC banner ${it.width_cm || 0}×${it.height_cm || 0} cm  ×  ${it.qty} ks`
