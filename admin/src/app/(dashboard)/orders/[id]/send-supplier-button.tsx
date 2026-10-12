@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useEmailPreview } from "@/components/email/EmailPreviewProvider";
 import { getMailTemplatesForClient } from "@/lib/actions/settings";
 import { buildSupplierBodyText } from "@/lib/email-templates";
-import { customerLabel } from "@/lib/domain";
+import { customerLabel, isServiceLine } from "@/lib/domain";
 import type { Order, OrderItem, Product, ProductSupplier } from "@/lib/types";
 
 function dataUrlToAttachment(dataUrl: string, filename: string) {
@@ -52,7 +52,11 @@ export default function SendSupplierButton({
   const { openEmailPreview } = useEmailPreview();
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  const groups = groupItemsBySupplier(items, products, productSuppliers);
+  const groups = groupItemsBySupplier(
+    items.filter((it) => !isServiceLine(it)),
+    products,
+    productSuppliers
+  );
 
   async function handleClick(group: SupplierGroup) {
     if (!group.items.length) {
@@ -97,7 +101,7 @@ export default function SendSupplierButton({
 
   // Jeden dodavatel na celou objednávku = jedno tlačítko jako dřív.
   if (groups.length <= 1) {
-    const group = groups[0] ?? { key: "", email: "", name: "", items };
+    const group = groups[0] ?? { key: "", email: "", name: "", items: items.filter((it) => !isServiceLine(it)) };
     return (
       <button className="btn" onClick={() => handleClick(group)} disabled={busyKey !== null}>
         {busyKey !== null ? "Připravuji…" : "Odeslat dodavateli"}

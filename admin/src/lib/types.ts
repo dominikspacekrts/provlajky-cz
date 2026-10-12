@@ -123,6 +123,8 @@ export type InvoiceItem = {
   vatRate: number;
   thumb: string | null;
   thumbBounds: Design["flagBounds"] | null;
+  /** Doprava a grafický návrh přidané v adminu — sleva z produktů se jich netýká. */
+  noDiscount?: boolean;
 };
 
 export type Invoice = {

@@ -9,7 +9,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFImage } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import { computeOrderTotals, customerLabel, fmtMoney, isBanner } from "@/lib/domain";
+import { computeOrderTotals, customerLabel, fmtMoney, invoiceItemDesc, isBanner, isBeachFlag } from "@/lib/domain";
 import { loadCzechFontBytes } from "./font";
 import type { Order, OrderItem } from "@/lib/types";
 
@@ -145,7 +145,9 @@ export async function generateVisualPdf(order: Order, items: OrderItem[]): Promi
     const lineEx = (it.unit_price || 0) * (it.qty || 1);
     const label = isBanner(it)
       ? `PVC banner ${it.width_cm || 0}×${it.height_cm || 0} cm  ×  ${it.qty} ks`
-      : `Plážová vlajka tvar ${it.shape}, vel. ${it.size}  ×  ${it.qty} ks`;
+      : isBeachFlag(it)
+        ? `Plážová vlajka tvar ${it.shape}, vel. ${it.size}  ×  ${it.qty} ks`
+        : `${invoiceItemDesc(it).desc}  ×  ${it.qty} ks`;
     pRow(label, money(lineEx));
   }
   if (order.discount_pct) pRow(`Sleva ${order.discount_pct} %`, "- " + money(tt.discountEx));
