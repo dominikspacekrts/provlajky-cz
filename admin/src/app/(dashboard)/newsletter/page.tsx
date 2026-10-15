@@ -38,6 +38,7 @@ export default async function NewsletterPage() {
       riders={data.riders}
       companies={data.companies}
       products={data.products}
+      coldcallCategories={data.coldcallCategories}
       campaigns={data.campaigns}
       campaignStats={data.campaignStats}
       resendReady={data.resendReady}
