@@ -25,7 +25,7 @@ create table if not exists coldcall_companies (
   email text,
   note text,
   status text not null default 'nova'
-    check (status in ('nova','zavolano','poslat_email','nemaji_zajem','jedname','zakaznik')),
+    check (status in ('nova','zavolano','poslat_email','newsletter_odeslan','nemaji_zajem','jedname','zakaznik')),
   default_discount_type text not null default 'percent'
     check (default_discount_type in ('percent','fixed')),
   default_discount_value numeric(12,2) not null default 10,

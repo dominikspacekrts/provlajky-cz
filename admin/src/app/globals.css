@@ -655,6 +655,7 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 .s-nova { --s-bg: #f1f0eb; --s-fg: #374151; }
 .s-zavolano { --s-bg: #e0ecff; --s-fg: #1d4ed8; }
 .s-poslat_email { --s-bg: #fff4d6; --s-fg: #92400e; }
+.s-newsletter_odeslan { --s-bg: #dbeafe; --s-fg: #1e40af; }
 .s-jedname { --s-bg: #ede9fe; --s-fg: #5b21b6; }
 .s-zakaznik { --s-bg: #dcfce7; --s-fg: #166534; }
 .s-nemaji_zajem { --s-bg: #fee2e2; --s-fg: #991b1b; }
