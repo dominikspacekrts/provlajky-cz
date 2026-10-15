@@ -95,6 +95,14 @@ export async function loadProductSuppliers(): Promise<Record<string, ProductSupp
   return out;
 }
 
+/** Celý řádek včetně images[] — jen při otevření editoru, ne do seznamu. */
+export async function getProductById(id: string): Promise<Product | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("products").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as Product) || null;
+}
+
 export async function createProduct(input: ProductInput) {
   const supabase = await createClient();
   const slug = input.slug.trim() ? slugify(input.slug) : slugify(input.name);
