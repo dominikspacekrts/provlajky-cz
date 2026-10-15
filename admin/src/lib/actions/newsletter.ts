@@ -7,7 +7,7 @@ import { getSettings } from "@/lib/actions/settings";
 import { createClient } from "@/lib/supabase/server";
 import type { Product } from "@/lib/types";
 import { parseRidersCsv } from "@/lib/newsletter/csv";
-import { czechVocativeFirst, firstName, newsletterGreeting } from "@/lib/newsletter/greeting";
+import { coldcallGreeting, czechVocativeFirst, firstName, newsletterGreeting } from "@/lib/newsletter/greeting";
 import { shopHomeUrl, toProductCard } from "@/lib/newsletter/products";
 import {
   generatePromoCode,
@@ -460,7 +460,7 @@ export async function previewNewsletterHtml(
       }
     }
     body = buildColdcallBodyHtml({
-      greeting: "Dobrý den,",
+      greeting: coldcallGreeting(companyName),
       introHtml: input.introHtml,
       products,
       code: sampleCode,
@@ -836,7 +836,7 @@ export async function sendNewsletterCampaign(
             ctaUrl: shopHomeUrl(),
           })
         : buildColdcallBodyHtml({
-            greeting: "Dobrý den,",
+            greeting: coldcallGreeting(recip.companyName || recip.name),
             introHtml: input.introHtml,
             products,
             code: promo.code,
@@ -1005,7 +1005,7 @@ export async function sendColdcallManual(input: {
 
   const settings = await getSettings();
   const body = buildColdcallBodyHtml({
-    greeting: "Dobrý den,",
+    greeting: coldcallGreeting(company.name),
     introHtml: input.introHtml,
     products,
     code: promo.code,

@@ -37,9 +37,22 @@ import {
   type Notify,
 } from "./parts";
 
-const DEFAULT_SUBJECT = "Individuální nabídka pro vaši firmu — PROVLAJKY";
-const DEFAULT_INTRO =
-  "děkujeme za příjemný telefonát. Jak jsme se bavili, posíláme přehled toho, co pro vás umíme vyrobit — plážové vlajky, nůžkové a nafukovací stany i bannery, vše s vaší grafikou.\n\nPro {firma} jsme připravili individuální slevu, stačí ji uplatnit v objednávce.";
+const DEFAULT_SUBJECT = "Jak jsme se domluvili po telefonu – Provlajky.cz";
+const DEFAULT_INTRO = `děkujeme za telefonát!
+
+Jak jsme se domluvili, zasíláme vám přehled reklamních produktů, se kterými pomáháme firmám zviditelnit jejich značku – ať už před provozovnou, na festivalech, veletrzích nebo jiných akcích.
+
+V naší nabídce najdete plážové vlajky, reklamní bannery, nůžkové i nafukovací stany, vše s potiskem podle vašeho vlastního designu.
+
+Pro Vás jsme připravili {sleva} slevu na celý nákup. Stačí při objednávce na Provlajky.cz zadat kód níže.
+
+{kod}
+
+Pokud potřebujete poradit s výběrem nebo připravit kompletní branding vaší provozovny či stánku, rádi vám pomůžeme.
+
+Těšíme se na případnou spolupráci!
+
+Tým Provlajky.cz`;
 
 type CompanyDraft = {
   id?: string;
@@ -494,14 +507,15 @@ export default function ColdcallTab({
             )}
             <div className="nl-grid cols-3">
               <label className="nl-field">
-                Název firmy
+                Jméno a příjmení / název firmy
                 <input
                   className="nl-input"
                   autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  placeholder="Firma s.r.o."
+                  placeholder="Jan Novák nebo Firma s.r.o."
                 />
+                <span className="nl-hint">U osoby mail osloví příjmením (pane Nováku / paní Nováková).</span>
               </label>
               <label className="nl-field">
                 Telefon
@@ -834,7 +848,7 @@ export default function ColdcallTab({
 
           <Panel
             title="Obsah mailu"
-            sub="Mail začíná oslovením „Dobrý den,“ a vykání."
+            sub="Oslovení je „Dobrý den,“ — u osoby s příjmením (pane / paní)."
             actions={
               <button type="button" className="btn" onClick={() => setPreviewOpen(true)}>
                 Náhled mailu
@@ -848,10 +862,10 @@ export default function ColdcallTab({
               </label>
               <label className="nl-field">
                 Text mailu
-                <textarea className="nl-textarea" rows={12} value={intro} onChange={(e) => setIntro(e.target.value)} />
+                <textarea className="nl-textarea" rows={14} value={intro} onChange={(e) => setIntro(e.target.value)} />
                 <span className="nl-hint">
-                  Prázdný řádek = nový odstavec, <code>**text**</code> = tučně. Na řádek <code>{"{kod}"}</code> se vloží osobní slevový kód
-                {" "}(bez něj bude kód na konci), <code>{"{sleva}"}</code> = výše slevy, <code>{"{firma}"}</code> = názvem firmy.
+                  Prázdný řádek = nový odstavec. Na řádek <code>{"{kod}"}</code> se vloží osobní slevový kód
+                  {" "}(bez něj bude kód na konci), <code>{"{sleva}"}</code> = výše slevy.
                 </span>
               </label>
             </div>

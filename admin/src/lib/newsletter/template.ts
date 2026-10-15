@@ -158,23 +158,27 @@ export function buildNewsletterBodyHtml(input: NewsletterBodyInput): string {
   });
 }
 
-/** Coldcall varianta — formálnější oslovení, individuální nabídka. */
+/** Coldcall varianta — formálnější oslovení (příjmením, pokud je osoba). */
 export function buildColdcallBodyHtml(input: NewsletterBodyInput & { companyName: string }): string {
   const discountLabel = formatPromoDiscountLabel(input.discountType, input.discountValue);
   const sleva = formatDiscountInText(input.discountType, input.discountValue);
   return composeBody({
-    greeting: "Dobrý den,",
+    greeting: input.greeting || "Dobrý den,",
     text: input.introHtml,
     vars: { firma: input.companyName, sleva },
-    defaultIntro: `<p>ozýváme se z PROVLAJKY — vyrábíme plážové vlajky, nůžkové/nafukovací stany a bannery na míru. Pro <strong>${escapeHtml(input.companyName)}</strong> jsme připravili individuální nabídku.</p>`,
-    defaultClosing: `<p>Rádi připravíme i cenovou nabídku na míru — stačí odpovědět na tento e-mail.</p>
-<p>S pozdravem,<br>tým PROVLAJKY</p>`,
+    defaultIntro: `<p>děkujeme za telefonát!</p>
+<p>Jak jsme se domluvili, zasíláme vám přehled reklamních produktů, se kterými pomáháme firmám zviditelnit jejich značku – ať už před provozovnou, na festivalech, veletrzích nebo jiných akcích.</p>
+<p>V naší nabídce najdete plážové vlajky, reklamní bannery, nůžkové i nafukovací stany, vše s potiskem podle vašeho vlastního designu.</p>
+<p>Pro Vás jsme připravili ${escapeHtml(sleva)} slevu na celý nákup.</p>`,
+    defaultClosing: `<p>Pokud potřebujete poradit s výběrem nebo připravit kompletní branding vaší provozovny či stánku, rádi vám pomůžeme.</p>
+<p>Těšíme se na případnou spolupráci!</p>
+<p>Tým Provlajky.cz</p>`,
     products: input.products,
     productsHeading: "Co pro vás vyrábíme",
     codeBlock: codeBlockHtml({
       lead: `Váš slevový kód na <strong>${escapeHtml(discountLabel)}</strong>:`,
       code: input.code,
-      howTo: `Kód zadejte v objednávce na <a href="${escapeHtml(input.ctaUrl)}" style="color:#1f2329;font-weight:bold">provlajky.cz</a>.`,
+      howTo: `Kód zadejte v objednávce na <a href="${escapeHtml(input.ctaUrl)}" style="color:#1f2329;font-weight:bold">Provlajky.cz</a>.`,
       validUntil: input.validUntil,
     }),
     cta: ctaHtml(input.ctaUrl, input.ctaLabel || "Otevřít e-shop"),
