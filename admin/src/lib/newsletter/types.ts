@@ -97,6 +97,11 @@ export type PromoCodeRules = {
   validDays: number | null;
   /** Začátek kódu, např. RACE10 → RACE10-7KQ2MX. Chybí = výchozí podle typu kampaně. */
   prefix?: string;
+  /**
+   * Coldcall: vybrané kategorie (slugs). product_ids je v DB uuid[],
+   * takže kategorie držíme tady a do product_ids se u coldcallu neukládají.
+   */
+  coldcallCategoryIds?: string[];
 };
 
 export type PromoCode = {
