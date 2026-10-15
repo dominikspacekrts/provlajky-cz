@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
 import { CustomerAuthProvider } from "@/lib/customer-auth-client";
@@ -74,6 +75,7 @@ export default async function RootLayout({
         <CookieBanner />
         <VisitTracker />
         <MetaPixel />
+        <Analytics />
       </body>
     </html>
   );
