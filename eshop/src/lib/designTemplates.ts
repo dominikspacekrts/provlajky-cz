@@ -8,15 +8,48 @@ import type { OrderItemDesign, Product, ProductCategory } from "@/lib/types";
 
 export type DesignTemplate = { label: string; href: string };
 
-const TEMPLATES_BY_CATEGORY: Partial<Record<ProductCategory, DesignTemplate[]>> = {
-  "nuzkove-stany": [{ label: "Stáhnout podklady pro grafiku", href: "/podklady/nuzkovy-stan.zip" }],
-  "nafukovaci-stany": [{ label: "Stáhnout podklady pro grafiku", href: "/podklady/nafukovaci-stan.zip" }],
+export type DesignTemplateOpts = {
+  /** Query `?size=3×3 m` u variantního konfigurátoru. */
+  sizeLabel?: string | null;
+  /** Šířka zadní stěny v metrech u tent_walls (3 / 4.5 / 6). */
+  backWidthM?: number | null;
 };
+
+// Nafukovací stany — šablona zatím chybí (dřívější zip vracel 404).
+const TEMPLATES_BY_CATEGORY: Partial<Record<ProductCategory, DesignTemplate[]>> = {};
 
 const TEMPLATES_BY_SLUG: Record<string, DesignTemplate[]> = {};
 
-export function designTemplatesFor(product: Pick<Product, "slug" | "category">): DesignTemplate[] {
-  return TEMPLATES_BY_SLUG[product.slug] ?? TEMPLATES_BY_CATEGORY[product.category] ?? [];
+/** Z "3×4,5 m" / "3x6" vytáhne druhý rozměr (hloubku) v metrech. */
+export function parseTentDepthM(sizeLabel?: string | null): number | null {
+  if (!sizeLabel) return null;
+  const m = sizeLabel.replace(",", ".").match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)/i);
+  if (!m) return null;
+  const depth = Number(m[2]);
+  return Number.isFinite(depth) ? depth : null;
+}
+
+function nuzkovyTemplatesForDepth(depthM: number | null): DesignTemplate[] {
+  // 3×4,5 zatím nemáme PDF — tlačítko schovat (dřív stahovalo 404).
+  if (depthM === 3) {
+    return [{ label: "Stáhnout podklady 3×3 m", href: "/podklady/nuzkovy-stan-3x3.pdf" }];
+  }
+  if (depthM === 6) {
+    return [{ label: "Stáhnout podklady 3×6 m", href: "/podklady/nuzkovy-stan-3x6.pdf" }];
+  }
+  return [];
+}
+
+export function designTemplatesFor(
+  product: Pick<Product, "slug" | "category">,
+  opts?: DesignTemplateOpts
+): DesignTemplate[] {
+  if (TEMPLATES_BY_SLUG[product.slug]) return TEMPLATES_BY_SLUG[product.slug]!;
+  if (product.category === "nuzkove-stany") {
+    const depth = typeof opts?.backWidthM === "number" ? opts.backWidthM : parseTentDepthM(opts?.sizeLabel);
+    return nuzkovyTemplatesForDepth(depth);
+  }
+  return TEMPLATES_BY_CATEGORY[product.category] ?? [];
 }
 
 /** Zakázková výroba = vše kromě příslušenství a náhradních dílů. */
