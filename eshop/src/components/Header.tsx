@@ -5,9 +5,8 @@
 // Na homepage leží lišta nad hero fotkou, na podstránkách nad papírovým
 // podkladem — proto má vždycky plnou tmavou výplň, ne průhlednou.
 //
-// Kategorie jsou v liště vypsané jen do 1280 px. Pod tím je nese vysouvací
-// panel pod tlačítkem "Menu" — do té doby na mobilu žádná cesta do kategorií
-// nevedla.
+// Kategorie jsou v liště jen od 1400 px výš — pod tím se do řádku nevejdou
+// k logu, přihlášení a košíku. Užší okno je má ve vysouvacím panelu.
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
