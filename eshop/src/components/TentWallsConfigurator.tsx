@@ -36,6 +36,7 @@ import {
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
 import ArtworkChoice from "@/components/ArtworkChoice";
+import MdText from "@/components/MdText";
 import {
   designTemplatesFor,
   freeDesignNote,
@@ -550,9 +551,11 @@ export default function TentWallsConfigurator({
                 </p>
               )}
               {product.description && (
-                <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                <MdText
+                  style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}
+                >
                   {product.description}
-                </p>
+                </MdText>
               )}
             </>
           )}

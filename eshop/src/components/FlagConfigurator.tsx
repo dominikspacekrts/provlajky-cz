@@ -39,6 +39,7 @@ import {
 } from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+import MdText from "@/components/MdText";
 import ArtworkChoice from "@/components/ArtworkChoice";
 import {
   freeDesignNote,
@@ -341,9 +342,11 @@ export default function FlagConfigurator({
               {designBlock}
               {hintsBlock}
               {product.description && (
-                <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                <MdText
+                  style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}
+                >
                   {product.description}
-                </p>
+                </MdText>
               )}
             </>
           )}

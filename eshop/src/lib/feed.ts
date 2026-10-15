@@ -70,6 +70,7 @@ export function escapeXml(value: string) {
 function stripHtml(value: string) {
   return value
     .replace(/<[^>]*>/g, " ")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
 }

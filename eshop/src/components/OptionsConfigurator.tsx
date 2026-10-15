@@ -18,6 +18,7 @@ import {
 } from "@/components/ConfiguratorChrome";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
+import MdText from "@/components/MdText";
 
 const MOBILE_STEPS = ["Varianta"] as const;
 
@@ -99,7 +100,8 @@ export default function OptionsConfigurator({
             width={520}
             height={620}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            unoptimized
+            unoptimized={image.startsWith("data:") || image.startsWith("blob:")}
+            priority
           />
         ) : (
           <FlagMark className="thumb-empty" />
@@ -123,9 +125,11 @@ export default function OptionsConfigurator({
               <FcDesktopHeader name={product.name} subtitle={product.subtitle} />
               {optionsBlock}
               {product.description && (
-                <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+                <MdText
+                  style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}
+                >
                   {product.description}
-                </p>
+                </MdText>
               )}
             </>
           )}

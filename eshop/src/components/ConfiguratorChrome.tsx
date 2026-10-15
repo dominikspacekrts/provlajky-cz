@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { CheckMark, MailMark } from "@/components/Icons";
+import { mdInlineNodes } from "@/components/MdText";
 
 export function FcContactLink() {
   return (
@@ -25,7 +26,9 @@ export function FcDesktopHeader({ name, subtitle }: { name: string; subtitle?: s
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo/logo-tmave.png" alt="PROVLAJKY.CZ" className="config-hero-logo" style={{ marginBottom: 14 }} />
       <h1 style={{ fontSize: 23 }}>{name}</h1>
-      {subtitle ? <p style={{ color: "var(--gray)", marginTop: 4, fontSize: 13.5 }}>{subtitle}</p> : null}
+      {subtitle ? (
+        <p style={{ color: "var(--gray)", marginTop: 4, fontSize: 13.5 }}>{mdInlineNodes(subtitle)}</p>
+      ) : null}
     </>
   );
 }
