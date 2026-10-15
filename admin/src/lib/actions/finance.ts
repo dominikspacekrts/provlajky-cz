@@ -27,15 +27,27 @@ export async function addSupplierInvoice(fields: {
   supplier?: string;
   invoice_num?: string;
   date: string;
-  amount: number; // EUR
-  exchange_rate: number;
+  /** Částka v EUR. Null, když je náklad zadaný rovnou v Kč. */
+  amount: number | null;
+  /** Kurz ČNB Kč/€. Null při zadání rovnou v Kč. */
+  exchange_rate: number | null;
+  /** Povinné při zadání v Kč. Při eurech se dopočte z kurzu. */
+  amount_czk?: number | null;
   filename?: string | null;
   file_data?: string | null;
 }) {
   const supabase = await createClient();
+  const { amount_czk: amountCzkInput, ...rest } = fields;
+  const amountCzk =
+    fields.amount != null && fields.exchange_rate != null
+      ? fields.amount * fields.exchange_rate
+      : amountCzkInput ?? null;
+  if (amountCzk == null || !Number.isFinite(Number(amountCzk)) || Number(amountCzk) <= 0) {
+    throw new Error("Zadej částku větší než 0.");
+  }
   const { error } = await supabase.from("supplier_invoices").insert({
-    ...fields,
-    amount_czk: fields.amount * fields.exchange_rate,
+    ...rest,
+    amount_czk: amountCzk,
   });
   if (error) throw new Error(error.message);
   revalidatePath("/statistika");
@@ -48,4 +60,17 @@ export async function deleteSupplierInvoice(id: string, orderId?: string | null)
   if (error) throw new Error(error.message);
   revalidatePath("/statistika");
   if (orderId) revalidatePath(`/orders/${orderId}`);
+}
+
+/** PDF/obrázek faktury se nenačítá do detailu objednávky (base64) — jen na klik. */
+export async function getSupplierInvoiceFile(id: string): Promise<{ filename: string; file_data: string } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("supplier_invoices")
+    .select("filename, file_data")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data?.file_data) return null;
+  return { filename: data.filename || "faktura", file_data: data.file_data };
 }

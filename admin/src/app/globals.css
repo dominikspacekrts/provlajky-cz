@@ -216,6 +216,13 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 .sup-inv-row .rm { border: none; background: #fee2e2; color: #991b1b; border-radius: 6px;
   width: 24px; height: 24px; cursor: pointer; font-size: 15px; line-height: 1; }
 .sup-inv-add { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.cur-switch { display: flex; height: 38px; border: 1px solid var(--color-border-input); border-radius: 7px; overflow: hidden; }
+.cur-switch button {
+  border: 0; background: white; padding: 0 14px; font: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; color: #374151;
+}
+.cur-switch button + button { border-left: 1px solid var(--color-border-input); }
+.cur-switch button.active { background: var(--color-primary); color: white; }
 .sup-cost-summary { margin-top: 12px; max-width: 460px; }
 
 /* Modal (reused visual pattern for email preview, confirmations, etc.) */
