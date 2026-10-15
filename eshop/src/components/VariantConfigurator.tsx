@@ -67,7 +67,6 @@ export default function VariantConfigurator({
   const isNuzkovy = product.category === "nuzkove-stany";
   const isNafukovaci = product.category === "nafukovaci-stany";
   const needsArtwork = isCustomMadeCategory(product.category);
-  const templates = designTemplatesFor(product);
   const title = size ? `${product.name} ${size}` : product.name;
 
   const stripSizePrefix = (label: string) =>
@@ -75,6 +74,9 @@ export default function VariantConfigurator({
 
   const [variantId, setVariantId] = useState<string>(variants[0]?.id ?? "");
   const selected = variants.find((v) => v.id === variantId) ?? variants[0];
+  const templates = designTemplatesFor(product, {
+    sizeLabel: size ?? selected?.size ?? selected?.label,
+  });
 
   const speeds = selected ? availableSpeeds(selected) : [];
   const [speed, setSpeed] = useState<DeliverySpeed>("fast");
@@ -219,7 +221,7 @@ export default function VariantConfigurator({
             width={640}
             height={480}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            unoptimized
+            priority
           />
         ) : image ? (
           <Image
@@ -228,7 +230,8 @@ export default function VariantConfigurator({
             width={520}
             height={620}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            unoptimized
+            unoptimized={image.startsWith("data:") || image.startsWith("blob:")}
+            priority
           />
         ) : (
           <FlagMark className="thumb-empty" />

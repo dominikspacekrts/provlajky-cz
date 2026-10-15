@@ -395,7 +395,7 @@ export default function TentWallsConfigurator({
     </>
   );
 
-  const templates = designTemplatesFor(product);
+  const templates = designTemplatesFor(product, { backWidthM: cfg?.backWidthM });
   const artworkBlock =
     printMode === "printed" ? (
       <ArtworkChoice
