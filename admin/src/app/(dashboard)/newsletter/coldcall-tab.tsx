@@ -431,7 +431,10 @@ export default function ColdcallTab({
     setSubject(c.subject);
     setIntro(c.intro_html);
     setProductIds(normalizeColdcallCategoryIds(c.product_ids));
-    setRules({ ...DEFAULT_RULES, validDays: 90, prefix: "PRO", ...c.code_rules });
+    setRules({
+      ...{ ...DEFAULT_RULES, validDays: 90, prefix: "PRO" },
+      ...c.code_rules,
+    });
     notify("Kampaň načtená do editoru.");
     document.getElementById("nl-composer")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
