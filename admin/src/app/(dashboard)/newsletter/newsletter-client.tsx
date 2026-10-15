@@ -21,6 +21,7 @@ type Props = {
   riders: NewsletterRider[];
   companies: ColdcallCompany[];
   products: NewsletterProductCard[];
+  coldcallCategories: NewsletterProductCard[];
   campaigns: NewsletterCampaign[];
   campaignStats: Record<string, CampaignStats>;
   resendReady: boolean;
@@ -108,7 +109,7 @@ export default function NewsletterClient(props: Props) {
       ) : (
         <ColdcallTab
           companies={props.companies}
-          products={props.products}
+          categories={props.coldcallCategories}
           campaigns={props.campaigns.filter((c) => c.kind === "coldcall")}
           campaignStats={props.campaignStats}
           resendReady={props.resendReady}

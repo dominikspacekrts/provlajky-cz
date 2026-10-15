@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteColdcallCompany,
-  getTopProductIds,
   sendColdcallManual,
   sendNewsletterCampaign,
   updateColdcallAssignee,
@@ -13,6 +12,7 @@ import {
   type CampaignStats,
 } from "@/lib/actions/newsletter";
 import { createClient } from "@/lib/supabase/client";
+import { COLDCALL_CATEGORY_IDS, normalizeColdcallCategoryIds } from "@/lib/newsletter/products";
 import type {
   ColdcallCompany,
   ColdcallStatus,
@@ -119,7 +119,7 @@ function rulesForCompany(c: ColdcallCompany | undefined, base: PromoCodeRules): 
 
 export default function ColdcallTab({
   companies: companiesProp,
-  products,
+  categories,
   campaigns,
   campaignStats,
   resendReady,
@@ -130,7 +130,7 @@ export default function ColdcallTab({
   notify,
 }: {
   companies: ColdcallCompany[];
-  products: NewsletterProductCard[];
+  categories: NewsletterProductCard[];
   campaigns: NewsletterCampaign[];
   campaignStats: Record<string, CampaignStats>;
   resendReady: boolean;
@@ -202,11 +202,11 @@ export default function ColdcallTab({
   const [subject, setSubject] = useState(DEFAULT_SUBJECT);
   const [intro, setIntro] = useState(DEFAULT_INTRO);
   const [rules, setRules] = useState<PromoCodeRules>(DEFAULT_RULES);
-  const [productIds, setProductIds] = useState<string[]>([]);
+  const [productIds, setProductIds] = useState<string[]>(() => [...COLDCALL_CATEGORY_IDS]);
   const [testTo, setTestTo] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const closePreview = useCallback(() => setPreviewOpen(false), []);
-  const [busy, setBusy] = useState<null | "save" | "top" | "test" | "send" | `retry:${string}` | `row:${string}`>(null);
+  const [busy, setBusy] = useState<null | "save" | "test" | "send" | `retry:${string}` | `row:${string}`>(null);
 
   const countByStatus = useMemo(() => {
     const m = Object.fromEntries(COLDCALL_STATUSES.map((s) => [s, 0])) as Record<ColdcallStatus, number>;
@@ -326,14 +326,6 @@ export default function ColdcallTab({
     router.refresh();
   }
 
-  async function loadTop() {
-    setBusy("top");
-    const res = await getTopProductIds(6);
-    setBusy(null);
-    if (!res.ok) return notify(res.error, "error");
-    setProductIds(res.data || []);
-  }
-
   async function sendTest() {
     const to = testTo.trim();
     if (!to.includes("@")) return notify("Zadej e-mail, kam poslat test.", "error");
@@ -426,7 +418,7 @@ export default function ColdcallTab({
     setMode("bulk");
     setSubject(c.subject);
     setIntro(c.intro_html);
-    setProductIds(c.product_ids || []);
+    setProductIds(normalizeColdcallCategoryIds(c.product_ids));
     setRules({ ...DEFAULT_RULES, ...c.code_rules });
     notify("Kampaň načtená do editoru.");
     document.getElementById("nl-composer")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -876,11 +868,19 @@ export default function ColdcallTab({
           </Panel>
 
           <ProductPicker
-            products={products}
+            products={categories}
             selected={productIds}
             onChange={setProductIds}
-            onLoadTop={loadTop}
-            loadingTop={busy === "top"}
+            onLoadTop={() => setProductIds([...COLDCALL_CATEGORY_IDS])}
+            loadingTop={false}
+            title="Kategorie v mailu"
+            subSelected={(n) => `Vybráno ${n} z ${categories.length}. V mailu budou s cenou „od …“, v pořadí výběru.`}
+            subEmpty="Bez kategorií bude mail jen text a slevový kód."
+            loadTopLabel="Vybrat všechny"
+            emptyTitle="Žádné kategorie"
+            emptyBody="Kategorie se nenačetly — obnov stránku."
+            itemLabel="kategorií"
+            maxItems={categories.length || COLDCALL_CATEGORY_IDS.length}
           />
 
           <Panel title="Odeslání">
@@ -918,7 +918,7 @@ export default function ColdcallTab({
               {missing.length === 0 ? (
                 <li>
                   Vše připraveno:{" "}
-                  {mode === "single" ? target?.email : `${bulkRecipients.length} firem`}, {productIds.length} produktů.
+                  {mode === "single" ? target?.email : `${bulkRecipients.length} firem`}, {productIds.length} kategorií.
                 </li>
               ) : (
                 missing.map((m) => (

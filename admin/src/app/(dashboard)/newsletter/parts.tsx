@@ -265,15 +265,31 @@ export function ProductPicker({
   onChange,
   onLoadTop,
   loadingTop,
+  title = "Produkty v mailu",
+  subSelected,
+  subEmpty = "Nepovinné — bez produktů bude mail jen text a slevový kód.",
+  loadTopLabel = "Načíst nejprodávanější",
+  emptyTitle = "Žádné aktivní produkty",
+  emptyBody = "Aktivuj produkty v sekci Produkty, pak je sem půjde přidat.",
+  itemLabel = "produktů",
+  maxItems = MAX_PRODUCTS,
 }: {
   products: NewsletterProductCard[];
   selected: string[];
   onChange: (ids: string[]) => void;
   onLoadTop: () => void;
   loadingTop: boolean;
+  title?: string;
+  subSelected?: (n: number) => string;
+  subEmpty?: string;
+  loadTopLabel?: string;
+  emptyTitle?: string;
+  emptyBody?: string;
+  itemLabel?: string;
+  maxItems?: number;
 }) {
   const [query, setQuery] = useState("");
-  const full = selected.length >= MAX_PRODUCTS;
+  const full = selected.length >= maxItems;
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? products.filter((p) => p.name.toLowerCase().includes(q)) : products;
@@ -286,16 +302,17 @@ export function ProductPicker({
 
   return (
     <Panel
-      title="Produkty v mailu"
+      title={title}
       sub={
         selected.length
-          ? `Vybráno ${selected.length} z ${MAX_PRODUCTS}. V mailu budou nad slevovým kódem, v pořadí výběru.`
-          : "Nepovinné — bez produktů bude mail jen text a slevový kód."
+          ? subSelected?.(selected.length) ||
+            `Vybráno ${selected.length} z ${maxItems}. V mailu budou nad slevovým kódem, v pořadí výběru.`
+          : subEmpty
       }
       actions={
         <>
           <button type="button" className="btn mini" disabled={loadingTop} onClick={onLoadTop}>
-            {loadingTop ? "Načítám…" : "Načíst nejprodávanější"}
+            {loadingTop ? "Načítám…" : loadTopLabel}
           </button>
           {selected.length > 0 && (
             <button type="button" className="btn mini ghost" onClick={() => onChange([])}>
@@ -318,8 +335,8 @@ export function ProductPicker({
       )}
       {products.length === 0 ? (
         <div className="nl-empty">
-          <strong>Žádné aktivní produkty</strong>
-          Aktivuj produkty v sekci Produkty, pak je sem půjde přidat.
+          <strong>{emptyTitle}</strong>
+          {emptyBody}
         </div>
       ) : (
         <div className="nl-products">
@@ -334,7 +351,7 @@ export function ProductPicker({
                 disabled={!on && full}
                 aria-pressed={on}
                 onClick={() => toggle(p.id)}
-                title={!on && full ? `Maximálně ${MAX_PRODUCTS} produktů` : undefined}
+                title={!on && full ? `Maximálně ${maxItems} ${itemLabel}` : undefined}
               >
                 {on && <span className="nl-product-order">{order + 1}</span>}
                 <span className="nl-product-img">

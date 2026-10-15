@@ -8,7 +8,12 @@ import { createClient } from "@/lib/supabase/server";
 import type { Product } from "@/lib/types";
 import { parseRidersCsv } from "@/lib/newsletter/csv";
 import { coldcallGreeting, czechVocativeFirst, firstName, newsletterGreeting } from "@/lib/newsletter/greeting";
-import { shopHomeUrl, toProductCard } from "@/lib/newsletter/products";
+import {
+  buildColdcallCategoryCards,
+  normalizeColdcallCategoryIds,
+  shopHomeUrl,
+  toProductCard,
+} from "@/lib/newsletter/products";
 import {
   generatePromoCode,
   normalizeCodeRules,
@@ -110,12 +115,26 @@ async function loadProductCards(ids: string[]): Promise<NewsletterProductCard[]>
   return ids.map((id) => byId.get(id)).filter(Boolean).map((p) => toProductCard(p!));
 }
 
+async function loadColdcallCategoryCards(ids: string[]): Promise<NewsletterProductCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("products").select("*").eq("active", true);
+  const all = buildColdcallCategoryCards((data || []) as Product[]);
+  const picked = normalizeColdcallCategoryIds(ids);
+  const byId = new Map(all.map((c) => [c.id, c]));
+  return picked.map((id) => byId.get(id)).filter(Boolean) as NewsletterProductCard[];
+}
+
+async function loadMailCards(kind: "rts" | "coldcall", ids: string[]): Promise<NewsletterProductCard[]> {
+  return kind === "coldcall" ? loadColdcallCategoryCards(ids) : loadProductCards(ids.slice(0, 6));
+}
+
 export type CampaignStats = { sent: number; failed: number; codesUsed: number };
 
 export async function getNewsletterBootstrap(): Promise<{
   riders: NewsletterRider[];
   companies: ColdcallCompany[];
   products: NewsletterProductCard[];
+  coldcallCategories: NewsletterProductCard[];
   campaigns: NewsletterCampaign[];
   campaignStats: Record<string, CampaignStats>;
   resendReady: boolean;
@@ -148,7 +167,9 @@ export async function getNewsletterBootstrap(): Promise<{
   if (companiesRes.error) throw new Error(companiesRes.error.message);
   if (campaignsRes.error) throw new Error(campaignsRes.error.message);
 
-  const products = ((productsRes.data || []) as Product[]).map(toProductCard);
+  const rawProducts = (productsRes.data || []) as Product[];
+  const products = rawProducts.map(toProductCard);
+  const coldcallCategories = buildColdcallCategoryCards(rawProducts);
   const campaigns = (campaignsRes.data || []) as NewsletterCampaign[];
 
   const campaignStats: Record<string, CampaignStats> = {};
@@ -187,6 +208,7 @@ export async function getNewsletterBootstrap(): Promise<{
     riders: (ridersRes.data || []) as NewsletterRider[],
     companies: (companiesRes.data || []) as ColdcallCompany[],
     products,
+    coldcallCategories,
     campaigns,
     campaignStats,
     resendReady: !resendConfigError(resendCfg),
@@ -417,7 +439,7 @@ export async function previewNewsletterHtml(
   input: PreviewCampaignInput
 ): Promise<ActionResult<{ html: string; subject: string; to: string }>> {
   const rules = normalizeCodeRules(input.codeRules);
-  const products = await loadProductCards(input.productIds.slice(0, 6));
+  const products = await loadMailCards(input.kind, input.productIds);
   const supabase = await createClient();
   const sampleCode = `${rules.prefix || defaultCodePrefix(input.kind)}-7KQ2MX`;
   const validUntil = validUntilFromRules(rules);
@@ -663,7 +685,7 @@ export async function sendNewsletterCampaign(
     const { error: colsErr } = await supabase.from("coldcall_companies").select("last_contacted_by").limit(1);
     if (colsErr) return { ok: false, error: friendlyDbError(colsErr.message, "Firmy se nepodařilo načíst.") };
   }
-  const products = await loadProductCards(input.productIds.slice(0, 6));
+  const products = await loadMailCards(input.kind, input.productIds);
   const { logo } = await brandedHtml("<p></p>");
   const settings = await getSettings();
   const logoAtt = logo
@@ -991,7 +1013,7 @@ export async function sendColdcallManual(input: {
     }
   );
 
-  const products = await loadProductCards(input.productIds.slice(0, 6));
+  const products = await loadColdcallCategoryCards(input.productIds);
   const promo = await insertPromoForRecipient({
     rules,
     source: "coldcall",
