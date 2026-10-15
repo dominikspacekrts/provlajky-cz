@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createProduct, updateProduct, uploadProductImage, type ProductInput } from "@/lib/actions/products";
+import { createProduct, getProductById, updateProduct, uploadProductImage, type ProductInput } from "@/lib/actions/products";
 import { customsFromBuy, resolveCustoms, tentCustomsRate, TENT_CUSTOMS_PCT_DEFAULT } from "@/lib/domain";
 import {
   PRODUCT_CATEGORIES,
@@ -363,17 +363,27 @@ export default function ProductFormButton({
   }
 
   function openModal() {
-    const input = product ? toInput(product, supplier) : emptyInput(defaultCategory);
-    // U nůžkových stanů clo v DB ještě nemusí být — dopočti 12 % z nákupu hned
-    // při otevření, ať pole Clo není prázdné / nula.
-    if (input.kind === "tent_walls") {
-      const tw = input.config.tentWalls ?? emptyTentWalls();
-      setValue({ ...input, config: { ...input.config, tentWalls: ensureTentCustoms(tw) } });
-    } else {
-      setValue(input);
-    }
     setError(null);
     setOpen(true);
+    startTransition(async () => {
+      let full = product;
+      // Seznam produktů neposílá images[] — do formuláře je dočteme až tady.
+      if (product?.id) {
+        try {
+          full = (await getProductById(product.id)) || product;
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Nepodařilo se načíst produkt.");
+          full = product;
+        }
+      }
+      const input = full ? toInput(full, supplier) : emptyInput(defaultCategory);
+      if (input.kind === "tent_walls") {
+        const tw = input.config.tentWalls ?? emptyTentWalls();
+        setValue({ ...input, config: { ...input.config, tentWalls: ensureTentCustoms(tw) } });
+      } else {
+        setValue(input);
+      }
+    });
   }
 
   // Fotka jde do Supabase Storage a do produktu se uloží jen veřejná adresa.
@@ -1183,7 +1193,7 @@ export default function ProductFormButton({
                 <input value={value.subtitle} onChange={(e) => set("subtitle", e.target.value)} />
               </label>
               <label>
-                Popis
+                Popis <span style={{ fontWeight: 400, color: "var(--muted, #888)" }}>(**text** = tučně na eshopu)</span>
                 <textarea rows={4} value={value.description} onChange={(e) => set("description", e.target.value)} />
               </label>
 

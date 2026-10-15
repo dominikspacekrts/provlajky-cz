@@ -1,21 +1,38 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import { type Product } from "@/lib/types";
 import { itemFromProduct, trackViewItem } from "@/lib/analytics";
-import FlagConfigurator from "./FlagConfigurator";
-import BannerConfigurator from "./BannerConfigurator";
-import VariantConfigurator from "./VariantConfigurator";
-import OptionsConfigurator from "./OptionsConfigurator";
-import CustomFlagConfigurator from "./CustomFlagConfigurator";
-import TentWallsConfigurator from "./TentWallsConfigurator";
 import ConfiguratorGallery from "@/components/ConfiguratorGallery";
 import CtaBar from "@/components/CtaBar";
 import { FlagMark } from "@/components/Icons";
 import { useConfiguratorLayout } from "@/lib/useConfiguratorLayout";
 import { AddedToCartDialog, FcContactLink, FcDesktopHeader } from "@/components/ConfiguratorChrome";
+import MdText from "@/components/MdText";
+
+// Každý konfigurátor je vlastní chunk — produktová stránka nenačte three.js /
+// editory, které pro daný kind vůbec nepotřebuje.
+const FlagConfigurator = dynamic(() => import("./FlagConfigurator"), {
+  loading: () => <p className="muted">Načítám konfigurátor…</p>,
+});
+const BannerConfigurator = dynamic(() => import("./BannerConfigurator"), {
+  loading: () => <p className="muted">Načítám konfigurátor…</p>,
+});
+const VariantConfigurator = dynamic(() => import("./VariantConfigurator"), {
+  loading: () => <p className="muted">Načítám konfigurátor…</p>,
+});
+const OptionsConfigurator = dynamic(() => import("./OptionsConfigurator"), {
+  loading: () => <p className="muted">Načítám konfigurátor…</p>,
+});
+const CustomFlagConfigurator = dynamic(() => import("./CustomFlagConfigurator"), {
+  loading: () => <p className="muted">Načítám konfigurátor…</p>,
+});
+const TentWallsConfigurator = dynamic(() => import("./TentWallsConfigurator"), {
+  loading: () => <p className="muted">Načítám konfigurátor…</p>,
+});
 
 export default function ProductDetail({
   product,
@@ -26,8 +43,6 @@ export default function ProductDetail({
   size?: string;
   galleryPhotos?: { id: string; image: string }[];
 }) {
-  // Jediné místo, kudy projdou všechny druhy produktů — view_item tak sedí
-  // i na otevření konfigurátoru, ne jen na „obyčejný" detail.
   const trackedSlug = useRef<string | null>(null);
   useEffect(() => {
     if (trackedSlug.current === product.slug) return;
@@ -42,6 +57,10 @@ export default function ProductDetail({
   if (product.kind === "options") return <OptionsConfigurator product={product} galleryPhotos={galleryPhotos} />;
   if (product.kind === "tent_walls") return <TentWallsConfigurator product={product} galleryPhotos={galleryPhotos} />;
   return <SimpleProductDetail product={product} galleryPhotos={galleryPhotos} />;
+}
+
+function needsUnoptimized(src: string) {
+  return src.startsWith("data:") || src.startsWith("blob:");
 }
 
 function SimpleProductDetail({
@@ -83,7 +102,15 @@ function SimpleProductDetail({
     >
       <div className="fc-stage">
         {shapeImage ? (
-          <Image src={shapeImage} alt={product.name} width={480} height={600} style={{ width: "100%", height: "100%", objectFit: "contain" }} unoptimized />
+          <Image
+            src={shapeImage}
+            alt={product.name}
+            width={480}
+            height={600}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            unoptimized={needsUnoptimized(shapeImage)}
+            priority
+          />
         ) : (
           <FlagMark className="thumb-empty" />
         )}
@@ -99,9 +126,11 @@ function SimpleProductDetail({
             </p>
           )}
           {product.description && (
-            <p style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+            <MdText
+              style={{ color: "var(--gray)", fontSize: 13, marginTop: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}
+            >
               {product.description}
-            </p>
+            </MdText>
           )}
         </div>
 

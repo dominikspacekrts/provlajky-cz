@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import type { Product, ProductCategory } from "@/lib/types";
 import ProductDetail from "@/components/ProductDetail";
+import { stripMdMarkers } from "@/components/MdText";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export async function generateMetadata({
   params,
@@ -20,7 +21,8 @@ export async function generateMetadata({
     .eq("active", true)
     .single();
   if (!data) return {};
-  const description = data.subtitle || data.description || undefined;
+  const raw = data.subtitle || data.description || undefined;
+  const description = raw ? stripMdMarkers(raw) : undefined;
   const image = data.images?.[0];
   return {
     title: data.name,
