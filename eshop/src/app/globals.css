@@ -1606,7 +1606,10 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-nav {
   position: sticky; top: 0; z-index: 90; height: var(--nv-nav-h);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 var(--nv-inset);
+  /* Lišta nesmí brát tlustý --nv-inset (5.5vw). Na notebooku kolem 1440 px
+     by se kategorie slepily s přihlášením a košík vyjel z okna. Odsazení
+     je jen vycentrování na ultra-wide, stejně jako sloupec obsahu. */
+  padding: 0 max(18px, calc((100vw - var(--nv-max)) / 2));
   background: var(--nv-ink); border-bottom: 1px solid transparent;
   /* Trvalý jemný stín pod lištou — dřív měla hranici jen ve "stuck" stavu,
      takže na první obrazovce ležela na fotce úplně plocho a bez hloubky. */
@@ -1618,7 +1621,7 @@ html:has(.nv) { scroll-behavior: smooth; }
   height: 62px; background: rgba(8, 8, 10, 0.88); backdrop-filter: blur(16px) saturate(1.2);
   border-bottom-color: var(--nv-line-l);
 }
-.nv-nav-left { display: flex; align-items: center; gap: clamp(20px, 3vw, 40px); }
+.nv-nav-left { display: flex; align-items: center; gap: clamp(16px, 2vw, 32px); min-width: 0; }
 .nv-logo { display: block; }
 .nv-logo img {
   height: 32px; width: auto; max-width: none; display: block; flex-shrink: 0;
@@ -1643,11 +1646,11 @@ html:has(.nv) { scroll-behavior: smooth; }
 }
 .nv-nav-groups a:hover, .nv-nav-groups a:focus-visible { color: #fff; }
 .nv-nav-groups a:hover::after, .nv-nav-groups a:focus-visible::after { transform: scaleX(1); }
-@media (max-width: 1280px) {
+@media (max-width: 1400px) {
   .nv-nav-groups { display: none; }
 }
 
-.nv-nav-right { display: flex; align-items: center; gap: 12px; }
+.nv-nav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
 .nv-nav-phone {
   position: relative; color: #fff; text-decoration: none; font-size: 12px;
@@ -1690,8 +1693,8 @@ html:has(.nv) { scroll-behavior: smooth; }
   display: inline-flex; align-items: center; justify-content: center; padding: 0 5px;
 }
 
-/* --- hamburger + vysouvací menu (do 1280 px) ------------------------
-   Nad 1280 px jsou kategorie vypsané rovnou v liště, takže tlačítko ani
+/* --- hamburger + vysouvací menu (do 1400 px) ------------------------
+   Nad 1400 px jsou kategorie vypsané rovnou v liště, takže tlačítko ani
    panel neexistují. Panel je tmavý jako lišta, jede zprava a drží se
    pod ní, aby logo i košík zůstaly na místě. */
 .nv-nav-burger {
@@ -1704,7 +1707,7 @@ html:has(.nv) { scroll-behavior: smooth; }
 .nv-nav-burger svg { width: 21px; height: 21px; display: block; }
 .nv-nav-burger:hover { background: #fff; border-color: #fff; color: var(--nv-ink); }
 .nv-nav-burger:active { transform: scale(0.95); }
-@media (max-width: 1280px) {
+@media (max-width: 1400px) {
   .nv-nav-burger { display: inline-flex; }
 }
 
