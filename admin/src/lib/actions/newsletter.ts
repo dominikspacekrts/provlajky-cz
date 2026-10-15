@@ -705,14 +705,20 @@ export async function sendNewsletterCampaign(
   if (input.testTo) {
     campaignId = null;
   } else if (!campaignId) {
+    // Coldcall má v UI kategorie (slugs), ne UUID produktů — sloupec product_ids
+    // je uuid[], takže kategorie ukládáme do code_rules.coldcallCategoryIds.
+    const codeRulesForDb =
+      input.kind === "coldcall"
+        ? { ...rules, coldcallCategoryIds: input.productIds }
+        : rules;
     const { data: camp, error: campErr } = await supabase
       .from("newsletter_campaigns")
       .insert({
         kind: input.kind,
         subject,
         intro_html: input.introHtml || "",
-        product_ids: input.productIds.slice(0, 6),
-        code_rules: rules,
+        product_ids: input.kind === "coldcall" ? [] : input.productIds.slice(0, 6),
+        code_rules: codeRulesForDb,
         status: "sending",
       })
       .select("id")

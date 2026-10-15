@@ -416,9 +416,10 @@ export default function ColdcallTab({
       kind: "coldcall",
       subject: c.subject,
       introHtml: c.intro_html,
-      productIds: c.product_ids,
+      productIds: normalizeColdcallCategoryIds(c.code_rules?.coldcallCategoryIds || c.product_ids),
       codeRules: c.code_rules,
       retryCampaignId: c.id,
+      flipStatusAfterSend: flipAfterSend,
     });
     setBusy(null);
     if (!res.ok) return notify(res.error, "error");
@@ -430,7 +431,7 @@ export default function ColdcallTab({
     setMode("bulk");
     setSubject(c.subject);
     setIntro(c.intro_html);
-    setProductIds(normalizeColdcallCategoryIds(c.product_ids));
+    setProductIds(normalizeColdcallCategoryIds(c.code_rules?.coldcallCategoryIds || c.product_ids));
     setRules({
       ...{ ...DEFAULT_RULES, validDays: 90, prefix: "PRO" },
       ...c.code_rules,

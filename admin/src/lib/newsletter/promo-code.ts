@@ -27,6 +27,9 @@ export function normalizeCodeRules(raw: Partial<PromoCodeRules> | null | undefin
       ? null
       : Math.max(1, Math.floor(Number(raw.validDays)));
   const prefix = normalizeCodePrefix(raw?.prefix);
+  const coldcallCategoryIds = Array.isArray(raw?.coldcallCategoryIds)
+    ? raw!.coldcallCategoryIds!.filter((id): id is string => typeof id === "string" && !!id)
+    : undefined;
   return {
     discountType,
     discountValue,
@@ -34,6 +37,7 @@ export function normalizeCodeRules(raw: Partial<PromoCodeRules> | null | undefin
     maxUses: oneShot ? 1 : maxUses,
     validDays: Number.isFinite(validDays as number) ? validDays : null,
     ...(prefix ? { prefix } : {}),
+    ...(coldcallCategoryIds?.length ? { coldcallCategoryIds } : {}),
   };
 }
 
