@@ -17,6 +17,7 @@ export type ColdcallStatus =
   | "nova"
   | "zavolano"
   | "poslat_email"
+  | "newsletter_odeslan"
   | "nemaji_zajem"
   | "jedname"
   | "zakaznik";
@@ -25,6 +26,7 @@ export const COLDCALL_STATUS_LABELS: Record<ColdcallStatus, string> = {
   nova: "Nová",
   zavolano: "Zavoláno",
   poslat_email: "Poslat email",
+  newsletter_odeslan: "Newsletter odeslán",
   nemaji_zajem: "Nemají zájem",
   jedname: "Jednáme",
   zakaznik: "Zákazník",

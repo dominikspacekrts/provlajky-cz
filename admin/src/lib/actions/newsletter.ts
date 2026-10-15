@@ -36,7 +36,7 @@ import type {
 import { COLDCALL_STATUSES, CONTACT_COOLDOWN_DAYS } from "@/lib/newsletter/types";
 
 function defaultCodePrefix(kind: "rts" | "coldcall") {
-  return kind === "rts" ? "RACE10" : "B2B";
+  return kind === "rts" ? "RACE10" : "PRO";
 }
 
 export type ActionResult<T = void> = { ok: true; data?: T } | { ok: false; error: string };
@@ -323,8 +323,7 @@ export async function upsertColdcallCompany(input: {
   /** updated_at, ze kterého úprava vycházela — když se mezitím změnil, nic se nepřepíše. */
   expectedUpdatedAt?: string;
 }): Promise<ActionResult<ColdcallCompany> | { ok: false; error: string; conflict: ColdcallCompany }> {
-  const name = input.name.trim();
-  if (!name) return { ok: false, error: "Zadej název firmy." };
+  const name = (input.name || "").trim();
   const status = input.status && COLDCALL_STATUSES.includes(input.status) ? input.status : "nova";
   const row = {
     name,
@@ -664,6 +663,8 @@ export type SendCampaignInput = {
   skipRecentlyContacted?: boolean;
   /** Coldcall: jen firmy přiřazené tomuhle uživateli. */
   onlyAssignedTo?: string;
+  /** Coldcall: po úspěšném odeslání přepnout firmu na „Newsletter odeslán“. */
+  flipStatusAfterSend?: boolean;
 };
 
 export async function sendNewsletterCampaign(
@@ -913,6 +914,12 @@ export async function sendNewsletterCampaign(
 
     if (result.ok) {
       sent++;
+      if (input.kind === "coldcall" && input.flipStatusAfterSend && recip.companyId && !input.testTo) {
+        await supabase
+          .from("coldcall_companies")
+          .update({ status: "newsletter_odeslan", updated_by: me, updated_at: new Date().toISOString() })
+          .eq("id", recip.companyId);
+      }
     } else {
       failed++;
       if (recip.companyId && recip.previousContact) await releaseCompanyContact(supabase, recip.companyId, recip.previousContact);
@@ -960,7 +967,8 @@ export async function sendColdcallManual(input: {
   introHtml: string;
   productIds: string[];
   codeRules?: Partial<PromoCodeRules>;
-  flipStatusToJedname?: boolean;
+  /** Po úspěšném odeslání přepnout firmu na stav „Newsletter odeslán“. */
+  flipStatusAfterSend?: boolean;
   /** Poslat i když firmě někdo psal před méně než CONTACT_COOLDOWN_DAYS dny (admin to potvrdil). */
   force?: boolean;
 }): Promise<
@@ -1098,10 +1106,10 @@ export async function sendColdcallManual(input: {
   }
   if (sendErr || !sendRow) return { ok: false, error: sendErr?.message || "Log se neuložil." };
 
-  if (input.flipStatusToJedname && company.status !== "jedname") {
+  if (input.flipStatusAfterSend && company.status !== "newsletter_odeslan") {
     await supabase
       .from("coldcall_companies")
-      .update({ status: "jedname", updated_by: me, updated_at: new Date().toISOString() })
+      .update({ status: "newsletter_odeslan", updated_by: me, updated_at: new Date().toISOString() })
       .eq("id", company.id);
   }
 

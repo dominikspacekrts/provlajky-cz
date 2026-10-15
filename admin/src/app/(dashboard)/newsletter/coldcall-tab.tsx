@@ -117,6 +117,14 @@ function rulesForCompany(c: ColdcallCompany | undefined, base: PromoCodeRules): 
   };
 }
 
+function companyLabel(c: Pick<ColdcallCompany, "name" | "email" | "phone">): string {
+  const name = (c.name || "").trim();
+  if (name) return name;
+  if (c.email?.trim()) return c.email.trim();
+  if (c.phone?.trim()) return c.phone.trim();
+  return "Bez jména";
+}
+
 export default function ColdcallTab({
   companies: companiesProp,
   categories,
@@ -196,12 +204,16 @@ export default function ColdcallTab({
   const [mode, setMode] = useState<"single" | "bulk">("single");
   const [targetId, setTargetId] = useState("");
   const [bulkStatuses, setBulkStatuses] = useState<ColdcallStatus[]>(["poslat_email"]);
-  const [flipToJedname, setFlipToJedname] = useState(true);
+  const [flipAfterSend, setFlipAfterSend] = useState(true);
   const [skipRecent, setSkipRecent] = useState(true);
   const [onlyMine, setOnlyMine] = useState(false);
   const [subject, setSubject] = useState(DEFAULT_SUBJECT);
   const [intro, setIntro] = useState(DEFAULT_INTRO);
-  const [rules, setRules] = useState<PromoCodeRules>(DEFAULT_RULES);
+  const [rules, setRules] = useState<PromoCodeRules>(() => ({
+    ...DEFAULT_RULES,
+    validDays: 90,
+    prefix: "PRO",
+  }));
   const [productIds, setProductIds] = useState<string[]>(() => [...COLDCALL_CATEGORY_IDS]);
   const [testTo, setTestTo] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -267,7 +279,6 @@ export default function ColdcallTab({
 
   async function saveDraft(overwrite = false) {
     if (!draft) return;
-    if (!draft.name.trim()) return notify("Zadej název firmy.", "error");
     setBusy("save");
     const { baseUpdatedAt, ...fields } = draft;
     const res = await upsertColdcallCompany({
@@ -315,7 +326,7 @@ export default function ColdcallTab({
   }
 
   async function remove(c: ColdcallCompany) {
-    if (!confirm(`Smazat firmu ${c.name}? Vygenerované kódy zůstanou platné.`)) return;
+    if (!confirm(`Smazat ${companyLabel(c)}? Vygenerované kódy zůstanou platné.`)) return;
     setBusy(`row:${c.id}`);
     const res = await deleteColdcallCompany(c.id);
     setBusy(null);
@@ -347,14 +358,14 @@ export default function ColdcallTab({
     if (mode === "single") {
       if (!target) return;
       const warn = warnings.length ? `\n\nPozor: ${warnings.join(" ")}` : "";
-      if (!confirm(`Poslat nabídku firmě ${target.name} na ${target.email}?${warn}`)) return;
+      if (!confirm(`Poslat nabídku ${companyLabel(target)} na ${target.email}?${warn}`)) return;
       const payload = {
         companyId: target.id,
         subject,
         introHtml: intro,
         productIds,
         codeRules: rules,
-        flipStatusToJedname: flipToJedname,
+        flipStatusAfterSend: flipAfterSend,
         force: targetRecent,
       };
       setBusy("send");
@@ -371,7 +382,7 @@ export default function ColdcallTab({
       }
       setBusy(null);
       if (!res.ok) return notify(res.error, "error");
-      notify(`Mail odešel firmě ${target.name}.`);
+      notify(`Mail odešel ${companyLabel(target)}.`);
       router.refresh();
       return;
     }
@@ -387,6 +398,7 @@ export default function ColdcallTab({
       coldcallStatuses: bulkStatuses,
       skipRecentlyContacted: skipRecent,
       onlyAssignedTo: onlyMine && me ? me : undefined,
+      flipStatusAfterSend: flipAfterSend,
     });
     setBusy(null);
     if (!res.ok) return notify(res.error, "error");
@@ -419,7 +431,7 @@ export default function ColdcallTab({
     setSubject(c.subject);
     setIntro(c.intro_html);
     setProductIds(normalizeColdcallCategoryIds(c.product_ids));
-    setRules({ ...DEFAULT_RULES, ...c.code_rules });
+    setRules({ ...DEFAULT_RULES, validDays: 90, prefix: "PRO", ...c.code_rules });
     notify("Kampaň načtená do editoru.");
     document.getElementById("nl-composer")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -431,8 +443,8 @@ export default function ColdcallTab({
   const sendLabel =
     mode === "single"
       ? target
-        ? `Poslat firmě ${target.name}`
-        : "Poslat firmě"
+        ? `Poslat ${companyLabel(target)}`
+        : "Poslat"
       : `Odeslat ${bulkRecipients.length} ${bulkRecipients.length === 1 ? "firmě" : "firmám"}`;
 
   return (
@@ -505,9 +517,11 @@ export default function ColdcallTab({
                   autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  placeholder="Jan Novák nebo Firma s.r.o."
+                  placeholder="Nepovinné — Jan Novák nebo Firma s.r.o."
                 />
-                <span className="nl-hint">U osoby mail osloví příjmením (pane Nováku / paní Nováková).</span>
+                <span className="nl-hint">
+                  Nepovinné. Když vyplníš osobu, mail osloví příjmením (pane Nováku / paní Nováková). Bez jména jen „Dobrý den,“.
+                </span>
               </label>
               <label className="nl-field">
                 Telefon
@@ -666,7 +680,7 @@ export default function ColdcallTab({
                   {shown.map((c) => (
                     <tr key={c.id} className={targetId === c.id && mode === "single" ? "is-selected" : ""}>
                       <td>
-                        <div className="nl-cell-main">{c.name}</div>
+                        <div className="nl-cell-main">{companyLabel(c)}</div>
                         {c.note && (
                           <div className="nl-cell-sub" title={c.note}>
                             {c.note}
@@ -687,7 +701,7 @@ export default function ColdcallTab({
                           className={`nl-status s-${c.status}`}
                           value={c.status}
                           onChange={(e) => changeStatus(c, e.target.value as ColdcallStatus)}
-                          aria-label={`Stav firmy ${c.name}`}
+                          aria-label={`Stav ${companyLabel(c)}`}
                         >
                           {COLDCALL_STATUSES.map((s) => (
                             <option key={s} value={s}>
@@ -702,7 +716,7 @@ export default function ColdcallTab({
                             className="nl-select nl-owner"
                             value={c.assigned_to || ""}
                             onChange={(e) => changeAssignee(c, e.target.value)}
-                            aria-label={`Kdo řeší firmu ${c.name}`}
+                            aria-label={`Kdo řeší ${companyLabel(c)}`}
                           >
                             <option value="">—</option>
                             {team.map((t) => (
@@ -740,7 +754,7 @@ export default function ColdcallTab({
                           className="btn mini danger"
                           disabled={busy === `row:${c.id}`}
                           onClick={() => remove(c)}
-                          aria-label={`Smazat ${c.name}`}
+                          aria-label={`Smazat ${companyLabel(c)}`}
                         >
                           Smazat
                         </button>
@@ -785,8 +799,8 @@ export default function ColdcallTab({
                     <option value="">Vyber firmu…</option>
                     {companies.map((c) => (
                       <option key={c.id} value={c.id} disabled={!c.email?.trim()}>
-                        {c.name}
-                        {c.email?.trim() ? ` — ${c.email}` : " (bez e-mailu)"}
+                        {companyLabel(c)}
+                        {c.email?.trim() && c.name?.trim() ? ` — ${c.email}` : !c.email?.trim() ? " (bez e-mailu)" : ""}
                         {c.assigned_to ? ` · řeší ${nameOf(c.assigned_to)}` : ""}
                       </option>
                     ))}
@@ -794,8 +808,8 @@ export default function ColdcallTab({
                   <span className="nl-hint">Sleva se předvyplní podle individuální slevy firmy, jde ale upravit níž.</span>
                 </label>
                 <label className="nl-check">
-                  <input type="checkbox" checked={flipToJedname} onChange={(e) => setFlipToJedname(e.target.checked)} />
-                  Po odeslání přepnout stav na „Jednáme“
+                  <input type="checkbox" checked={flipAfterSend} onChange={(e) => setFlipAfterSend(e.target.checked)} />
+                  Po odeslání přepnout stav na „Newsletter odeslán“
                 </label>
               </div>
             ) : (
@@ -827,6 +841,10 @@ export default function ColdcallTab({
                   <input type="checkbox" checked={skipRecent} onChange={(e) => setSkipRecent(e.target.checked)} />
                   Přeskočit firmy, kterým někdo psal za posledních {CONTACT_COOLDOWN_DAYS} dní
                   {skipRecent && bulkSkipped > 0 ? ` (přeskočí se ${bulkSkipped})` : ""}
+                </label>
+                <label className="nl-check">
+                  <input type="checkbox" checked={flipAfterSend} onChange={(e) => setFlipAfterSend(e.target.checked)} />
+                  Po odeslání přepnout stav na „Newsletter odeslán“
                 </label>
                 {teamReady && me && (
                   <label className="nl-check">
@@ -864,7 +882,7 @@ export default function ColdcallTab({
           </Panel>
 
           <Panel title="Slevový kód">
-            <CodeRulesEditor rules={rules} onChange={setRules} who={mode === "single" ? "Firma" : "Každá firma"} prefix="B2B" />
+            <CodeRulesEditor rules={rules} onChange={setRules} who={mode === "single" ? "Firma" : "Každá firma"} prefix="PRO" />
           </Panel>
 
           <ProductPicker
