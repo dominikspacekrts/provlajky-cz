@@ -18,8 +18,16 @@ type Customer = {
 
 export default async function UzivatelePage() {
   const supabase = await createClient();
-  const { data } = await supabase.from("customers").select("*").order("created_at", { ascending: false });
-  const customers = (data || []) as Customer[];
+  // password_hash se neposílá do klienta — jen boolean „má heslo“.
+  const { data } = await supabase
+    .from("customers")
+    .select("id, email, name, phone, discount_code, discount_pct, used_at, used_order_id, created_at, password_hash")
+    .order("created_at", { ascending: false });
+  const raw = (data || []) as Customer[];
+  const customers = raw.map(({ password_hash, ...rest }) => ({
+    ...rest,
+    password_hash: password_hash ? "1" : null,
+  }));
   const usedCount = customers.filter((c) => c.used_at).length;
   const withPassword = customers.filter((c) => c.password_hash).length;
 

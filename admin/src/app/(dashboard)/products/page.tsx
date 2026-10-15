@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { loadProductSuppliers } from "@/lib/actions/products";
 import { fmtMoney } from "@/lib/domain";
+import { PRODUCT_CORE_SELECT } from "@/lib/perf-selects";
 import { PRODUCT_CATEGORIES, NAV_GROUPS, type Partner, type Product, type ProductCategory } from "@/lib/types";
 import ActiveToggle from "./active-toggle";
 import ProductFormButton from "./product-form-button";
@@ -46,12 +47,12 @@ function priceLabel(p: Product): string {
 export default async function ProductsPage() {
   const supabase = await createClient();
   const [{ data }, { data: partnersData }, suppliers] = await Promise.all([
-    supabase.from("products").select("*").order("category").order("sort_order"),
+    // Bez images[] — base64 fotky se načtou až při „Upravit“.
+    supabase.from("products").select(PRODUCT_CORE_SELECT).order("category").order("sort_order"),
     supabase.from("partners").select("*").order("name"),
-    // Kontakty na dodavatele jsou ve vlastní (neveřejné) tabulce, ne v products.
     loadProductSuppliers(),
   ]);
-  const products = (data || []) as Product[];
+  const products = ((data || []) as Omit<Product, "images">[]).map((p) => ({ ...p, images: [] as string[] })) as Product[];
   const partners = (partnersData || []) as Partner[];
 
   const byCategory = new Map<ProductCategory, Product[]>();

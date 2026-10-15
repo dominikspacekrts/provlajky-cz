@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 // Ceny se čtou z nastavení v adminu (Nastavení → Doprava a platby), ať se
 // stránka nerozejde s tím, co zákazník vidí v objednávce.
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function ShippingPaymentPage() {
   const { shippingMethods, paymentMethods, shippingFreeOverAmount } = await getCheckoutSettings();

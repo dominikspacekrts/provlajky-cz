@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { useEmailPreview } from "@/components/email/EmailPreviewProvider";
 import { getMailTemplatesForClient } from "@/lib/actions/settings";
-import { buildSupplierBodyText } from "@/lib/email-templates";
+import { getArtworkDownloadUrl } from "@/lib/actions/orders";
+import { buildSupplierBodyText, escapeHtml, wrapEmailHtml } from "@/lib/email-templates";
 import { customerLabel, isBanner, isServiceLine, itemVisualDesigns } from "@/lib/domain";
 import type { Order, OrderItem, Product, ProductSupplier } from "@/lib/types";
 
-function dataUrlToAttachment(dataUrl: string, filename: string) {
+type Att = { filename: string; contentBase64: string; contentType: string };
+
+function dataUrlToAttachment(dataUrl: string, filename: string): Att | null {
   const m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl);
   if (!m) return null;
   return { filename, contentBase64: m[2], contentType: m[1] };
@@ -21,16 +24,76 @@ function extFromMime(mime: string) {
   return "png";
 }
 
-function bannerSupplierAttachments(it: OrderItem) {
+function attBytes(a: Att) {
+  return Math.ceil((a.contentBase64.length * 3) / 4);
+}
+
+// Malý náhled do mailu (orientace) — ne tiskový originál.
+const THUMB_MAX_BYTES = 350_000;
+
+async function thumbAttachment(dataUrl: string, filename: string): Promise<Att | null> {
+  const att = dataUrlToAttachment(dataUrl, filename);
+  if (!att) return null;
+  if (attBytes(att) <= THUMB_MAX_BYTES) {
+    att.filename = filename.replace(/\.[^.]+$/, "") + "." + extFromMime(att.contentType);
+    return att;
+  }
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new window.Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = dataUrl;
+    });
+    const maxSide = 1200;
+    const scale = Math.min(1, maxSide / Math.max(img.width || 1, img.height || 1));
+    const w = Math.max(1, Math.round((img.width || maxSide) * scale));
+    const h = Math.max(1, Math.round((img.height || maxSide / 3) * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return att;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    const jpg = canvas.toDataURL("image/jpeg", 0.8);
+    return dataUrlToAttachment(jpg, filename.replace(/\.[^.]+$/, "") + ".jpg");
+  } catch {
+    return null;
+  }
+}
+
+async function bannerSupplierPack(it: OrderItem): Promise<{
+  thumbs: Att[];
+  links: { label: string; url: string }[];
+}> {
   const designs = itemVisualDesigns(it);
-  return designs.flatMap((d, i) => {
-    const src = d.fullArtwork?.origSrc || d.fullArtwork?.src || d.thumb || "";
+  const thumbs: Att[] = [];
+  const links: { label: string; url: string }[] = [];
+  for (let i = 0; i < designs.length; i++) {
+    const d = designs[i];
     const piece = designs.length > 1 ? `_kus${i + 1}` : "";
-    const att = dataUrlToAttachment(src, `banner_${it.width_cm || 0}x${it.height_cm || 0}${piece}.png`);
-    if (!att) return [];
-    att.filename = `banner_${it.width_cm || 0}x${it.height_cm || 0}${piece}.${extFromMime(att.contentType)}`;
-    return [att];
-  });
+    const base = `banner_${it.width_cm || 0}x${it.height_cm || 0}${piece}`;
+
+    // Originál (SVG/PDF/…) zůstává v plné kvalitě — jen odkaz, ne příloha.
+    // Příloha by Vercel shodila (limit ~4,5 MB) a SVG se stejně nesmí mačkat.
+    if (d.artworkPath) {
+      try {
+        const url = await getArtworkDownloadUrl(d.artworkPath, 60 * 60 * 24 * 7);
+        links.push({ label: `Download ${base}`, url });
+      } catch {
+        /* bez odkazu — aspoň náhled */
+      }
+    }
+
+    const preview = d.thumb || d.fullArtwork?.src || "";
+    if (preview) {
+      const thumb = await thumbAttachment(preview, `${base}_nahled.jpg`);
+      if (thumb) thumbs.push(thumb);
+    }
+  }
+  return { thumbs, links };
 }
 
 // Stany, nafukovací reklamu a brány vyrábí jiný dodavatel než plážové vlajky,
@@ -95,18 +158,38 @@ export default function SendSupplierButton({
       }
       const subject = `order - ${customerLabel(order)}`;
       const body = buildSupplierBodyText(order, group.items, tpl.signName, tpl.signPhone);
-      const html = `<pre style="font-family:Arial,Helvetica,sans-serif;white-space:pre-wrap">${body
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")}</pre>`;
 
-      const attachments = group.items.flatMap((it, i) => {
-        if (isBanner(it)) return bannerSupplierAttachments(it);
-        const att = it.design?.thumb
-          ? dataUrlToAttachment(it.design.thumb, `navrh_${it.shape || i + 1}_${it.size || ""}.png`)
-          : null;
-        return att ? [att] : [];
-      });
+      const attachments: Att[] = [];
+      const allLinks: { label: string; url: string }[] = [];
+      for (const it of group.items) {
+        if (isBanner(it)) {
+          const { thumbs, links } = await bannerSupplierPack(it);
+          attachments.push(...thumbs);
+          allLinks.push(...links);
+        } else if (it.design?.thumb) {
+          const thumb = await thumbAttachment(it.design.thumb, `navrh_${it.shape || "vlajka"}_${it.size || ""}.jpg`);
+          if (thumb) attachments.push(thumb);
+        }
+      }
+
+      let extraHtml = "";
+      if (allLinks.length) {
+        extraHtml = `<p style="margin:22px 0 8px;font-size:14px;color:#374151"><strong>Artwork originals</strong> — full print quality, links valid 7 days:</p>
+<ul style="margin:0;padding:0;list-style:none">
+${allLinks
+  .map(
+    (l) =>
+      `<li style="margin:0 0 10px"><a href="${escapeHtml(l.url)}" style="color:#1d4ed8;font-weight:600;text-decoration:underline">${escapeHtml(l.label)}</a></li>`
+  )
+  .join("")}
+</ul>`;
+      } else if (group.items.some(isBanner)) {
+        extraHtml =
+          `<p style="margin:22px 0 0;font-size:13px;color:#b45309">Note: banner originals are missing in storage — attachment is preview only. Re-upload artwork in the configurator.</p>`;
+      }
+
+      const bodyHtml = `<pre style="margin:0;font-family:Arial,Helvetica,sans-serif;white-space:pre-wrap;font-size:15px;line-height:1.55">${escapeHtml(body)}</pre>${extraHtml}`;
+      const html = wrapEmailHtml(bodyHtml, tpl.signName, tpl.signPhone);
 
       openEmailPreview({
         kind: "supplier",

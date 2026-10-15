@@ -13,6 +13,7 @@
 // Panel bez fotky se vykreslí jako označený slot s cestou, kam fotku nahrát.
 
 import Link from "next/link";
+import Image from "next/image";
 import { NovaArrow, useInView } from "./NovaReveal";
 import type { ProductCategory } from "@/lib/types";
 import { fmtMoney } from "@/lib/money";
@@ -198,14 +199,16 @@ export default function NovaFields({
 
           <div className="nv-tile-media">
             {t.img ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={t.img}
                 alt=""
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 draggable={false}
-                loading="lazy"
-                decoding="async"
-                style={t.objectPosition ? { objectPosition: t.objectPosition } : undefined}
+                style={{
+                  objectFit: "cover",
+                  ...(t.objectPosition ? { objectPosition: t.objectPosition } : {}),
+                }}
               />
             ) : (
               <p className="nv-slot-note">

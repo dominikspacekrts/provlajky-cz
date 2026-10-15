@@ -17,9 +17,16 @@ export const DEFAULT_MAIL_TPL_VISUAL = `<p>Dobrý den,</p>
 <p>S pozdravem,<br>tým PROVLAJKY</p>`;
 
 export const DEFAULT_MAIL_TPL_ACCOUNTANT = `<p>Ahoj,</p>
-<p>zde je faktura provlajky zaslaná {{date}}.</p>
-<p>Prosím o potvrzení zaplacení odpovědí na tento mail.</p>
-<p>díky<br>Dominik Špaček</p>`;
+<p>posílám fakturu k objednávce z <strong>provlajky.cz</strong>.</p>
+<p>
+<strong>Objednávka č.</strong> {{order}}<br>
+<strong>Faktura č.</strong> {{invoice}}<br>
+<strong>Zákazník:</strong> {{customer}}<br>
+<strong>Částka:</strong> {{total}}<br>
+<strong>Odesláno zákazníkovi:</strong> {{date}}
+</p>
+<p>Tahle faktura právě odešla zákazníkovi. Dej prosím vědět, až dorazí peníze na účet.</p>
+<p>díky<br>{{signName}}</p>`;
 
 // {{link}} = osobní odkaz na hodnocení na eshopu (viz lib/actions/reviews.ts).
 export const DEFAULT_MAIL_TPL_REVIEW = `<p>Dobrý den,</p>
@@ -45,7 +52,7 @@ export function fillTemplate(
   tpl: string,
   order: Pick<Order, "customer" | "order_number">,
   totalStr: string,
-  extra: { date?: string; invoice?: string; link?: string } = {}
+  extra: { date?: string; invoice?: string; link?: string; signName?: string } = {}
 ) {
   const cust = customerLabel(order);
   return (tpl || "")
@@ -54,7 +61,8 @@ export function fillTemplate(
     .replace(/\{\{total\}\}/g, escapeHtml(totalStr || ""))
     .replace(/\{\{date\}\}/g, escapeHtml(extra.date || new Date().toLocaleDateString("cs-CZ")))
     .replace(/\{\{invoice\}\}/g, escapeHtml(extra.invoice || ""))
-    .replace(/\{\{link\}\}/g, escapeHtml(extra.link || ""));
+    .replace(/\{\{link\}\}/g, escapeHtml(extra.link || ""))
+    .replace(/\{\{signName\}\}/g, escapeHtml(extra.signName || ""));
 }
 
 export function wrapEmailHtml(bodyHtml: string, signName: string, signPhone: string) {

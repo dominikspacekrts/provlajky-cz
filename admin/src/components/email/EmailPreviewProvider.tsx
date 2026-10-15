@@ -13,7 +13,7 @@ export type EmailPreviewRequest = {
   subject: string;
   html: string;
   attachments: SendEmailAttachment[];
-  onSent?: () => void;
+  onSent?: () => void | Promise<void>;
   /** Read-only mode for browsing past e-mails from Historie mailů — no editing, no send. */
   readOnly?: boolean;
 };
@@ -21,6 +21,25 @@ export type EmailPreviewRequest = {
 type Ctx = { openEmailPreview: (req: EmailPreviewRequest) => void };
 
 const EmailPreviewContext = createContext<Ctx | null>(null);
+
+function attachmentBytes(a: SendEmailAttachment) {
+  // base64 má ~4 znaky na 3 bajty; padding (=) se zaokrouhlí nahoru.
+  return Math.ceil(((a.contentBase64?.length || 0) * 3) / 4);
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${Math.round(n)} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(n < 10 * 1024 * 1024 ? 2 : 1)} MB`;
+}
+
+// Vercel serverless má limit request body ~4,5 MB. Po base64 kódování to
+// prakticky znamená max ~2,5 MB surových příloh — jinak spadne celá stránka.
+const MAX_ATTACHMENTS_BYTES = 2.5 * 1024 * 1024;
+
+function payloadTooLargeMessage(bytes: number) {
+  return `Přílohy jsou moc velké na odeslání z adminu (${formatBytes(bytes)}, limit ${formatBytes(MAX_ATTACHMENTS_BYTES)}). Bez zmenšení by stránka spadla (Vercel Reload). U dodavatele by měly jít zmenšené JPG + odkaz na originál.`;
+}
 
 export function useEmailPreview() {
   const ctx = useContext(EmailPreviewContext);
@@ -48,8 +67,9 @@ export default function EmailPreviewProvider({ children }: { children: React.Rea
     setSubject(req.subject);
     setHtml(req.html);
     setRawEdit(false);
-    setError(null);
     setSuccess(false);
+    const bytes = req.attachments.reduce((s, a) => s + attachmentBytes(a), 0);
+    setError(bytes > MAX_ATTACHMENTS_BYTES ? payloadTooLargeMessage(bytes) : null);
   }
 
   function close() {
@@ -66,26 +86,46 @@ export default function EmailPreviewProvider({ children }: { children: React.Rea
     setCc(cc.filter((c) => c !== addr));
   }
 
+  const attachmentsBytes = request ? request.attachments.reduce((s, a) => s + attachmentBytes(a), 0) : 0;
+  const attachmentsTooBig = attachmentsBytes > MAX_ATTACHMENTS_BYTES;
+
   function handleSend() {
     if (!request) return;
+    if (attachmentsTooBig) {
+      setError(payloadTooLargeMessage(attachmentsBytes));
+      return;
+    }
     setError(null);
     startTransition(async () => {
-      const res = await sendEmailAction({
-        kind: request.kind,
-        orderId: request.orderId,
-        invoiceId: request.invoiceId,
-        to,
-        cc,
-        subject,
-        html,
-        attachments: request.attachments,
-      });
-      if (res.ok) {
-        setSuccess(true);
-        request.onSent?.();
-        setTimeout(() => setRequest(null), 900);
-      } else {
-        setError(res.error || "Odeslání selhalo.");
+      try {
+        const res = await sendEmailAction({
+          kind: request.kind,
+          orderId: request.orderId,
+          invoiceId: request.invoiceId,
+          to,
+          cc,
+          subject,
+          html,
+          attachments: request.attachments,
+        });
+        if (res.ok) {
+          setSuccess(true);
+          try {
+            await request.onSent?.();
+          } catch {
+            /* vedlejší akce (např. kopie účetní) nesmí shodit úspěch zákaznického mailu */
+          }
+          setTimeout(() => setRequest(null), 900);
+        } else {
+          setError(res.error || "Odeslání selhalo.");
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e || "");
+        if (/body|too large|Payload|413|FETCH_ERROR|Failed to fetch|NetworkError|unexpected response/i.test(msg)) {
+          setError(payloadTooLargeMessage(attachmentsBytes));
+        } else {
+          setError(msg || "Odeslání selhalo. Zkus to znovu.");
+        }
       }
     });
   }
@@ -151,12 +191,30 @@ export default function EmailPreviewProvider({ children }: { children: React.Rea
               </label>
 
               {request.attachments.length > 0 && (
-                <div className="chip-list">
-                  {request.attachments.map((a) => (
-                    <span key={a.filename} className="chip">
-                      📎 {a.filename}
-                    </span>
-                  ))}
+                <div>
+                  <div className="chip-list">
+                    {request.attachments.map((a) => {
+                      const bytes = attachmentBytes(a);
+                      return (
+                        <span key={a.filename} className="chip" title={`${a.filename} · ${formatBytes(bytes)}`}>
+                          📎 {a.filename} · {formatBytes(bytes)}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      margin: "6px 0 0",
+                      color: attachmentsTooBig ? "#dc2626" : "var(--color-gray-500)",
+                      fontWeight: attachmentsTooBig ? 600 : 400,
+                    }}
+                  >
+                    Přílohy celkem: {formatBytes(attachmentsBytes)}
+                    {attachmentsTooBig
+                      ? ` — moc velké (limit ${formatBytes(MAX_ATTACHMENTS_BYTES)}). Odeslat nejde, stránka by spadla.`
+                      : ""}
+                  </p>
                 </div>
               )}
 
@@ -202,8 +260,14 @@ export default function EmailPreviewProvider({ children }: { children: React.Rea
                   {request.readOnly ? "Zavřít" : "Zrušit"}
                 </button>
                 {!request.readOnly && (
-                  <button type="button" className="btn primary" onClick={handleSend} disabled={isPending}>
-                    {isPending ? "Odesílám…" : error ? "Zkusit znovu" : "Odeslat"}
+                  <button
+                    type="button"
+                    className="btn primary"
+                    onClick={handleSend}
+                    disabled={isPending || attachmentsTooBig}
+                    title={attachmentsTooBig ? "Přílohy jsou moc velké" : undefined}
+                  >
+                    {isPending ? "Odesílám…" : attachmentsTooBig ? "Přílohy moc velké" : error ? "Zkusit znovu" : "Odeslat"}
                   </button>
                 )}
               </div>

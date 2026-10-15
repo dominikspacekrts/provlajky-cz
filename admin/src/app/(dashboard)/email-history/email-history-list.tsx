@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useEmailPreview } from "@/components/email/EmailPreviewProvider";
+import { getEmailHistoryHtml } from "@/lib/actions/email-history";
 import type { EmailHistoryRow, EmailKind } from "@/lib/types";
 
 const KIND_LABELS: Record<EmailKind, string> = {
@@ -19,6 +20,7 @@ export default function EmailHistoryList({ rows }: { rows: EmailHistoryRow[] }) 
   const { openEmailPreview } = useEmailPreview();
   const [kindFilter, setKindFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
@@ -32,16 +34,27 @@ export default function EmailHistoryList({ rows }: { rows: EmailHistoryRow[] }) 
   }, [rows, kindFilter, search]);
 
   function open(row: EmailHistoryRow) {
-    openEmailPreview({
-      kind: row.kind,
-      orderId: row.order_id,
-      invoiceId: row.invoice_id,
-      to: row.to_addr,
-      cc: row.cc,
-      subject: row.subject,
-      html: row.html_body,
-      attachments: [],
-      readOnly: true,
+    startTransition(async () => {
+      let html = row.html_body;
+      if (!html) {
+        try {
+          html = (await getEmailHistoryHtml(row.id)) || "<p><em>Tělo e-mailu není k dispozici.</em></p>";
+        } catch (e) {
+          alert(e instanceof Error ? e.message : "Nepodařilo se načíst e-mail.");
+          return;
+        }
+      }
+      openEmailPreview({
+        kind: row.kind,
+        orderId: row.order_id,
+        invoiceId: row.invoice_id,
+        to: row.to_addr,
+        cc: row.cc,
+        subject: row.subject,
+        html,
+        attachments: [],
+        readOnly: true,
+      });
     });
   }
 

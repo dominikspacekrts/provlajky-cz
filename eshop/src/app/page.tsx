@@ -5,7 +5,8 @@ import { fetchPublishedReviews } from "@/lib/reviews";
 import { fromPrice } from "@/lib/money";
 import type { TilePrice, TilePriceHints } from "@/components/NovaFields";
 
-export const dynamic = "force-dynamic";
+// Ceny/slevy se mění zřídka — ISR místo force-dynamic (TTFB bez hitů do DB při každém requestu).
+export const revalidate = 120;
 
 type HomeData = {
   salePctByCategory: Partial<Record<ProductCategory, number>>;
@@ -27,7 +28,10 @@ async function fetchHomeData(): Promise<HomeData> {
   const priceHints: TilePriceHints = { byCategory: {}, bySlug: {} };
   try {
     const supabase = createClient();
-    const { data, error } = await supabase.from("products").select("*").eq("active", true);
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, slug, category, kind, price, price_by_size, sale_pct, config")
+      .eq("active", true);
     if (error || !data) return { salePctByCategory, priceHints };
     for (const p of data as Product[]) {
       const cur = salePctByCategory[p.category] || 0;

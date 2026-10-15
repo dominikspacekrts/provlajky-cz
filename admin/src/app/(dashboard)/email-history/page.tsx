@@ -8,7 +8,7 @@ export default async function EmailHistoryPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("email_history")
-    .select("*")
+    .select("id, kind, order_id, invoice_id, to_addr, cc, subject, status, sent_at, sent_by")
     .order("sent_at", { ascending: false })
     .limit(300);
 
@@ -16,10 +16,15 @@ export default async function EmailHistoryPage() {
     return <p style={{ color: "#dc2626" }}>Chyba načtení historie: {error.message}</p>;
   }
 
+  const rows = ((data || []) as Omit<EmailHistoryRow, "html_body">[]).map((r) => ({
+    ...r,
+    html_body: "",
+  })) as EmailHistoryRow[];
+
   return (
     <div>
       <h2>Historie mailů</h2>
-      <EmailHistoryList rows={(data || []) as EmailHistoryRow[]} />
+      <EmailHistoryList rows={rows} />
     </div>
   );
 }

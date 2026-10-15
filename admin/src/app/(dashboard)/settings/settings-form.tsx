@@ -256,7 +256,14 @@ function MailTab({ initial }: { initial: Settings["mail"] }) {
         </label>
         <label>
           E-mail účetní
-          <input value={m.accountant} onChange={(e) => set("accountant", e.target.value)} />
+          <input
+            value={m.accountant}
+            onChange={(e) => set("accountant", e.target.value)}
+            placeholder="ucetni@firma.cz"
+          />
+          <span className="muted" style={{ fontSize: 12, marginTop: 4, display: "block" }}>
+            Po odeslání faktury zákazníkovi se sem automaticky pošle kopie s PDF.
+          </span>
         </label>
         <label>
           E-mail dodavatele
@@ -280,7 +287,10 @@ function MailTab({ initial }: { initial: Settings["mail"] }) {
         </label>
         <label className="full">
           Šablona — kopie účetní
-          <textarea className="tpl-area" rows={6} value={m.tplAccountant} onChange={(e) => set("tplAccountant", e.target.value)} />
+          <textarea className="tpl-area" rows={8} value={m.tplAccountant} onChange={(e) => set("tplAccountant", e.target.value)} />
+          <span className="muted" style={{ fontSize: 12, marginTop: 4, display: "block" }}>
+            Placeholdery: {"{{customer}}"}, {"{{order}}"}, {"{{invoice}}"}, {"{{total}}"}, {"{{date}}"}, {"{{signName}}"}. Prázdné = výchozí text.
+          </span>
         </label>
       </div>
 

@@ -217,6 +217,34 @@ export async function saveItemDesign(itemId: string, orderId: string, design: De
   revalidatePath(`/orders/${orderId}/design/${itemId}`);
 }
 
+const BANNER_ARTWORK_BUCKET = "grafika_bannery";
+
+// Originál banneru nejde přes serverovou akci — ta má limit velikosti a dvě
+// plné grafiky (navíc dvakrát, náhled i originál) ho spolehlivě přetečou.
+// Klient si nejdřív vyzvedne jednorázovou adresu a soubor pošle rovnou do Storage.
+export async function createBannerArtworkUpload(
+  orderId: string,
+  itemId: string,
+  pieceIndex: number,
+  filename: string
+): Promise<{ signedUrl: string; artworkPath: string }> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Nepřihlášený uživatel.");
+
+  const { data: order, error: orderErr } = await supabase.from("orders").select("order_number").eq("id", orderId).single();
+  if (orderErr) throw new Error(orderErr.message);
+
+  const ext = (filename.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+  const folder = order?.order_number || orderId;
+  const path = `${folder}/${itemId}/kus-${pieceIndex + 1}.${ext}`;
+
+  const service = createServiceClient();
+  const { data, error } = await service.storage.from(BANNER_ARTWORK_BUCKET).createSignedUploadUrl(path, { upsert: true });
+  if (error || !data) throw new Error(`Grafiku se nepodařilo připravit k nahrání: ${error?.message ?? "neznámá chyba"}`);
+  return { signedUrl: data.signedUrl, artworkPath: `${BANNER_ARTWORK_BUCKET}/${path}` };
+}
+
 // Banner: jeden návrh na kus. První kus jde i do design, ať vizualizace
 // a starší čtení pořád něco uvidí. multi_artwork drží celou řadu.
 export async function saveBannerDesigns(itemId: string, orderId: string, pieces: Design[]) {
@@ -256,10 +284,11 @@ export async function updateOrderCustomer(
 
 // Grafiky zákazníků leží v privátních bucketech — veřejná adresa by se dala
 // uhodnout z čísla objednávky, které jde po sobě, takže by si kdokoliv stáhl
-// cizí loga. Admin proto dostane podepsaný odkaz s hodinovou platností.
+// cizí loga. Admin proto dostane podepsaný odkaz. Výchozí platnost 1 h;
+// do mailu dodavateli dáváme delší (7 dní), ať stihne stáhnout originál.
 // Přístup hlídá RLS přes session klienta: kdo není v allowed_users, nedostane
 // ani odkaz.
-export async function getArtworkDownloadUrl(artworkPath: string): Promise<string> {
+export async function getArtworkDownloadUrl(artworkPath: string, expiresInSeconds = 60 * 60): Promise<string> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Nepřihlášený uživatel.");
@@ -268,8 +297,9 @@ export async function getArtworkDownloadUrl(artworkPath: string): Promise<string
   const path = rest.join("/");
   if (!bucket || !path) throw new Error("Neplatné umístění grafiky.");
 
+  const ttl = Math.min(Math.max(60, expiresInSeconds), 60 * 60 * 24 * 7);
   const service = createServiceClient();
-  const { data, error } = await service.storage.from(bucket).createSignedUrl(path, 60 * 60, { download: true });
+  const { data, error } = await service.storage.from(bucket).createSignedUrl(path, ttl, { download: true });
   if (error || !data) throw new Error(`Odkaz se nepodařilo vytvořit: ${error?.message ?? "neznámá chyba"}`);
   return data.signedUrl;
 }
