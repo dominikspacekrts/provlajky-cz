@@ -43,3 +43,43 @@ export function newsletterGreeting(fullName: string, country: NewsletterCountry 
   if (country === "SK") return `Ahoj ${first},`;
   return `Ahoj ${czechVocativeFirst(fullName)},`;
 }
+
+/** Příjmení z „Jméno Příjmení“ — poslední slovo. */
+export function lastName(fullName: string): string {
+  const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
+  return parts.length >= 2 ? parts[parts.length - 1] : "";
+}
+
+const COMPANY_RE =
+  /\b(s\.?\s*r\.?\s*o\.?|a\.?\s*s\.?|spol\.|v\.?\s*o\.?\s*s\.?|k\.?\s*s\.?|ltd|gmbh|inc|llc|plc)\b/i;
+
+/** Jedno jméno = firma/název; dvě a víc bez firemní zkratky = osoba. */
+export function looksLikePersonName(name: string): boolean {
+  const n = (name || "").trim();
+  if (!n || COMPANY_RE.test(n)) return false;
+  return n.split(/\s+/).filter(Boolean).length >= 2;
+}
+
+/** Vokativ příjmení: Novák → Nováku, Svoboda → Svobodo; -ová beze změny. */
+export function czechVocativeSurname(surname: string): string {
+  const n = (surname || "").trim();
+  if (!n) return "";
+  const lower = n.toLowerCase();
+  if (lower.endsWith("ová") || lower.endsWith("ská") || lower.endsWith("cká")) return n;
+  return czechVocativeFirst(n);
+}
+
+/**
+ * Coldcall oslovení: u osoby „Dobrý den, pane Nováku,“ / „… paní Nováková,“;
+ * u firmy nebo jednoho slova jen „Dobrý den,“.
+ */
+export function coldcallGreeting(name: string): string {
+  if (!looksLikePersonName(name)) return "Dobrý den,";
+  const surname = lastName(name);
+  if (!surname) return "Dobrý den,";
+  const lower = surname.toLowerCase();
+  if (lower.endsWith("ová") || lower.endsWith("ská") || lower.endsWith("cká")) {
+    return `Dobrý den, paní ${surname},`;
+  }
+  return `Dobrý den, pane ${czechVocativeSurname(surname)},`;
+}
