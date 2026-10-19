@@ -35,6 +35,8 @@ const SOURCE_ORDER = [
   "other",
 ];
 
+export const QUICK_LEAVE_SEC = 3;
+
 export type VisitRow = {
   created_at: string;
   path: string;
@@ -45,7 +47,36 @@ export type VisitRow = {
   duration_sec: number | null;
 };
 
+export type CartAdd = {
+  created_at: string;
+  visitor_id: string;
+  session_id: string | null;
+  product_name: string;
+  product_slug: string;
+  variant: string | null;
+  qty: number;
+  path: string | null;
+};
+
 export type VisitBucket = { key: string; label: string; count: number };
+export type VisitPageStat = {
+  path: string;
+  count: number;
+  avgSec: number;
+  totalSec: number;
+  bounceCount: number;
+};
+export type VisitPerson = {
+  id: string;
+  firstAt: string;
+  lastAt: string;
+  source: string;
+  country: string | null;
+  hasCart: boolean;
+  totalSec: number;
+  pages: { at: string; path: string; sec: number }[];
+  cart: { at: string; name: string; variant: string | null; qty: number }[];
+};
 export type VisitStats = {
   total: number;
   unique: number;
@@ -53,10 +84,12 @@ export type VisitStats = {
   avgPageSec: number;
   avgSessionSec: number;
   emailClicks: number;
+  cartAdds: number;
   buckets: VisitBucket[];
   sources: { key: string; label: string; count: number }[];
-  pages: { path: string; count: number; avgSec: number }[];
+  pages: VisitPageStat[];
   countries: { code: string; count: number }[];
+  people: VisitPerson[];
   truncated: boolean;
 };
 
@@ -120,6 +153,28 @@ export async function loadVisitRows(
   return { rows, error: null, truncated };
 }
 
+export async function loadCartAdds(
+  supabase: SupabaseClient,
+  period: Period,
+): Promise<{ rows: CartAdd[]; missing: boolean }> {
+  const since = sinceIso(period);
+  const rows: CartAdd[] = [];
+  const pageSize = 1000;
+  for (let from = 0; from < 20000; from += pageSize) {
+    let query = supabase
+      .from("cart_adds")
+      .select("created_at,visitor_id,session_id,product_name,product_slug,variant,qty,path")
+      .order("created_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (since) query = query.gte("created_at", since);
+    const { data, error } = await query;
+    if (error) return { rows: [], missing: isMissingCartTable(error) };
+    rows.push(...((data || []) as CartAdd[]));
+    if (!data || data.length < pageSize) return { rows, missing: false };
+  }
+  return { rows, missing: false };
+}
+
 export function formatDuration(sec: number): string {
   if (!sec || sec < 1) return "—";
   if (sec < 60) return `${sec} s`;
@@ -131,22 +186,100 @@ export function formatDuration(sec: number): string {
   return rem ? `${h} h ${rem} min` : `${h} h`;
 }
 
-export function aggregateVisits(rows: VisitRow[], period: Period, now = new Date()): VisitStats {
+export function formatVisitWhen(iso: string, period: Period) {
+  return new Intl.DateTimeFormat("cs-CZ", {
+    timeZone: "Europe/Prague",
+    ...(period === "den" ? {} : { day: "numeric", month: "numeric" }),
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(iso));
+}
+
+export function shortVisitorId(id: string) {
+  return id.replace(/-/g, "").slice(0, 8);
+}
+
+export type VisitPersonView = {
+  id: string;
+  shortId: string;
+  sourceLabel: string;
+  lastLabel: string;
+  totalLabel: string;
+  hasCart: boolean;
+  pages: { when: string; path: string; time: string }[];
+  cart: { when: string; label: string }[];
+};
+
+export function visitPeopleView(people: VisitPerson[], period: Period): VisitPersonView[] {
+  return people.map((person) => ({
+    id: person.id,
+    shortId: shortVisitorId(person.id),
+    sourceLabel: SOURCE_LABELS[person.source] || person.source || "—",
+    lastLabel: formatVisitWhen(person.lastAt, period),
+    totalLabel: formatDuration(person.totalSec),
+    hasCart: person.hasCart,
+    pages: person.pages.map((page) => ({
+      when: formatVisitWhen(page.at, period),
+      path: page.path,
+      time: formatDuration(page.sec),
+    })),
+    cart: person.cart.map((item) => ({
+      when: formatVisitWhen(item.at, period),
+      label: [item.name, item.variant, item.qty > 1 ? `${item.qty} ks` : ""]
+        .filter(Boolean)
+        .join(" · "),
+    })),
+  }));
+}
+
+export function aggregateVisits(
+  rows: VisitRow[],
+  period: Period,
+  now = new Date(),
+  cartAdds: CartAdd[] = [],
+): VisitStats {
   const today = pragueParts(now);
   const todayKey = dateKey(today);
   const filtered = rows.filter((row) => inPeriod(new Date(row.created_at), period, today, todayKey));
+  const carts = cartAdds.filter((row) => inPeriod(new Date(row.created_at), period, today, todayKey));
 
   const buckets = emptyBuckets(period, today, filtered);
   const counts = new Map(buckets.map((bucket) => [bucket.key, 0]));
   const sources = new Map<string, number>();
-  const pages = new Map<string, { count: number; duration: number; timed: number }>();
+  const pages = new Map<string, { count: number; duration: number; timed: number; bounceCount: number }>();
   const countries = new Map<string, number>();
   const visitors = new Set<string>();
   const sessions = new Set<string>();
   const sessionDuration = new Map<string, number>();
+  const people = new Map<string, VisitPerson>();
   let durationSum = 0;
   let durationCount = 0;
   let emailClicks = 0;
+
+  function personOf(id: string, at: string, source: string, country: string | null): VisitPerson {
+    const existing = people.get(id);
+    if (existing) {
+      if (at < existing.firstAt) existing.firstAt = at;
+      if (at > existing.lastAt) existing.lastAt = at;
+      if (!existing.source && source) existing.source = source;
+      if (!existing.country && country) existing.country = country;
+      return existing;
+    }
+    const created: VisitPerson = {
+      id,
+      firstAt: at,
+      lastAt: at,
+      source,
+      country,
+      hasCart: false,
+      totalSec: 0,
+      pages: [],
+      cart: [],
+    };
+    people.set(id, created);
+    return created;
+  }
 
   for (const row of filtered) {
     const parts = pragueParts(new Date(row.created_at));
@@ -155,7 +288,7 @@ export function aggregateVisits(rows: VisitRow[], period: Period, now = new Date
     sources.set(row.source, (sources.get(row.source) || 0) + 1);
     if (row.source === "email") emailClicks += 1;
 
-    const page = pages.get(row.path) || { count: 0, duration: 0, timed: 0 };
+    const page = pages.get(row.path) || { count: 0, duration: 0, timed: 0, bounceCount: 0 };
     page.count += 1;
     const dur = Math.max(0, Number(row.duration_sec) || 0);
     if (dur > 0) {
@@ -164,6 +297,7 @@ export function aggregateVisits(rows: VisitRow[], period: Period, now = new Date
       durationSum += dur;
       durationCount += 1;
     }
+    if (dur < QUICK_LEAVE_SEC) page.bounceCount += 1;
     pages.set(row.path, page);
 
     if (row.country) countries.set(row.country, (countries.get(row.country) || 0) + 1);
@@ -171,6 +305,21 @@ export function aggregateVisits(rows: VisitRow[], period: Period, now = new Date
     const sid = row.session_id || row.visitor_id;
     sessions.add(sid);
     sessionDuration.set(sid, (sessionDuration.get(sid) || 0) + dur);
+
+    const person = personOf(row.visitor_id, row.created_at, row.source, row.country);
+    person.pages.push({ at: row.created_at, path: row.path, sec: dur });
+    person.totalSec += dur;
+  }
+
+  for (const add of carts) {
+    const person = personOf(add.visitor_id, add.created_at, "", null);
+    person.hasCart = true;
+    person.cart.push({
+      at: add.created_at,
+      name: add.product_name,
+      variant: add.variant,
+      qty: add.qty,
+    });
   }
 
   const sessionSecs = [...sessionDuration.values()].filter((v) => v > 0);
@@ -185,22 +334,32 @@ export function aggregateVisits(rows: VisitRow[], period: Period, now = new Date
     avgPageSec: durationCount ? Math.round(durationSum / durationCount) : 0,
     avgSessionSec,
     emailClicks,
+    cartAdds: carts.length,
     buckets: buckets.map((bucket) => ({ ...bucket, count: counts.get(bucket.key) || 0 })),
     sources: [...sources.entries()]
       .sort((a, b) => SOURCE_ORDER.indexOf(a[0]) - SOURCE_ORDER.indexOf(b[0]) || b[1] - a[1])
       .map(([key, count]) => ({ key, label: SOURCE_LABELS[key] || key, count })),
     pages: [...pages.entries()]
-      .sort((a, b) => b[1].count - a[1].count)
+      .sort((a, b) => b[1].duration - a[1].duration || b[1].count - a[1].count)
       .slice(0, 15)
       .map(([path, info]) => ({
         path,
         count: info.count,
+        totalSec: info.duration,
         avgSec: info.timed ? Math.round(info.duration / info.timed) : 0,
+        bounceCount: info.bounceCount,
       })),
     countries: [...countries.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
       .map(([code, count]) => ({ code, count })),
+    people: [...people.values()]
+      .map((person) => ({
+        ...person,
+        pages: [...person.pages].sort((a, b) => a.at.localeCompare(b.at)),
+        cart: [...person.cart].sort((a, b) => a.at.localeCompare(b.at)),
+      }))
+      .sort((a, b) => b.lastAt.localeCompare(a.lastAt) || Number(b.hasCart) - Number(a.hasCart)),
     truncated: false,
   };
 }
@@ -273,4 +432,8 @@ function monthName(index: number) {
 
 export function isMissingVisitsTable(error: { code?: string; message?: string } | null) {
   return !!error && (error.code === "42P01" || error.code === "PGRST205" || /page_views/.test(error.message || ""));
+}
+
+export function isMissingCartTable(error: { code?: string; message?: string } | null) {
+  return !!error && (error.code === "42P01" || error.code === "PGRST205" || /cart_adds/.test(error.message || ""));
 }

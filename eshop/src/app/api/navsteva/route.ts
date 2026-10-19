@@ -91,6 +91,27 @@ export async function POST(req: NextRequest) {
     return res;
   }
 
+  if (body.kind === "cart") {
+    const visitorId = visitorIdFrom(req);
+    const name = str(body.productName, 160);
+    if (!name) return noContent();
+    const qty = Math.min(999, Math.max(1, Math.round(Number(body.qty) || 1)));
+    await createServiceClient()
+      .from("cart_adds")
+      .insert({
+        visitor_id: visitorId,
+        session_id: uuidOrNull(body.sessionId),
+        product_name: name,
+        product_slug: str(body.productSlug, 120) || "",
+        variant: str(body.variant, 160),
+        qty,
+        path: safePath(body.path),
+      });
+    const res = NextResponse.json({ ok: true });
+    attachVisitorCookie(res, req, visitorId);
+    return res;
+  }
+
   const path = safePath(body.path);
   if (!path) return noContent();
 
