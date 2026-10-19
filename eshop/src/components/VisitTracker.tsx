@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { readConsent, subscribeConsent } from "@/lib/consent";
+import { VISIT_SOURCE_KEY, visitSessionId } from "@/lib/visit-client";
 
 const PARAMS: Record<string, string> = {
   utm_source: "utmSource",
@@ -16,24 +17,9 @@ const PARAMS: Record<string, string> = {
   sznclid: "sznclid",
 };
 
-const SOURCE_KEY = "provlajky_visit_source";
-const SESSION_KEY = "provlajky_visit_session";
-
-function sessionId(): string {
-  try {
-    const existing = sessionStorage.getItem(SESSION_KEY);
-    if (existing && /^[0-9a-f-]{36}$/i.test(existing)) return existing;
-    const id = crypto.randomUUID();
-    sessionStorage.setItem(SESSION_KEY, id);
-    return id;
-  } catch {
-    return crypto.randomUUID();
-  }
-}
-
 function stickySource(): string | null {
   try {
-    return sessionStorage.getItem(SOURCE_KEY);
+    return sessionStorage.getItem(VISIT_SOURCE_KEY);
   } catch {
     return null;
   }
@@ -41,7 +27,7 @@ function stickySource(): string | null {
 
 function rememberSource(source: string) {
   try {
-    if (!sessionStorage.getItem(SOURCE_KEY)) sessionStorage.setItem(SOURCE_KEY, source);
+    if (!sessionStorage.getItem(VISIT_SOURCE_KEY)) sessionStorage.setItem(VISIT_SOURCE_KEY, source);
   } catch {
     /* private mode */
   }
@@ -52,7 +38,7 @@ function buildPayload() {
   const payload: Record<string, string> = {
     path: window.location.pathname,
     referrer: document.referrer,
-    sessionId: sessionId(),
+    sessionId: visitSessionId(),
   };
 
   let hasAttribution = false;

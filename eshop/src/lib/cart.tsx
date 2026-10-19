@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { CartLine } from "./types";
 import { itemFromCartLine, trackAddToCart, trackRemoveFromCart } from "./analytics";
+import { reportCartAdd } from "./visit-client";
 
 // Košík se persistuje do IndexedDB, ne localStorage — jedna položka s vlastním
 // nahraným logem snadno zabere přes 1 MB (base64 návrh + náhled), a
@@ -84,7 +85,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // žádné z těch sedmi volajících míst nedá zapomenout.
   function addLine(line: Omit<CartLine, "id">) {
     setLines((cur) => [...cur, { ...line, id: crypto.randomUUID() }]);
-    trackAddToCart(itemFromCartLine({ ...line, id: "" }));
+    const item = itemFromCartLine({ ...line, id: "" });
+    trackAddToCart(item);
+    reportCartAdd({
+      name: item.item_name,
+      slug: item.item_id,
+      variant: item.item_variant || null,
+      qty: item.quantity,
+    });
   }
 
   function updateQty(id: string, qty: number) {

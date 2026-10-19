@@ -10,6 +10,7 @@
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import HomeReferences from "@/components/HomeReferences";
 import type { PublicReview } from "@/lib/reviews";
 import NovaFields, { type TilePriceHints } from "@/components/NovaFields";
@@ -126,12 +127,13 @@ export default function Nova2Client({
             return (
             <Link key={g.id} href={g.href} className="group-tile">
               <div className="group-tile-photo">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={g.img}
                   alt={g.title}
-                  loading="lazy"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  style={{ objectFit: "cover" }}
+                  priority={g.id === "vlajky"}
                 />
               </div>
               <div className="group-tile-body">

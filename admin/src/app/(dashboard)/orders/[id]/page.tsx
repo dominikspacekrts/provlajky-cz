@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/actions/settings";
 import { loadProductSuppliers } from "@/lib/actions/products";
+import { PRODUCT_CORE_SELECT, SUPPLIER_INVOICE_LIST_SELECT, slimOrderItem } from "@/lib/perf-selects";
 import type { Invoice, Order, OrderItem, Partner, Product, Review, SupplierInvoice } from "@/lib/types";
 import OrderDetailClient from "./order-detail-client";
 
@@ -23,25 +24,29 @@ export default async function OrderDetailPage({
     await Promise.all([
       supabase.from("orders").select("*").eq("id", id).single(),
       supabase.from("order_items").select("*").eq("order_id", id).order("id"),
-      supabase.from("invoices").select("*").eq("order_id", id).eq("kind", "product").maybeSingle(),
-      supabase.from("supplier_invoices").select("*").eq("order_id", id).order("date", { ascending: false }),
-      // Všechny produkty (i neaktivní) — položky ze starších objednávek musí
-      // jít dopočítat i po tom, co se produkt na eshopu vypnul/smazal z nabídky.
-      supabase.from("products").select("*").order("category").order("sort_order"),
+      // Bez vnořených thumb data-URL v items — stačí číslo/stav pro UI.
+      supabase.from("invoices").select("id, number, kind, order_id, issued, due, paid, currency, totals").eq("order_id", id).eq("kind", "product").maybeSingle(),
+      supabase
+        .from("supplier_invoices")
+        .select(SUPPLIER_INVOICE_LIST_SELECT)
+        .eq("order_id", id)
+        .order("date", { ascending: false }),
+      // Bez images[] (base64) — marže/add-item potřebují config/ceny, ne fotky.
+      supabase.from("products").select(PRODUCT_CORE_SELECT).order("category").order("sort_order"),
       supabase.from("partners").select("*").order("name"),
-      // Slevový kód použitý na téhle objednávce (pokud nějaký) — customers.used_order_id
-      // se nastaví při odeslání objednávky z eshopu, viz /api/objednavka.
       supabase.from("customers").select("email, discount_code").eq("used_order_id", id).maybeSingle(),
       getSettings(),
-      // Dodavatel per produkt (product_suppliers) — "Odeslat dodavateli"
-      // posílá stany/nafukovací reklamu jinam než plážové vlajky.
       loadProductSuppliers(),
-      // Pozvánka k hodnocení — před spuštěním 2026-09-reviews.sql dotaz spadne
-      // na chybějící tabulku a vrátí data: null, tlačítko pak ukáže „Odeslat“.
       supabase.from("reviews").select("status, rating").eq("order_id", id).maybeSingle(),
     ]);
 
   if (error || !order) notFound();
+
+  const slimItems = ((items || []) as OrderItem[]).map(slimOrderItem);
+  const productsWithEmptyImages = ((products || []) as Omit<Product, "images">[]).map((p) => ({
+    ...p,
+    images: [] as string[],
+  })) as Product[];
 
   return (
     <div>
@@ -50,10 +55,10 @@ export default async function OrderDetailPage({
       </Link>
       <OrderDetailClient
         order={order as Order}
-        items={(items || []) as OrderItem[]}
+        items={slimItems}
         invoice={(invoice as Invoice) || null}
         supplierInvoices={(supplierInvoices || []) as SupplierInvoice[]}
-        products={(products || []) as Product[]}
+        products={productsWithEmptyImages}
         partners={(partners || []) as Partner[]}
         discountCustomer={discountCustomer as { email: string; discount_code: string } | null}
         costPerSize={settings.cost_per_size}

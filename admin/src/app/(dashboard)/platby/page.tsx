@@ -28,8 +28,8 @@ export default async function PlatbyPage() {
         ),
       supabase.from("payouts").select("*").order("date", { ascending: false }),
       supabase.from("partners").select("*"),
-      supabase.from("supplier_invoices").select("*"),
-      supabase.from("products").select("*"),
+      supabase.from("supplier_invoices").select("id, order_id, amount_czk"),
+      supabase.from("products").select("id, kind, config, partner_ids"),
       getSettings(),
     ]);
 

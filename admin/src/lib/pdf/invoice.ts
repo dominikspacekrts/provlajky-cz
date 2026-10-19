@@ -51,12 +51,21 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     H = 841.89,
     M = 52;
   const page = pdfDoc.addPage([W, H]);
-  const ink = rgb(0.1, 0.1, 0.1),
-    grey = rgb(0.52, 0.54, 0.57),
-    light = rgb(0.68, 0.7, 0.73),
-    line = rgb(0.87, 0.88, 0.9);
+  const ink = rgb(0.12, 0.14, 0.16),
+    grey = rgb(0.42, 0.45, 0.48),
+    light = rgb(0.58, 0.61, 0.64),
+    line = rgb(0.88, 0.89, 0.91),
+    soft = rgb(0.975, 0.976, 0.978);
   const cur = inv.currency || "CZK";
   const money = (n: number) => T(fmtMoney(n, cur as "CZK" | "EUR"));
+  // V tabulce bez „Kč“ — jinak se částky v těsných sloupcích překrývají a vypadají zdvojeně.
+  const moneyNum = (n: number) =>
+    T(
+      new Intl.NumberFormat("cs-CZ", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number.isFinite(n) ? n : 0)
+    );
   const rightText = (txt: string, xRight: number, yy: number, f: PDFFont = font, size = 9, col = ink) => {
     const w = f.widthOfTextAtSize(txt, size);
     page.drawText(txt, { x: xRight - w, y: yy, size, font: f, color: col });
@@ -127,27 +136,24 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     return pdfDoc.save();
   }
 
-  // ---- Header (product invoice) — boxový layout podle vzoru účetní (papírová
-  // faktura z účetního softwaru), bez reverse charge a bez účetního rozúčtování
-  // dole (to je specifické pro jejich SW, ne pro doklad samotný). ----
-  const boxBorder = rgb(0.74, 0.76, 0.79);
-  const boxFill = rgb(0.975, 0.978, 0.983);
-  const drawBox = (x: number, yTop: number, w: number, h: number, fill = false) => {
-    if (fill) page.drawRectangle({ x, y: yTop - h, width: w, height: h, color: boxFill });
-    page.drawRectangle({ x, y: yTop - h, width: w, height: h, borderColor: boxBorder, borderWidth: 0.8 });
+  // ---- Header (product invoice) — čistý boxový layout bez barevných akcentů. ----
+  const boxBorder = rgb(0.86, 0.87, 0.89);
+  const drawBox = (x: number, yTop: number, w: number, h: number, _fill = false) => {
+    // Bez výplně — dřívější soft/žlutavé pruhy pryč, jen jemný rámeček.
+    page.drawRectangle({ x, y: yTop - h, width: w, height: h, borderColor: boxBorder, borderWidth: 0.7 });
   };
 
-  page.drawText(T(SUPPLIER.name), { x: M, y, size: 13, font: fontB, color: ink });
-  let ly = y - 16;
+  page.drawText(T(SUPPLIER.name), { x: M, y, size: 12, font: fontB, color: ink });
+  let ly = y - 15;
   [SUPPLIER.street, SUPPLIER.city].forEach((l) => {
     page.drawText(T(l), { x: M, y: ly, size: 8.5, font, color: grey });
     ly -= 11;
   });
-  ly -= 3;
+  ly -= 2;
   page.drawText(T("Zápis v obchodním rejstříku:"), { x: M, y: ly, size: 7, font, color: light });
   ly -= 9;
-  page.drawText(T(SUPPLIER.registry), { x: M, y: ly, size: 8, font, color: grey });
-  ly -= 11;
+  page.drawText(T(SUPPLIER.registry), { x: M, y: ly, size: 7.5, font, color: grey });
+  ly -= 10;
 
   let ry = y;
   const iban = accountToIban(SUPPLIER.bank);
@@ -164,15 +170,14 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     ry -= 12;
   });
 
-  y = Math.min(ly, ry) - 16;
+  y = Math.min(ly, ry) - 14;
 
-  // Titulek "FAKTURA" vpravo, "Daňový doklad" vlevo — oba na společném účaří,
-  // pod nimi jediná linka přes celou šířku.
-  y -= 8;
-  const titleW = fontB.widthOfTextAtSize("FAKTURA", 22);
-  page.drawText(T("Daňový doklad"), { x: M, y, size: 9, font: fontB, color: grey });
-  page.drawText(T("FAKTURA"), { x: contentR - titleW, y, size: 22, font: fontB, color: ink });
-  y -= 12;
+  // Titulek: daňový doklad vlevo, FAKTURA vpravo.
+  y -= 4;
+  const titleW = fontB.widthOfTextAtSize("FAKTURA", 20);
+  page.drawText(T("Daňový doklad"), { x: M, y: y + 4, size: 9, font, color: grey });
+  page.drawText(T("FAKTURA"), { x: contentR - titleW, y, size: 20, font: fontB, color: ink });
+  y -= 10;
   page.drawLine({ start: { x: M, y }, end: { x: contentR, y }, thickness: 0.8, color: ink });
   y -= 16;
 
@@ -180,20 +185,20 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
   const boxTop1 = y;
   const boxH1 = 96;
   const boxW1 = 232;
-  const boxW2 = contentR - M - boxW1 - 14;
+  const boxW2 = contentR - M - boxW1 - 12;
   drawBox(M, boxTop1, boxW1, boxH1, true);
   let iy = boxTop1 - 18;
   page.drawText(T("Číslo faktury"), { x: M + 12, y: iy, size: 7.5, font: fontB, color: light });
   iy -= 15;
-  page.drawText(T(inv.number), { x: M + 12, y: iy, size: 14, font: fontB, color: ink });
+  page.drawText(T(inv.number), { x: M + 12, y: iy, size: 15, font: fontB, color: ink });
   iy -= 22;
   page.drawText(T("Objednávka číslo"), { x: M + 12, y: iy, size: 8, font, color: grey });
   rightText(T(inv.order_number || "—"), M + boxW1 - 12, iy, fontB, 9, ink);
   iy -= 15;
   page.drawText(T("Forma úhrady"), { x: M + 12, y: iy, size: 8, font, color: grey });
-  rightText(T("Převodním příkazem"), M + boxW1 - 12, iy, font, 8.5, ink);
+  rightText(T("Bankovním převodem"), M + boxW1 - 12, iy, font, 8.5, ink);
 
-  const boxX2 = M + boxW1 + 14;
+  const boxX2 = M + boxW1 + 12;
   drawBox(boxX2, boxTop1, boxW2, boxH1);
   const c = inv.customer!;
   page.drawText(T("Odběratel"), { x: boxX2 + 12, y: boxTop1 - 16, size: 7.5, font: fontB, color: light });
@@ -214,7 +219,7 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     })
   );
 
-  y = boxTop1 - boxH1 - 14;
+  y = boxTop1 - boxH1 - 12;
 
   // Box C (doručovací adresa) + Box D (data) vedle sebe.
   const boxTop2 = y;
@@ -249,12 +254,10 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     rightText(T(m[1]), boxX2 + boxW2 - 12, ry2, fontB, 9, ink);
   });
 
-  y = boxTop2 - boxH2 - 22;
+  y = boxTop2 - boxH2 - 20;
 
-  // Sloupce DPH/Cena bez DPH/Cena s DPH byly moc namačkané u sebe — u
-  // vyšších částek se čísla přes sebe přetírala (pdf-lib nezalamuje ani
-  // nekontroluje kolize, jen kreslí text na zadanou souřadnici).
-  const cX = { qty: 255, unit: 315, vat: 350, ex: 415, dph: 475, total: contentR };
+  // Širší rozestupy sloupců + částky bez „Kč“, ať se nepřekrývají.
+  const cX = { qty: 248, unit: 302, vat: 340, ex: 402, dph: 462, total: contentR };
   const head = (txt: string, x: number, rightAlign = true) => {
     if (rightAlign) rightText(T(txt), x, y, fontB, 7, grey);
     else page.drawText(T(txt), { x, y, size: 7, font: fontB, color: grey });
@@ -263,12 +266,12 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
   head("Ks", cX.qty);
   head("Cena/ks", cX.unit);
   head("DPH %", cX.vat);
-  head("Cena bez DPH", cX.ex);
+  head("Bez DPH", cX.ex);
   head("DPH", cX.dph);
-  head("Cena s DPH", cX.total);
+  head("S DPH", cX.total);
   y -= 8;
-  page.drawLine({ start: { x: M, y }, end: { x: contentR, y }, thickness: 0.8, color: ink });
-  y -= 16;
+  page.drawLine({ start: { x: M, y }, end: { x: contentR, y }, thickness: 0.6, color: ink });
+  y -= 14;
 
   const rowH = 20,
     descX = M;
@@ -279,11 +282,11 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
   const drawZebra = (h: number) => {
     if (zebra)
       page.drawRectangle({
-        x: M - 4,
+        x: M - 2,
         y: y - 9 - (h - rowH),
-        width: contentR - M + 8,
+        width: contentR - M + 4,
         height: h - 4,
-        color: rgb(0.975, 0.978, 0.983),
+        color: soft,
       });
     zebra = !zebra;
   };
@@ -331,11 +334,12 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
 
     page.drawText(fitDesc(it.desc, 8.5, font), { x: descX, y, size: 8.5, font, color: ink });
     rightText(T(String(it.qty)), cX.qty, y, font, 8.5, ink);
-    rightText(money(it.unitPrice), cX.unit, y, font, 8.5, ink);
+    rightText(moneyNum(it.unitPrice), cX.unit, y, font, 8.5, ink);
     rightText(T(Math.round((it.vatRate || 0) * 100) + " %"), cX.vat, y, font, 8.5, grey);
-    rightText(money(lineEx), cX.ex, y, font, 8.5, ink);
-    rightText(money(lineVat), cX.dph, y, font, 8.5, grey);
-    rightText(money(lineGross), cX.total, y, fontB, 8.5, ink);
+    rightText(moneyNum(lineEx), cX.ex, y, font, 8.5, ink);
+    rightText(moneyNum(lineVat), cX.dph, y, font, 8.5, grey);
+    // Regular (ne bold) — bold Noto u malých částek vypadá jako zdvojený tisk.
+    rightText(moneyNum(lineGross), cX.total, y, font, 8.5, ink);
     let specY = y - SPEC_LINE_H;
     for (const spec of specs) {
       page.drawText(T(spec), { x: descX + 6, y: specY, size: SPEC_SIZE, font, color: grey });
@@ -351,99 +355,38 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
     const shVat = inv.ship_vat_rate != null ? inv.ship_vat_rate : 0.21;
     page.drawText(T("Doprava"), { x: descX, y, size: 8.5, font, color: ink });
     rightText(T("1"), cX.qty, y, font, 8.5, ink);
-    rightText(money(tt.shipEx), cX.unit, y, font, 8.5, ink);
+    rightText(moneyNum(tt.shipEx), cX.unit, y, font, 8.5, ink);
     rightText(T(Math.round(shVat * 100) + " %"), cX.vat, y, font, 8.5, grey);
-    rightText(money(tt.shipEx), cX.ex, y, font, 8.5, ink);
-    rightText(money(tt.shipVat), cX.dph, y, font, 8.5, grey);
-    rightText(money(tt.shipEx + tt.shipVat), cX.total, y, fontB, 8.5, ink);
+    rightText(moneyNum(tt.shipEx), cX.ex, y, font, 8.5, ink);
+    rightText(moneyNum(tt.shipVat), cX.dph, y, font, 8.5, grey);
+    rightText(moneyNum(tt.shipEx + tt.shipVat), cX.total, y, font, 8.5, ink);
     y -= rowH;
   }
 
   y -= 2;
-  page.drawLine({ start: { x: M, y: y + 6 }, end: { x: contentR, y: y + 6 }, thickness: 0.6, color: ink });
+  page.drawLine({ start: { x: M, y: y + 6 }, end: { x: contentR, y: y + 6 }, thickness: 0.6, color: line });
   y -= 8;
   if (inv.discount_pct) {
     const discVat = (discountableVat * inv.discount_pct) / 100;
     page.drawText(T("Sleva " + inv.discount_pct + " %"), { x: M, y, size: 8.5, font, color: grey });
-    rightText("- " + money(tt.discountEx), cX.ex, y, font, 8.5, grey);
-    rightText("- " + money(discVat), cX.dph, y, font, 8.5, grey);
-    rightText("- " + money(tt.discountEx + discVat), cX.total, y, font, 8.5, grey);
+    rightText("- " + moneyNum(tt.discountEx), cX.ex, y, font, 8.5, grey);
+    rightText("- " + moneyNum(discVat), cX.dph, y, font, 8.5, grey);
+    rightText("- " + moneyNum(tt.discountEx + discVat), cX.total, y, font, 8.5, grey);
     y -= 15;
   }
 
   page.drawText(T("Součet"), { x: M, y, size: 9, font: fontB, color: ink });
-  rightText(money(tt.totalEx), cX.ex, y, fontB, 9, ink);
-  rightText(money(tt.totalVat), cX.dph, y, fontB, 9, ink);
-  rightText(money(tt.grand), cX.total, y, fontB, 9, ink);
+  rightText(moneyNum(tt.totalEx), cX.ex, y, font, 9, ink);
+  rightText(moneyNum(tt.totalVat), cX.dph, y, font, 9, ink);
+  rightText(moneyNum(tt.grand), cX.total, y, font, 9, ink);
   y -= 16;
 
-  // Rozpis podle sazby DPH (základ a daň za každou sazbu) — jako v účetním
-  // softwaru. Sleva se týká jen produktů, ne dopravy v součtu objednávky
-  // ani řádků Doprava / Grafický návrh (noDiscount) — stejně jako
-  // v computeOrderTotals/buildInvoiceRow.
-  type VatGroup = { prodEx: number; prodVat: number; shipEx: number; shipVat: number };
-  const vatGroups = new Map<number, VatGroup>();
-  const group = (rate: number): VatGroup => {
-    let g = vatGroups.get(rate);
-    if (!g) {
-      g = { prodEx: 0, prodVat: 0, shipEx: 0, shipVat: 0 };
-      vatGroups.set(rate, g);
-    }
-    return g;
-  };
-  for (const it of inv.items) {
-    const lineEx = it.unitPrice * it.qty;
-    const g = group(it.vatRate || 0);
-    if (it.noDiscount) {
-      g.shipEx += lineEx;
-      g.shipVat += lineEx * (it.vatRate || 0);
-    } else {
-      g.prodEx += lineEx;
-      g.prodVat += lineEx * (it.vatRate || 0);
-    }
-  }
-  if (tt.shipEx > 0) {
-    const shVat = inv.ship_vat_rate != null ? inv.ship_vat_rate : 0.21;
-    const g = group(shVat);
-    g.shipEx += tt.shipEx;
-    g.shipVat += tt.shipEx * shVat;
-  }
-  const discFactor = inv.discount_pct ? 1 - inv.discount_pct / 100 : 1;
-  const vatRates = [...vatGroups.keys()].sort((a, b) => a - b);
-  if (vatRates.length > 0) {
-    const vatColW = (contentR - M - 130) / vatRates.length;
-    const vatBoxH = 54;
-    drawBox(M, y, contentR - M, vatBoxH, true);
-    page.drawText(T("Sazba DPH"), { x: M + 8, y: y - 14, size: 7.5, font: fontB, color: light });
-    vatRates.forEach((rate, i) => {
-      const cx = M + 130 + i * vatColW + vatColW - 8;
-      rightText(T(Math.round(rate * 100) + " %"), cx, y - 14, fontB, 8, ink);
-    });
-    const vatRowValues = vatRates.map((rate) => {
-      const g = vatGroups.get(rate)!;
-      return { ex: g.prodEx * discFactor + g.shipEx, vat: g.prodVat * discFactor + g.shipVat };
-    });
-    const drawVatRow = (label: string, ry3: number, pick: (v: { ex: number; vat: number }) => number, bold = false) => {
-      page.drawText(T(label), { x: M + 8, y: ry3, size: 8, font, color: grey });
-      let sum = 0;
-      vatRowValues.forEach((v, i) => {
-        const val = pick(v);
-        sum += val;
-        const cx = M + 130 + i * vatColW + vatColW - 8;
-        rightText(money(val), cx, ry3, bold ? fontB : font, 8.5, ink);
-      });
-      rightText(money(sum), contentR - 8, ry3, fontB, 8.5, ink);
-    };
-    drawVatRow("Základ daně", y - 30, (v) => v.ex);
-    drawVatRow("Daň", y - 44, (v) => v.vat, true);
-    y -= vatBoxH + 12;
-  }
-
   const barH = 28;
-  page.drawRectangle({ x: M - 4, y: y - barH + 9, width: contentR - M + 8, height: barH, color: rgb(0.95, 0.96, 0.97) });
+  page.drawLine({ start: { x: M - 2, y: y + 9 }, end: { x: contentR + 2, y: y + 9 }, thickness: 0.7, color: ink });
   page.drawText(T("Celkem k úhradě"), { x: M + 4, y: y - 5, size: 11, font: fontB, color: ink });
-  rightText(money(tt.grand) + " " + (inv.currency || "CZK"), contentR - 2, y - 6, fontB, 13, ink);
-  y -= barH + 10;
+  // Velká částka regular — bold u Noto + pdf-lib vypadá rozmazaně / „zdvojeně“.
+  rightText(money(tt.grand), contentR - 2, y - 6, font, 14, ink);
+  y -= barH + 12;
 
   // Patička sedí na pevné výšce (fY níž) a dokument se nestránkuje — u dlouhého
   // rozpisu (hodně položek, nebo položka s konfigurací na víc řádků) se QR panel
@@ -464,14 +407,14 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
         qs = panelH - pad * 2;
       const panelTop = y,
         panelBottom = y - panelH;
-      page.drawRectangle({ x: M, y: panelBottom, width: contentR - M, height: panelH, color: rgb(0.97, 0.975, 0.98) });
+      page.drawRectangle({ x: M, y: panelBottom, width: contentR - M, height: panelH, color: soft });
       page.drawRectangle({
         x: M,
         y: panelBottom,
         width: contentR - M,
         height: panelH,
-        borderColor: rgb(0.88, 0.89, 0.91),
-        borderWidth: 0.8,
+        borderColor: boxBorder,
+        borderWidth: 0.7,
       });
       const qx = M + pad,
         qy = panelBottom + pad;
@@ -479,16 +422,17 @@ export async function generateInvoicePdf(inv: Invoice): Promise<Uint8Array> {
       const tx = qx + qs + 18;
       let ty2 = panelTop - pad - 6;
       page.drawText(T("Zaplaťte mobilem"), { x: tx, y: ty2, size: 11, font: fontB, color: ink });
-      ty2 -= 16;
+      ty2 -= 15;
       page.drawText(T("Naskenujte QR kód v bankovní aplikaci."), { x: tx, y: ty2, size: 8.5, font, color: grey });
-      ty2 -= 13;
+      ty2 -= 12;
       page.drawText(T("Částka, účet i variabilní symbol jsou předvyplněné."), { x: tx, y: ty2, size: 8.5, font, color: grey });
       ty2 -= 18;
       const accLbl = inv.is_foreign ? "IBAN" : "Účet";
       const accVal = inv.is_foreign ? (accountToIban(SUPPLIER.bank) || "").replace(/(.{4})/g, "$1 ").trim() : SUPPLIER.bank;
       page.drawText(T(`${accLbl}: ${accVal}`), { x: tx, y: ty2, size: 9, font: fontB, color: ink });
       ty2 -= 13;
-      page.drawText(T(`VS: ${inv.number}   ·   ${money(tt.grand)} ${inv.currency || "CZK"}`), {
+      // money() už obsahuje „Kč“ / „€“ — nepřidávat ještě CZK/EUR (vypadá to zdvojeně).
+      page.drawText(T(`VS: ${inv.number}   ·   ${money(tt.grand)}`), {
         x: tx,
         y: ty2,
         size: 9,

@@ -196,7 +196,15 @@ export default function DesignEditorCanvas({ orderId, item }: { orderId: string;
     setSaving(true);
     setError(null);
     try {
-      const thumb = stageRef.current?.toDataURL({ pixelRatio: 2 });
+      // Úchyty Transformeru se nesmí dostat do vizualizace PDF.
+      setSelected(null);
+      const tr = transformerRef.current;
+      if (tr) {
+        tr.nodes([]);
+        tr.getLayer()?.batchDraw();
+      }
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const thumb = stageRef.current?.toDataURL({ mimeType: "image/jpeg", quality: 0.92, pixelRatio: 3 });
       const design: Design = {
         bgColor: bgColor ?? undefined,
         sleeveColor: isFlag ? sleeveColor : undefined,

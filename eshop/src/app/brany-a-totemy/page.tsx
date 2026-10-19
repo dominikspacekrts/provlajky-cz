@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export const metadata: Metadata = {
   title: "Nafukovací reklama — brány a totemy s potiskem — PROVLAJKY.CZ",
@@ -40,7 +40,6 @@ export default function BranyATotemyPage() {
                 width={640}
                 height={480}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                unoptimized
               />
             </div>
             <div className="group-tile-body">

@@ -7,7 +7,7 @@ import { FlagMark } from "@/components/Icons";
 import { SelectItemLink, ViewItemList } from "@/components/ListTracking";
 import { itemFromProduct } from "@/lib/analytics";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const { category } = await params;
@@ -61,7 +61,14 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
           >
             <div className="thumb">
               {p.images?.[0] ? (
-                <Image src={p.images[0]} alt={p.name} width={320} height={320} style={{ width: "100%", height: "100%", objectFit: "cover" }} unoptimized />
+                <Image
+                  src={p.images[0]}
+                  alt={p.name}
+                  width={320}
+                  height={320}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  unoptimized={p.images[0].startsWith("data:") || p.images[0].startsWith("blob:")}
+                />
               ) : (
                 <FlagMark className="thumb-empty" />
               )}

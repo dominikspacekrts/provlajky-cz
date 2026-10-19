@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createServiceClient } from "@/lib/supabase";
 
 // Recenze zákazníků — tabulka reviews (admin/supabase/2026-09-reviews.sql).
@@ -80,7 +81,7 @@ export type PublicReview = {
 };
 
 // Na homepage jen recenze se souhlasem zákazníka, které admin zveřejnil.
-export async function fetchPublishedReviews(): Promise<PublicReview[]> {
+async function loadPublishedReviews(): Promise<PublicReview[]> {
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
@@ -109,3 +110,8 @@ export async function fetchPublishedReviews(): Promise<PublicReview[]> {
     return [];
   }
 }
+
+export const fetchPublishedReviews = unstable_cache(loadPublishedReviews, ["published-reviews"], {
+  revalidate: 300,
+  tags: ["reviews"],
+});

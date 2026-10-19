@@ -6,10 +6,13 @@ import {
   aggregateVisits,
   formatDuration,
   isMissingVisitsTable,
+  loadCartAdds,
   loadVisitRows,
   parsePeriod,
+  visitPeopleView,
   type Period,
 } from "@/lib/visits";
+import { VisitPeople } from "./visit-people";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +44,9 @@ export default async function NavstevnostPage({
   const period = parsePeriod(obdobi);
   const supabase = await createClient();
   const loaded = await loadVisitRows(supabase, period);
+  const carts = await loadCartAdds(supabase, period);
   const missing = isMissingVisitsTable(loaded.error);
-  const stats = missing || loaded.error ? null : aggregateVisits(loaded.rows, period);
+  const stats = missing || loaded.error ? null : aggregateVisits(loaded.rows, period, new Date(), carts.rows);
   if (stats) stats.truncated = loaded.truncated;
   const max = Math.max(1, ...(stats?.buckets.map((bucket) => bucket.count) || [1]));
 
@@ -52,6 +56,7 @@ export default async function NavstevnostPage({
       <p className="muted">
         Vlastní počítání na webu — bez přihlašování do Google Ads, Mety ani Skliku. Počítá se jen po souhlasu
         s analytickými cookies. E-mail, reklamy a vyhledávání se poznají z odkazu (UTM / gclid / fbclid…).
+        Stránky řadíme podle času, kdy byla záložka vidět. Zelené ID vložily něco do košíku.
       </p>
 
       <div className="period-switch">
@@ -71,6 +76,12 @@ export default async function NavstevnostPage({
         <p className="visit-note">
           Chybí tabulka návštěv. V Supabase SQL Editoru spusť soubor{" "}
           <code>admin/supabase/2026-09-page-views.sql</code>.
+        </p>
+      )}
+      {carts.missing && (
+        <p className="visit-note">
+          Chybí tabulka košíku. V Supabase SQL Editoru spusť soubor{" "}
+          <code>admin/supabase/2026-10-cart-adds.sql</code>.
         </p>
       )}
       {loaded.error && !missing && <p className="visit-note">{loaded.error.message}</p>}
@@ -93,6 +104,10 @@ export default async function NavstevnostPage({
             <div className="stat-card">
               <div className="label">Prokliky z e-mailu</div>
               <div className="value">{stats.emailClicks}</div>
+            </div>
+            <div className="stat-card">
+              <div className="label">Vloženo do košíku</div>
+              <div className="value">{stats.cartAdds}</div>
             </div>
             <div className="stat-card">
               <div className="label">Prům. čas na stránce</div>
@@ -138,31 +153,6 @@ export default async function NavstevnostPage({
               )}
             </section>
             <section>
-              <h3>Nejsledovanější stránky</h3>
-              {stats.pages.length === 0 ? (
-                <p className="muted">Zatím nic.</p>
-              ) : (
-                <table className="visit-table">
-                  <thead>
-                    <tr>
-                      <th>Stránka</th>
-                      <th>Zobr.</th>
-                      <th>Čas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stats.pages.map((page) => (
-                      <tr key={page.path}>
-                        <td className="visit-path">{page.path}</td>
-                        <td>{page.count}</td>
-                        <td>{formatDuration(page.avgSec)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </section>
-            <section>
               <h3>Odkud jsou (země)</h3>
               {stats.countries.length === 0 ? (
                 <p className="muted">Země se doplní z hostingu, jakmile návštěva přijde z produkce.</p>
@@ -180,6 +170,39 @@ export default async function NavstevnostPage({
               )}
             </section>
           </div>
+
+          <h3>Nejsledovanější stránky</h3>
+          <p className="muted">Řazeno podle času, kdy byla záložka opravdu vidět. Hned pryč = pod 3 sekundy.</p>
+          {stats.pages.length === 0 ? (
+            <p className="muted">Zatím nic.</p>
+          ) : (
+            <table className="visit-table visit-pages">
+              <thead>
+                <tr>
+                  <th>Stránka</th>
+                  <th>Čas celkem</th>
+                  <th>Zobr.</th>
+                  <th>Průměr</th>
+                  <th>Hned pryč</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.pages.map((page) => (
+                  <tr key={page.path}>
+                    <td className="visit-path">{page.path}</td>
+                    <td>{formatDuration(page.totalSec)}</td>
+                    <td>{page.count}</td>
+                    <td>{formatDuration(page.avgSec)}</td>
+                    <td>{page.bounceCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <h3>Návštěvníci</h3>
+          <p className="muted">Klikni na ID. Zelené řádky vložily něco do košíku.</p>
+          <VisitPeople people={visitPeopleView(stats.people, period)} />
         </>
       )}
     </div>

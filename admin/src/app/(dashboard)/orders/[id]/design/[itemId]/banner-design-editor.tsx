@@ -4,22 +4,110 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import type Konva from "konva";
 import { Stage, Layer, Rect, Image as KonvaImage, Transformer } from "react-konva";
 import { useRouter } from "next/navigation";
-import { saveBannerDesigns } from "@/lib/actions/orders";
+import { createBannerArtworkUpload, saveBannerDesigns } from "@/lib/actions/orders";
 import type { Design, OrderItem } from "@/lib/types";
 
 const SWATCHES = ["#ffffff", "#000000", "#dc2626", "#2563eb", "#16a34a", "#f59e0b"];
 const MAX_SIDE = 520;
+// Náhled do vizualizace PDF a do DB — delší strana. Stage editoru je jen 520 px,
+// export z něj (i s pixelRatio 2) dává ~1040 px a na A4 vypadá kostrbatě.
+const PREVIEW_SIDE = 2400;
+const PREVIEW_QUALITY = 0.92;
+// Konva na Retině se zasekává na plných megapixelových originálech — do plátna
+// jde zmenšený náhled, ostrý export bere sourceImg / File.
+const DISPLAY_SIDE = 1400;
 const MAX_FILE = 8 * 1024 * 1024;
 
 type NodeAttrs = { x: number; y: number; width: number; height: number; rotation: number };
 
 export type PieceHandle = {
-  exportDesign: () => Design;
+  exportDesign: () => Promise<Design>;
+  originalFile: () => File | null;
+  clearSelection: () => void;
 };
+
+function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): string {
+  try {
+    return canvas.toDataURL("image/jpeg", quality);
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "SecurityError") {
+      throw new Error("Prohlížeč zablokoval export grafiky. Nahraj soubor znovu a ulož.");
+    }
+    throw e;
+  }
+}
+
+function compressImage(img: HTMLImageElement, maxSide: number, quality: number): string {
+  const scale = Math.min(1, maxSide / Math.max(img.width, img.height, 1));
+  const width = Math.max(1, Math.round(img.width * scale));
+  const height = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return img.src.startsWith("data:") ? img.src : "";
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvasToJpeg(canvas, quality);
+}
+
+// Složí banner mimo malé Konva plátno — stejné pozice jako v editoru, ale ve
+// vysokém rozlišení pro PDF vizualizaci a ostrý náhled.
+function renderHiResPreview(
+  bgColor: string,
+  img: HTMLImageElement | null,
+  attrs: NodeAttrs | null,
+  stage: { w: number; h: number }
+): string | null {
+  const scale = PREVIEW_SIDE / Math.max(stage.w, stage.h);
+  const w = Math.max(1, Math.round(stage.w * scale));
+  const h = Math.max(1, Math.round(stage.h * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.fillStyle = bgColor || "#ffffff";
+  ctx.fillRect(0, 0, w, h);
+  if (img && attrs) {
+    ctx.save();
+    const cx = (attrs.x + attrs.width / 2) * scale;
+    const cy = (attrs.y + attrs.height / 2) * scale;
+    ctx.translate(cx, cy);
+    ctx.rotate((attrs.rotation * Math.PI) / 180);
+    ctx.drawImage(
+      img,
+      (-attrs.width / 2) * scale,
+      (-attrs.height / 2) * scale,
+      attrs.width * scale,
+      attrs.height * scale
+    );
+    ctx.restore();
+  }
+  return canvasToJpeg(canvas, PREVIEW_QUALITY);
+}
+
+async function uploadOriginal(orderId: string, itemId: string, pieceIndex: number, file: File) {
+  const { signedUrl, artworkPath } = await createBannerArtworkUpload(orderId, itemId, pieceIndex, file.name || "grafika");
+  const body = new FormData();
+  body.append("cacheControl", "3600");
+  body.append("", file);
+  const res = await fetch(signedUrl, { method: "PUT", body });
+  if (!res.ok) throw new Error("Originál grafiky se nepodařilo nahrát. Zkus to znovu.");
+  return artworkPath;
+}
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new window.Image();
+    // Bez toho Safari označí canvas jako „tainted“ u https obrázků a toDataURL
+    // spadne na „The operation is insecure.“
+    if (/^https?:/i.test(src)) img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
     img.src = src;
@@ -40,7 +128,7 @@ async function renderPdfFirstPage(url: string): Promise<string> {
   pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
   const pdf = await pdfjsLib.getDocument({ url }).promise;
   const page = await pdf.getPage(1);
-  const viewport = page.getViewport({ scale: 2 });
+  const viewport = page.getViewport({ scale: 3 });
   const canvas = document.createElement("canvas");
   canvas.width = viewport.width;
   canvas.height = viewport.height;
@@ -70,6 +158,10 @@ function fitContain(img: HTMLImageElement, box: { w: number; h: number }): NodeA
   };
 }
 
+function fitBanner(box: { w: number; h: number }): NodeAttrs {
+  return { x: 0, y: 0, width: box.w, height: box.h, rotation: 0 };
+}
+
 const BannerPiece = forwardRef<
   PieceHandle,
   {
@@ -84,7 +176,11 @@ const BannerPiece = forwardRef<
   const [bgColor, setBgColor] = useState(initial?.bgColor || "#ffffff");
   const [artworkImg, setArtworkImg] = useState<HTMLImageElement | null>(null);
   const [artworkAttrs, setArtworkAttrs] = useState<NodeAttrs | null>(null);
-  const [origSrc, setOrigSrc] = useState<string | null>(initial?.fullArtwork?.origSrc || initial?.fullArtwork?.src || null);
+  const [origFile, setOrigFile] = useState<File | null>(null);
+  // Data URL držíme zvlášť — export vždy načte čistý obrázek, ať canvas
+  // neznečistí cross-origin / Konva cache (Safari: „The operation is insecure.“).
+  const sourceDataUrlRef = useRef<string | null>(initial?.fullArtwork?.src || null);
+  const artworkPath = initial?.artworkPath || null;
   const [origType, setOrigType] = useState<string | null>(initial?.fullArtwork?.origType || null);
   const [selected, setSelected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,16 +188,31 @@ const BannerPiece = forwardRef<
   const stageRef = useRef<Konva.Stage>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
   const artworkNodeRef = useRef<Konva.Image>(null);
+  const [pixelRatio] = useState(() =>
+    typeof window !== "undefined" ? Math.min(Math.max(window.devicePixelRatio || 1, 1), 2) : 1
+  );
 
   useEffect(() => {
-    const src = initial?.fullArtwork?.src;
+    const fa = initial?.fullArtwork;
+    const src = fa?.src;
     if (!src) return;
     let cancelled = false;
+    sourceDataUrlRef.current = src.startsWith("data:") ? src : null;
     loadImage(src)
-      .then((img) => {
+      .then(async (img) => {
+        if (cancelled) return;
+        // Remote src přerenderujeme do data URL, ať jde exportovat.
+        if (!src.startsWith("data:")) {
+          try {
+            const safe = compressImage(img, PREVIEW_SIDE, PREVIEW_QUALITY);
+            sourceDataUrlRef.current = safe;
+            img = await loadImage(safe);
+          } catch {
+            /* necháme display, export při uložení požádá o znovunahrání */
+          }
+        }
         if (cancelled) return;
         setArtworkImg(img);
-        const fa = initial?.fullArtwork;
         if (fa) {
           setArtworkAttrs({
             x: fa.x * size.w,
@@ -127,40 +238,55 @@ const BannerPiece = forwardRef<
     const tr = transformerRef.current;
     if (!tr) return;
     tr.nodes(selected && artworkNodeRef.current ? [artworkNodeRef.current] : []);
+    tr.forceUpdate();
     tr.getLayer()?.batchDraw();
-  }, [selected, artworkImg]);
+  }, [selected, artworkImg, artworkAttrs]);
 
   useImperativeHandle(ref, () => ({
-    exportDesign() {
-      const thumb = stageRef.current?.toDataURL({ pixelRatio: 2 }) || null;
+    async exportDesign() {
       const attrs = artworkAttrs;
+      const dataUrl = sourceDataUrlRef.current;
+      if (!dataUrl || !attrs) {
+        return { bgColor, artworkPath: artworkPath || undefined, fullArtwork: null, thumb: null };
+      }
+      const exportImg = await loadImage(dataUrl);
+      // Mimo Konva stage — bez úchytů Transformeru, které dřív končily v PDF.
+      const thumb = renderHiResPreview(bgColor, exportImg, attrs, size);
       return {
         bgColor,
-        fullArtwork:
-          artworkImg && attrs
-            ? {
-                src: artworkImg.src,
-                origSrc: origSrc || artworkImg.src,
-                origType: origType || undefined,
-                x: attrs.x / size.w,
-                y: attrs.y / size.h,
-                w: attrs.width / size.w,
-                h: attrs.height / size.h,
-                rotation: attrs.rotation,
-              }
-            : null,
+        artworkPath: artworkPath || undefined,
+        fullArtwork: {
+          src: compressImage(exportImg, PREVIEW_SIDE, PREVIEW_QUALITY),
+          origType: origType || undefined,
+          x: attrs.x / size.w,
+          y: attrs.y / size.h,
+          w: attrs.width / size.w,
+          h: attrs.height / size.h,
+          rotation: attrs.rotation,
+        },
         thumb,
-        flagBounds: { x: 0, y: 0, w: size.w, h: size.h, pr: 2 },
+        flagBounds: { x: 0, y: 0, w: size.w, h: size.h, pr: PREVIEW_SIDE / Math.max(size.w, size.h) },
       };
+    },
+    originalFile() {
+      return origFile;
+    },
+    clearSelection() {
+      setSelected(false);
     },
   }));
 
-  function place(img: HTMLImageElement, fileSrc: string, fileType: string) {
-    setArtworkImg(img);
-    setArtworkAttrs(fitContain(img, size));
-    setOrigSrc(fileSrc);
-    setOrigType(fileType);
-    setSelected(true);
+  async function place(img: HTMLImageElement, file: File, sourceDataUrl: string) {
+    sourceDataUrlRef.current = sourceDataUrl;
+    const display =
+      Math.max(img.width, img.height) > DISPLAY_SIDE
+        ? await loadImage(compressImage(img, DISPLAY_SIDE, 0.9))
+        : img;
+    setArtworkImg(display);
+    setArtworkAttrs(fitContain(display, size));
+    setOrigFile(file);
+    setOrigType(file.type || null);
+    setSelected(false);
     setError(null);
   }
 
@@ -173,21 +299,33 @@ const BannerPiece = forwardRef<
       return;
     }
     try {
-      const original = await readFile(file);
       if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) {
         const url = URL.createObjectURL(file);
         try {
           const png = await renderPdfFirstPage(url);
-          place(await loadImage(png), original, "application/pdf");
+          await place(await loadImage(png), file, png);
         } finally {
           URL.revokeObjectURL(url);
         }
       } else {
-        place(await loadImage(original), original, file.type || "image/png");
+        const dataUrl = await readFile(file);
+        await place(await loadImage(dataUrl), file, dataUrl);
       }
-    } catch {
-      setError("Soubor se nepodařilo načíst.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setError(/insecure|SecurityError/i.test(msg) ? "Prohlížeč zablokoval grafiku. Zkus jiný soubor (JPG/PNG)." : "Soubor se nepodařilo načíst.");
     }
+  }
+
+  function centerToBanner() {
+    const node = artworkNodeRef.current;
+    if (node) {
+      node.scaleX(1);
+      node.scaleY(1);
+      node.rotation(0);
+    }
+    setArtworkAttrs(fitBanner(size));
+    setSelected(true);
   }
 
   function handleTransformEnd() {
@@ -212,10 +350,17 @@ const BannerPiece = forwardRef<
         <h3 style={{ margin: 0, fontSize: 16 }}>
           {total > 1 ? `Kus ${index + 1} z ${total}` : "Grafika"} · {widthCm || 0}×{heightCm || 0} cm
         </h3>
-        <label className="btn" style={{ cursor: "pointer" }}>
-          {artworkImg ? "Nahradit grafiku" : "Nahrát grafiku"}
-          <input type="file" accept="image/*,application/pdf" onChange={handleFile} hidden />
-        </label>
+        <div style={{ display: "flex", gap: 8 }}>
+          {artworkImg && (
+            <button type="button" className="btn" onClick={centerToBanner} title="Vycentruje a roztáhne grafiku přesně na rozměr banneru">
+              Vycentrovat
+            </button>
+          )}
+          <label className="btn" style={{ cursor: "pointer" }}>
+            {artworkImg ? "Nahradit grafiku" : "Nahrát grafiku"}
+            <input type="file" accept="image/*,application/pdf" onChange={handleFile} hidden />
+          </label>
+        </div>
       </div>
       <div className="swatches" style={{ marginBottom: 10 }}>
         {SWATCHES.map((c) => (
@@ -234,12 +379,13 @@ const BannerPiece = forwardRef<
           ref={stageRef}
           width={size.w}
           height={size.h}
+          pixelRatio={pixelRatio}
           onMouseDown={(e) => {
             if (e.target === e.target.getStage()) setSelected(false);
           }}
         >
           <Layer>
-            <Rect x={0} y={0} width={size.w} height={size.h} fill={bgColor || "#ffffff"} stroke="#111827" strokeWidth={2} />
+            <Rect x={0} y={0} width={size.w} height={size.h} fill={bgColor || "#ffffff"} />
             {artworkImg && artworkAttrs && (
               <KonvaImage
                 ref={artworkNodeRef}
@@ -256,6 +402,7 @@ const BannerPiece = forwardRef<
                 onTransformEnd={handleTransformEnd}
               />
             )}
+            <Rect x={0} y={0} width={size.w} height={size.h} stroke="#111827" strokeWidth={2} listening={false} />
             <Transformer ref={transformerRef} rotateEnabled resizeEnabled anchorSize={12} />
           </Layer>
         </Stage>
@@ -283,7 +430,17 @@ export default function BannerDesignEditor({ orderId, item }: { orderId: string;
     setSaving(true);
     setError(null);
     try {
-      const pieces = refs.current.slice(0, qty).map((handle) => handle?.exportDesign() || { thumb: null, fullArtwork: null });
+      for (const handle of refs.current.slice(0, qty)) handle?.clearSelection();
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      const pieces: Design[] = [];
+      for (let i = 0; i < qty; i++) {
+        const handle = refs.current[i];
+        const design = (await handle?.exportDesign()) || { thumb: null, fullArtwork: null };
+        const file = handle?.originalFile() || null;
+        if (file) design.artworkPath = await uploadOriginal(orderId, item.id, i, file);
+        pieces.push(design);
+      }
       const withArt = pieces.filter((p) => p.fullArtwork || p.thumb);
       if (!withArt.length) {
         setError("Nahraj grafiku aspoň k jednomu kusu.");
@@ -293,7 +450,14 @@ export default function BannerDesignEditor({ orderId, item }: { orderId: string;
       setSaved(true);
       setTimeout(() => router.push(`/orders/${orderId}`), 600);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Uložení selhalo.");
+      const msg = e instanceof Error ? e.message : "";
+      setError(
+        /unexpected response/i.test(msg)
+          ? "Server grafiku nepřijal. Soubor je na jedno uložení moc velký."
+          : /insecure|SecurityError/i.test(msg)
+            ? "Prohlížeč zablokoval export. Nahraj grafiku znovu a ulož."
+            : msg || "Uložení selhalo."
+      );
     } finally {
       setSaving(false);
     }

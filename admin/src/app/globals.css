@@ -283,7 +283,62 @@ header.app-header h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
 .visit-table td { padding: 8px 12px; border-bottom: 1px solid var(--color-border); font-size: 14px; }
 .visit-table tr:last-child td { border-bottom: none; }
 .visit-table td:not(:first-child) { font-weight: 700; }
-.visit-path { word-break: break-all; max-width: 220px; }
+.visit-path { word-break: break-all; max-width: 420px; }
+.visit-pages { margin: 8px 0 28px; }
+.visit-people { display: grid; gap: 8px; margin: 8px 0 28px; }
+.visit-person {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.visit-person.has-cart {
+  background: #e7f6ec;
+  border-color: #b7e0c4;
+}
+.visit-person-btn {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1.4fr) auto auto 64px;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 14px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.visit-person-btn:hover { background: rgba(8, 8, 10, 0.04); }
+.visit-person-btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.visit-person-btn code {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 700;
+}
+.visit-person.has-cart .visit-person-btn { color: #14532d; }
+.visit-cart-flag {
+  justify-self: end;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+.visit-person-detail { padding: 0 14px 14px; }
+.visit-person-detail .muted { margin: 12px 0 6px; }
+.visit-person-detail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.visit-person-detail li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 10px;
+  font-size: 13px;
+}
+.visit-person-detail li code { word-break: break-all; }
+@media (max-width: 720px) {
+  .visit-person-btn { grid-template-columns: 88px 1fr; }
+  .visit-person-detail li { grid-template-columns: 1fr; }
+}
 
 /* Items list (order line items) */
 .items-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
